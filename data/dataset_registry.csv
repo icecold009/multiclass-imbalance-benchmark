@@ -1,0 +1,1 @@
+dataset_id,display_name,source,source_id,source_url,license_or_terms,source_version,raw_sha256,task_type,target_column,n_rows,n_classes,class_counts,ir_majority_minority,n_min_class,d_raw,d_encoded,feature_type,has_missing,has_groups,has_time_order,has_duplicates,leakage_status,eligible,exclusion_reason,applicable_families,notes
