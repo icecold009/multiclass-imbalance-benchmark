@@ -18,8 +18,20 @@ matrix, environment record, and representative pilot have passed that gate.
 
 - Always work on a dedicated feature branch.
 - Never commit or merge directly to `main` without explicit user approval.
-- Keep commits coherent and reviewable; do not commit generated results with
-  implementation changes.
+- Use professional, coherent commits with Conventional Commit-style prefixes:
+  `feat`, `fix`, `docs`, `test`, `refactor`, `perf`, `build`, `ci`, `data`,
+  `research`, or `chore`.
+- Write an imperative subject line, keep it concise, and use an optional scope
+  when it improves reviewability, for example:
+  `research(stage0): record mixed-data applicability rules`.
+- Keep each commit focused on one logical change. Put the reason, evidence,
+  validation, and material risks in the body when the subject is insufficient.
+- Commit and push coherent work whenever doing so is necessary and relevant to
+  the task or enables review. Do not push unrelated work or use pushes as a
+  substitute for review.
+- A push never authorizes merging. Preserve explicit user approval for merge or
+  direct `main` work.
+- Do not commit generated results with implementation changes.
 - Preserve unrelated user changes and inspect `git status` before editing.
 - Use `apply_patch` for source and documentation edits.
 

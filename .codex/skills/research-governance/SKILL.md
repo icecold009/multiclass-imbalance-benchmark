@@ -49,3 +49,15 @@ For each proposed change, state its effect on:
 Prefer a smaller complete comparison over a larger matrix with invalid or
 missing cells. Record material decisions in the relevant document or commit
 message.
+
+## Commit and publish professionally
+
+- Commit one coherent research or implementation slice at a time.
+- Use an imperative Conventional Commit-style subject with a useful scope,
+  such as `research(stage0): lock pilot eligibility gates`.
+- Include validation evidence and unresolved limitations in the commit body when
+  they affect review.
+- Push the feature branch when the coherent slice is ready for review or when
+  the task materially benefits from a remote checkpoint.
+- Never push unrelated changes, merge automatically, or infer permission to
+  merge from permission to commit or push.
