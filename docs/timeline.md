@@ -21,7 +21,7 @@ Status markers: `[x]` complete, `[>]` current, `[!]` blocked, `[ ]` pending.
 
 | ID | Task | Status | Evidence / next action |
 |---|---|---|---|
-| SETUP-01 | Prepare the pre-research repository foundation, governance, skills, Stage 0 protocol, and pilot utilities. | [x] Complete | Commit `c6143a5`; feature branch pushed; static checks passed. |
+| SETUP-01 | Prepare the pre-research repository foundation, governance, skills, Stage 0 protocol, and pilot utilities. | [x] Complete | `c6143a5` plus the Stage 0 runbook, acquisition manifest, and setup verification script; PowerShell syntax and manifest-header checks passed. |
 | ENV-01 | Install supported Python, create `.venv`, install dependencies, and run the local test/import smoke checks. | [!] Blocked | No `python`, `py`, `pip`, `uv`, or `conda` executable is currently available. Install Python 3.12, then run `scripts/bootstrap.ps1`. |
 | ENV-02 | Record the reproducible OS, hardware, Python, and package environment. | [ ] Pending | Depends on ENV-01; run `scripts/record_environment.ps1`. |
 | REG-01 | Build and version the candidate dataset registry and acquisition manifests. | [ ] Pending | Start after environment bootstrap. |

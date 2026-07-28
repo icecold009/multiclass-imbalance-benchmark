@@ -10,7 +10,12 @@ the gates in [`docs/stage-0-feasibility.md`](docs/stage-0-feasibility.md).
 The staged work plan is documented in
 [`docs/timeline.md`](docs/timeline.md).
 
+The operational Stage 0 sequence is documented in
+[`docs/stage-0-runbook.md`](docs/stage-0-runbook.md).
+
 The registry schema is in [`data/dataset_registry.csv`](data/dataset_registry.csv).
+Retrieval provenance is tracked separately in
+[`data/acquisition_manifest.csv`](data/acquisition_manifest.csv).
 Candidate CSVs can be audited with:
 
 ```powershell
