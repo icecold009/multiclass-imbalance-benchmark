@@ -22,9 +22,9 @@ Status markers: `[x]` complete, `[>]` current, `[!]` blocked, `[ ]` pending.
 | ID | Task | Status | Evidence / next action |
 |---|---|---|---|
 | SETUP-01 | Prepare the pre-research repository foundation, governance, skills, Stage 0 protocol, and pilot utilities. | [x] Complete | `c6143a5` plus the Stage 0 runbook, acquisition manifest, and setup verification script; PowerShell syntax and manifest-header checks passed. |
-| ENV-01 | Install supported Python, create `.venv`, install dependencies, and run the local test/import smoke checks. | [!] Blocked | No `python`, `py`, `pip`, `uv`, or `conda` executable is currently available. Install Python 3.12, then run `scripts/bootstrap.ps1`. |
-| ENV-02 | Record the reproducible OS, hardware, Python, and package environment. | [ ] Pending | Depends on ENV-01; run `scripts/record_environment.ps1`. |
-| REG-01 | Build and version the candidate dataset registry and acquisition manifests. | [ ] Pending | Start after environment bootstrap. |
+| ENV-01 | Install supported Python, create `.venv`, install dependencies, and run the local test/import smoke checks. | [x] Complete | `.venv` bootstrapped; 3 tests passed; Ruff and both Stage 0 module smoke checks passed; commit `77ea654`. |
+| ENV-02 | Record the reproducible OS, hardware, Python, and package environment. | [x] Complete | `artifacts/environment/metadata.json`, `pip-freeze.txt`, and clean `pip-check.txt` generated. |
+| REG-01 | Build and version the candidate dataset registry and acquisition manifests. | [>] Current | Acquisition-manifest scaffold is committed; populate candidate source records and registry evidence next. |
 | AUD-01 | Audit eligibility, leakage, duplicates, identifiers, missingness, labels, support, and feature types. | [ ] Pending | Requires acquired candidate datasets. |
 | PILOT-01 | Run the representative Stage 0 pilot across numeric, mixed, low-support, and larger/high-dimensional datasets. | [ ] Pending | Requires ENV-01/02, REG-01, and AUD-01. |
 | LOCK-01 | Resolve failures and freeze dataset count, applicability, samplers, classifiers, and settings. | [ ] Pending | Gate A; do not lock before the pilot produces real feasibility evidence. |
