@@ -9,12 +9,47 @@ The dates below assume a start week of 2026-08-03. Shift the dates if the Python
 environment or dataset access is delayed; do not compress the validation gates
 to preserve the target date.
 
+## Live progress
+
+Last updated: 2026-07-28
+
+The critical-path table below is the forecast. The task-status table is the
+current execution source of truth and must be updated whenever a task is
+completed, blocked, or materially re-scoped.
+
+Status markers: `[x]` complete, `[>]` current, `[!]` blocked, `[ ]` pending.
+
+| ID | Task | Status | Evidence / next action |
+|---|---|---|---|
+| SETUP-01 | Prepare the pre-research repository foundation, governance, skills, Stage 0 protocol, and pilot utilities. | [x] Complete | Commit `c6143a5`; feature branch pushed; static checks passed. |
+| ENV-01 | Install supported Python, create `.venv`, install dependencies, and run the local test/import smoke checks. | [!] Blocked | No `python`, `py`, `pip`, `uv`, or `conda` executable is currently available. Install Python 3.12, then run `scripts/bootstrap.ps1`. |
+| ENV-02 | Record the reproducible OS, hardware, Python, and package environment. | [ ] Pending | Depends on ENV-01; run `scripts/record_environment.ps1`. |
+| REG-01 | Build and version the candidate dataset registry and acquisition manifests. | [ ] Pending | Start after environment bootstrap. |
+| AUD-01 | Audit eligibility, leakage, duplicates, identifiers, missingness, labels, support, and feature types. | [ ] Pending | Requires acquired candidate datasets. |
+| PILOT-01 | Run the representative Stage 0 pilot across numeric, mixed, low-support, and larger/high-dimensional datasets. | [ ] Pending | Requires ENV-01/02, REG-01, and AUD-01. |
+| LOCK-01 | Resolve failures and freeze dataset count, applicability, samplers, classifiers, and settings. | [ ] Pending | Gate A; do not lock before the pilot produces real feasibility evidence. |
+| PROTO-01 | Freeze the statistical analysis plan and complete-case rules. | [ ] Pending | Finalize before full benchmark execution. |
+| TEST-01 | Pass leakage, fold-boundary, categorical, and weight-routing tests. | [ ] Pending | Gate B. |
+| RUN-01 | Execute the locked benchmark with resumability, provenance, failure logs, and resource logging. | [ ] Pending | Starts only after Gates A-C. |
+| ANALYSIS-01 | Aggregate results, run pre-specified statistics/effect sizes, and generate figures. | [ ] Pending | Starts after Gate D. |
+| PAPER-01 | Write and review the paper against generated evidence. | [ ] Pending | Starts after the analysis freeze. |
+| REPRO-01 | Reproduce the locked workflow from a clean checkout and archive manifests. | [ ] Pending | Gate F. |
+| SUBMIT-01 | Finalize release materials and preserve the submitted commit snapshot. | [ ] Pending | Gate G. |
+
+### Update rule
+
+When work lands, update this table and the relevant schedule row in the same
+logical commit. Add the commit or artifact that supports `[x]`, record the
+blocker for `[!]`, move `[>]` to the next actionable task, and update the
+`Last updated` date. A pilot is a feasibility gate, not evidence for the final
+paper's claims.
+
 ## Completed before Week 1
 
-- Created the Stage 0 feasibility protocol and registry schema.
-- Added the fold-safe pilot, audit, failure, and guarded statistics utilities.
-- Added repository governance and project-specific skills.
-- Established the feature branch and pushed the current implementation.
+- [x] Created the Stage 0 feasibility protocol and registry schema.
+- [x] Added the fold-safe pilot, audit, failure, and guarded statistics utilities.
+- [x] Added repository governance and project-specific skills.
+- [x] Established the feature branch and pushed the current implementation.
 
 ## Critical path
 
@@ -81,4 +116,3 @@ The first paper is complete when the repository contains:
 - documented failures and exclusions;
 - a paper whose claims match the evidence;
 - a final commit snapshot that can be reproduced from a clean checkout.
-
