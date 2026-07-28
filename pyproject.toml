@@ -1,5 +1,6 @@
 [tool.pytest.ini_options]
-addopts = "-q"
+addopts = "-q --basetemp=artifacts/test-tmp"
+cache_dir = "artifacts/test-cache"
 pythonpath = ["."]
 testpaths = ["tests"]
 

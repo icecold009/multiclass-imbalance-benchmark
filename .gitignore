@@ -1,5 +1,6 @@
 # Python environments and caches
 .venv/
+.python312/
 venv/
 env/
 __pycache__/
@@ -22,6 +23,8 @@ results/*
 !results/.gitkeep
 artifacts/runs/*
 !artifacts/runs/.gitkeep
+artifacts/test-tmp/*
+artifacts/test-cache/*
 artifacts/environment/*
 !artifacts/environment/.gitkeep
 
