@@ -15,6 +15,17 @@ from typing import Any
 
 import numpy as np
 import pandas as pd
+from imblearn.combine import SMOTEENN, SMOTETomek
+from imblearn.ensemble import BalancedRandomForestClassifier
+from imblearn.over_sampling import (
+    ADASYN,
+    SMOTE,
+    SMOTENC,
+    BorderlineSMOTE,
+    RandomOverSampler,
+)
+from imblearn.pipeline import Pipeline as ImblearnPipeline
+from imblearn.under_sampling import RandomUnderSampler
 from sklearn.base import clone
 from sklearn.compose import ColumnTransformer
 from sklearn.ensemble import RandomForestClassifier
@@ -34,18 +45,6 @@ from sklearn.preprocessing import (
     StandardScaler,
 )
 from sklearn.utils.class_weight import compute_sample_weight
-
-from imblearn.combine import SMOTEENN, SMOTETomek
-from imblearn.ensemble import BalancedRandomForestClassifier
-from imblearn.over_sampling import (
-    ADASYN,
-    BorderlineSMOTE,
-    RandomOverSampler,
-    SMOTE,
-    SMOTENC,
-)
-from imblearn.pipeline import Pipeline as ImblearnPipeline
-from imblearn.under_sampling import RandomUnderSampler
 
 from src.stats import analyse_results
 

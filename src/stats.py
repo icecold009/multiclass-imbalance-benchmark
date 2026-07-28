@@ -6,7 +6,6 @@ from pathlib import Path
 
 import pandas as pd
 
-
 METRICS = ("macro_f1", "g_mean", "mcc", "balanced_accuracy")
 
 
@@ -68,8 +67,8 @@ def write_friedman_summary(results: pd.DataFrame, output_dir: Path) -> pd.DataFr
                 p_value = None
                 if len(means) < 3:
                     reason = "fewer than three dataset blocks"
-                elif means.shape[1] < 2:
-                    reason = "fewer than two conditions"
+                elif means.shape[1] < 3:
+                    reason = "fewer than three conditions for Friedman test"
                 elif means.isna().any().any():
                     reason = "incomplete dataset-by-condition block"
                 else:

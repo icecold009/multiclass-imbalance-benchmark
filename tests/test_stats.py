@@ -8,7 +8,11 @@ from src.stats import write_friedman_summary, write_rankings
 def test_rankings_aggregate_folds_and_seeds(tmp_path: Path) -> None:
     rows = []
     for dataset in ["a", "b", "c"]:
-        for condition, score in [("raw", 0.4), ("smote", 0.6)]:
+        for condition, score in [
+            ("raw", 0.4),
+            ("random_under", 0.5),
+            ("smote", 0.6),
+        ]:
             for seed in [0, 1]:
                 rows.append(
                     {
@@ -29,6 +33,6 @@ def test_rankings_aggregate_folds_and_seeds(tmp_path: Path) -> None:
     rankings = write_rankings(results, tmp_path)
     summary = write_friedman_summary(results, tmp_path)
 
-    assert set(rankings["condition"]) == {"raw", "smote"}
+    assert set(rankings["condition"]) == {"raw", "random_under", "smote"}
     assert (rankings.loc[rankings["condition"] == "smote", "rank"] == 1).all()
     assert (summary["status"] == "computed").any()
