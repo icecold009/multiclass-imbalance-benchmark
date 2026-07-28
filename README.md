@@ -7,6 +7,9 @@ The repository is in **Stage 0: feasibility and dataset audit**. The full
 dataset list and comparison matrix will be locked only after the pilot passes
 the gates in [`docs/stage-0-feasibility.md`](docs/stage-0-feasibility.md).
 
+The staged work plan is documented in
+[`docs/timeline.md`](docs/timeline.md).
+
 The registry schema is in [`data/dataset_registry.csv`](data/dataset_registry.csv).
 Candidate CSVs can be audited with:
 
