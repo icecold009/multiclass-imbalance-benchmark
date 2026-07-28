@@ -288,7 +288,7 @@ def build_pipeline(
             n_jobs=1,
         )
 
-    sampler, mixed_sampler = sampler_for(condition, layout, random_state)
+    sampler, _ = sampler_for(condition, layout, random_state)
     if layout.is_mixed:
         steps: list[tuple[str, Any]] = [("pre_sampler", mixed_pre_sampler(layout))]
         if sampler is not None:

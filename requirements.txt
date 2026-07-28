@@ -1,8 +1,14 @@
-numpy
-pandas
-scikit-learn
-imbalanced-learn
-xgboost
-psutil
-scipy
-scikit-posthocs
+# Direct dependencies for Stage 0. Record the exact installed freeze before
+# the full benchmark; these bounds keep provisional installs reproducible
+# without claiming that the current machine has been validated yet.
+numpy>=2.0,<3
+pandas>=2.2,<3
+scikit-learn==1.9.0
+imbalanced-learn==0.14.2
+xgboost==3.3.0
+psutil>=6,<8
+scipy>=1.13,<2
+scikit-posthocs==0.14.0
+pyyaml>=6,<7
+pytest>=8,<9
+ruff>=0.8,<1

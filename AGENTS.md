@@ -56,6 +56,12 @@ matrix, environment record, and representative pilot have passed that gate.
 
 - [`docs/stage-0-feasibility.md`](docs/stage-0-feasibility.md): scope gates
   and eligibility rules.
+- [`docs/protocol.md`](docs/protocol.md): pre-research protocol template.
+- [`docs/timeline.md`](docs/timeline.md): staged delivery timeline and gates.
+- [`docs/environment.md`](docs/environment.md): environment bootstrap and
+  recording procedure.
+- [`docs/data-acquisition.md`](docs/data-acquisition.md): provenance and data
+  storage policy.
 - [`data/dataset_registry.csv`](data/dataset_registry.csv): dataset evidence
   and inclusion decisions.
 - [`src/stage0.py`](src/stage0.py): candidate CSV audit behavior.

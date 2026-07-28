@@ -19,3 +19,7 @@ python -m src.stage0 path\to\candidate.csv --target target_column
 
 The pilot is evidence-gathering only; its scores must not be used to select
 datasets or methods.
+
+Before acquiring research data, follow [`docs/environment.md`](docs/environment.md)
+and [`docs/data-acquisition.md`](docs/data-acquisition.md). The pre-registered
+protocol template is [`docs/protocol.md`](docs/protocol.md).
