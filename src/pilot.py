@@ -8,6 +8,7 @@ combinations are visible before the full benchmark is designed.
 from __future__ import annotations
 
 import argparse
+import json
 import time
 from dataclasses import dataclass
 from pathlib import Path
@@ -40,6 +41,7 @@ from sklearn.metrics import (
 from sklearn.model_selection import StratifiedKFold
 from sklearn.pipeline import Pipeline as SklearnPipeline
 from sklearn.preprocessing import (
+    LabelEncoder,
     OneHotEncoder,
     OrdinalEncoder,
     StandardScaler,
@@ -84,9 +86,20 @@ class FeatureLayout:
         return bool(self.numeric) and not self.categorical
 
 
-def feature_layout(frame: pd.DataFrame, target: str) -> FeatureLayout:
+def feature_layout(
+    frame: pd.DataFrame,
+    target: str,
+    categorical_columns: tuple[str, ...] = (),
+) -> FeatureLayout:
     features = frame.drop(columns=[target])
-    numeric = tuple(features.select_dtypes(include="number").columns)
+    missing_columns = set(categorical_columns) - set(features.columns)
+    if missing_columns:
+        raise ValueError(f"Categorical columns are not present: {sorted(missing_columns)}")
+    numeric = tuple(
+        column
+        for column in features.select_dtypes(include="number").columns
+        if column not in categorical_columns
+    )
     categorical = tuple(column for column in features.columns if column not in numeric)
     if not numeric:
         raise ValueError("Categorical-only datasets are not supported by this pilot")
@@ -100,12 +113,22 @@ def _one_hot_encoder() -> OneHotEncoder:
         return OneHotEncoder(handle_unknown="ignore", sparse=False)
 
 
-def numeric_preprocessor(layout: FeatureLayout) -> SklearnPipeline:
-    return SklearnPipeline(
+def numeric_preprocessor(layout: FeatureLayout) -> ColumnTransformer:
+    return ColumnTransformer(
         [
-            ("impute", SimpleImputer(strategy="median")),
-            ("scale", StandardScaler()),
-        ]
+            (
+                "numeric",
+                SklearnPipeline(
+                    [
+                        ("impute", SimpleImputer(strategy="median")),
+                        ("scale", StandardScaler()),
+                    ]
+                ),
+                list(layout.numeric),
+            )
+        ],
+        remainder="drop",
+        verbose_feature_names_out=False,
     )
 
 
@@ -339,14 +362,16 @@ def run_pilot(
     output_dir: Path,
     seeds: tuple[int, ...] = (0, 1, 2),
     folds: int = 5,
+    categorical_columns: tuple[str, ...] = (),
 ) -> None:
     frame = pd.read_csv(csv_path)
     if target not in frame.columns:
         raise ValueError(f"Target column {target!r} is not present")
     frame = frame.dropna(subset=[target]).reset_index(drop=True)
-    layout = feature_layout(frame, target)
+    layout = feature_layout(frame, target, categorical_columns=categorical_columns)
     X = frame.drop(columns=[target])
-    y = frame[target]
+    target_encoder = LabelEncoder()
+    y = pd.Series(target_encoder.fit_transform(frame[target]), name=target)
     labels = sorted(y.unique().tolist(), key=str)
     if len(labels) < 3:
         raise ValueError("Stage 0 requires at least three target classes")
@@ -354,6 +379,20 @@ def run_pilot(
         raise ValueError("Every class must have at least one example per fold")
 
     output_dir.mkdir(parents=True, exist_ok=True)
+    (output_dir / "pilot_metadata.json").write_text(
+        json.dumps(
+            {
+                "target_column": target,
+                "target_label_classes": [str(value) for value in target_encoder.classes_],
+                "categorical_columns": list(categorical_columns),
+                "folds": folds,
+                "seeds": list(seeds),
+            },
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
     results: list[dict[str, Any]] = []
     failures: list[dict[str, Any]] = []
 
@@ -444,6 +483,12 @@ def main() -> None:
     parser.add_argument("--output-dir", type=Path, default=Path("results/stage0"))
     parser.add_argument("--folds", type=int, default=5)
     parser.add_argument("--seeds", type=int, nargs="+", default=[0, 1, 2])
+    parser.add_argument(
+        "--categorical-columns",
+        nargs="+",
+        default=[],
+        help="Semantic categorical columns that are numerically encoded in the CSV",
+    )
     args = parser.parse_args()
     run_pilot(
         args.csv_path,
@@ -451,6 +496,7 @@ def main() -> None:
         args.output_dir,
         seeds=tuple(args.seeds),
         folds=args.folds,
+        categorical_columns=tuple(args.categorical_columns),
     )
 
 
