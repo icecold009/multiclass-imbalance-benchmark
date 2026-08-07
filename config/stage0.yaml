@@ -9,7 +9,7 @@ cross_validation:
 
 eligibility:
   minimum_classes: 3
-  minimum_class_support_rule: "must be defined before scope lock"
+  minimum_class_support_rule: "provisional Stage 0 floor: n_min_class >= 5 for five-fold stratification with k_neighbors=3; final threshold must be frozen at scope lock"
   categorical_only: exclude_until_smoten
   require_public_source: true
   require_license_or_terms: true

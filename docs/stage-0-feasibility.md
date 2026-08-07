@@ -31,6 +31,13 @@ Every candidate must satisfy the following before entering the benchmark:
 5. It has no unresolved group, time-order, duplicate, or target-leakage issue.
 6. Its cleaning decisions can be applied without domain-specific guesswork.
 
+For the current Stage 0 feasibility audit, the provisional structural floor is
+`n_min_class >= 5`: this is the minimum needed to place one observation in each
+of five stratified test folds while retaining four training observations for
+the configured `k_neighbors=3` samplers. This is a feasibility floor, not a
+claim of adequate statistical power; the final threshold must be frozen at the
+scope-lock gate.
+
 The registry must record both the global majority/minority ratio and the full
 per-class distribution. `d_raw` means the number of source features before
 encoding; `d_encoded` is measured after fitting the fold-specific encoder.
@@ -87,4 +94,3 @@ Proceed to the full benchmark only when:
 - memory and runtime fit the available hardware budget;
 - the final dataset list and analysis families are committed before inspecting
   full-run performance.
-
