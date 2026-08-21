@@ -83,6 +83,39 @@ they must not select datasets or methods.
 
 ## 5. Scope-lock review
 
+The repository provides a deterministic evidence writer for the scope lock.
+`--pilot-status passed` records a human review decision only; it cannot replace
+the hashed pilot-review evidence. Missing, stale, malformed, or incomplete
+evidence keeps Gate A pending:
+
+```powershell
+.venv\Scripts\python.exe -m src.stage0 lock `
+  --registry data\dataset_registry.csv `
+  --manifest data\acquisition_manifest.csv `
+  --pilot-evidence artifacts\runs\stage0-pilot-review.json `
+  --pilot-status pending `
+  --json-out artifacts\runs\scope-lock.json
+```
+
+The pilot-review manifest must use `stage0-pilot-review-v1` and record the
+current registry and acquisition-manifest hashes, hashed environment and
+configuration references, and one run for every retained dataset. Each run
+must hash `pilot_metadata.json`, `pilot_results.csv`, `pilot_failures.csv`,
+`pilot_rankings.csv`, and `pilot_friedman_summary.csv`; reference hashed
+runtime and peak-memory evidence; record the memory measurement method and
+value, runtime and budget, deterministic replay, failure review, output
+completeness, and expected/valid/failure cell counts. The validator checks the
+actual raw-file path, byte size, and SHA-256 from the acquisition manifest and
+checks that valid plus explicit failure rows cover every expected comparison
+cell. It never selects datasets or methods by pilot score.
+
+Applicability values in `dataset_registry.csv` are canonical, semicolon-
+delimited tokens such as `numeric;raw;class_weighted;smote`; whitespace is not
+a delimiter, and empty or unknown tokens block the lock. The registry and
+acquisition manifest must agree on dataset/source IDs, source metadata,
+licenses/terms, hashes, and the local file evidence. Raw data and generated run
+artifacts remain ignored and uncommitted.
+
 Before the full benchmark, commit evidence for every Stage 0 gate:
 
 - complete registry and acquisition manifests;

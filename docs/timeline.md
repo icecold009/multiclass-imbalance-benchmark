@@ -11,7 +11,7 @@ to preserve the target date.
 
 ## Live progress
 
-Last updated: 2026-08-07
+Last updated: 2026-08-21
 
 The critical-path table below is the forecast. The task-status table is the
 current execution source of truth and must be updated whenever a task is
@@ -24,10 +24,10 @@ Status markers: `[x]` complete, `[>]` current, `[!]` blocked, `[ ]` pending.
 | SETUP-01 | Prepare the pre-research repository foundation, governance, skills, Stage 0 protocol, and pilot utilities. | [x] Complete | `c6143a5` plus the Stage 0 runbook, acquisition manifest, and setup verification script; PowerShell syntax and manifest-header checks passed. |
 | ENV-01 | Install supported Python, create `.venv`, install dependencies, and run the local test/import smoke checks. | [x] Complete | Repository-local Python 3.12.10 and `.venv` are usable without elevation; 3 tests passed; Ruff and both Stage 0 module smoke checks passed. |
 | ENV-02 | Record the reproducible OS, hardware, Python, and package environment. | [x] Complete | `artifacts/environment/metadata.json`, `pip-freeze.txt`, and clean `pip-check.txt` generated. |
-| REG-01 | Build and version the candidate dataset registry and acquisition manifests. | [x] Complete | Seven OpenML candidates recorded with source IDs, source URLs, retrieval metadata, local hashes, class distributions, and provisional applicability; letter, yeast, CMC, and Glass are provisionally eligible. |
-| AUD-01 | Audit eligibility, leakage, duplicates, identifiers, missingness, labels, support, and feature types. | [x] Complete | Seven candidates manually resolved: letter, yeast, CMC, and Glass provisionally eligible; vehicle, page-blocks, and raw abalone excluded for documented group/support reasons. Provisional support floor is `n_min_class >= 5`; final threshold remains a scope-lock decision. |
-| PILOT-01 | Run the representative Stage 0 pilot across numeric, mixed, low-support, and larger/high-dimensional datasets. | [>] Current | CMC completed 330 valid cells and 165 explicit applicability failures in 130.7 seconds; Glass completed 375 valid cells and 120 explicit failures in 102.2 seconds; yeast completed 375 valid cells and 120 explicit applicability/feasibility failures in about 193 seconds; the corrected letter rerun exceeded the 900-second budget without final artifacts. Resolve the large-dataset runtime budget and scope decision before lock. |
-| LOCK-01 | Resolve failures and freeze dataset count, applicability, samplers, classifiers, and settings. | [ ] Pending | Gate A; do not lock before the pilot produces real feasibility evidence. |
+| REG-01 | Build and version the candidate dataset registry and acquisition manifests. | [x] Complete | Seven OpenML candidates recorded with source IDs, source URLs, retrieval metadata, local hashes, class distributions, and canonical semicolon-delimited applicability; Letter is explicitly deferred for the corrected runtime-budget failure, while Yeast, CMC, and Glass remain eligible. |
+| AUD-01 | Audit eligibility, leakage, duplicates, identifiers, missingness, labels, support, and feature types. | [x] Complete | Seven candidates manually resolved: Yeast, CMC, and Glass retained; Letter deferred after the corrected run exceeded 900 seconds without complete artifacts; vehicle, page-blocks, and raw abalone remain excluded for documented group/support reasons. The provisional floor remains `n_min_class >= 5`; it is not final statistical-power policy. |
+| PILOT-01 | Run the representative Stage 0 pilot across numeric, mixed, low-support, and larger/high-dimensional datasets. | [x] Complete | Each retained candidate has 495 expected cells across 3 classifiers, 11 conditions, 3 seeds, and 5 folds. CMC completed 330 valid cells and 165 explicit applicability failures in about 130.7 seconds; Glass completed 375 valid cells and 120 explicit failures in about 102.2 seconds; Yeast completed 375 valid cells and 120 explicit failures in about 193 seconds. Recorded peak RSS was 203.99 MiB, 186.56 MiB, and 223.61 MiB respectively using the pilot's psutil RSS samples. The corrected Letter rerun exceeded the 900-second budget without complete artifacts. Deterministic replay is not yet independently evidenced. |
+| LOCK-01 | Resolve failures and freeze dataset count, applicability, samplers, classifiers, and settings. | [!] Blocked | Gate A remains pending until the hashed pilot-review manifest records current registry/manifest/configuration/environment evidence, deterministic replay, failure review, runtime/memory evidence, and complete cells for Yeast, CMC, and Glass. Do not start the full benchmark. |
 | PROTO-01 | Freeze the statistical analysis plan and complete-case rules. | [ ] Pending | Finalize before full benchmark execution. |
 | TEST-01 | Pass leakage, fold-boundary, categorical, and weight-routing tests. | [ ] Pending | Gate B. |
 | RUN-01 | Execute the locked benchmark with resumability, provenance, failure logs, and resource logging. | [ ] Pending | Starts only after Gates A-C. |
@@ -43,6 +43,31 @@ logical commit. Add the commit or artifact that supports `[x]`, record the
 blocker for `[!]`, move `[>]` to the next actionable task, and update the
 `Last updated` date. A pilot is a feasibility gate, not evidence for the final
 paper's claims.
+
+### Stage 0 evidence boundary (2026-08-21)
+
+The retained local pilot artifacts under ignored `artifacts/runs/` are the
+evidence source for the counts above; they are not committed results. Their
+failure CSVs remain part of the evidence and include the expected protocol
+boundaries: ordinary SMOTE-family conditions are not applicable to mixed CMC,
+SMOTENC is not applicable to numeric Glass or Yeast, and Balanced Random Forest
+is an RF-only comparator. ADASYN and other sampler failures remain explicit
+rows, not silently missing cells.
+
+The corrected Letter run is explicitly deferred for feasibility reasons: it
+exceeded the 900-second Stage 0 budget before complete output artifacts were
+written. This is a runtime/provenance decision, not a pilot-score decision;
+reconsideration requires protocol-preserving optimization or a dated,
+approved resource-budget amendment. The registry and acquisition manifest
+continue to preserve Letter's source ID, path, byte size, hash, license, and
+exclusion rationale.
+
+Gate A is not frozen by this evidence summary. An independent deterministic
+replay and a hashed pilot-review manifest still have to pass the scope-lock
+validator still have to pass before any full benchmark work begins. The three-
+dataset retained set is documented as a provisional smaller feasibility scope;
+it does not meet the provisional 12–19 target, and its scope approval remains
+an explicit Gate A review item rather than an invented approval.
 
 ## Completed before Week 1
 
