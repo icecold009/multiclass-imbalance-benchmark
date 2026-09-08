@@ -1,0 +1,85 @@
+project: multiclass-imbalance-benchmark
+protocol_version: stage0-v1
+
+cross_validation:
+  splitter: StratifiedKFold
+  n_splits: 5
+  seeds: [0, 1, 2]
+  shuffle: true
+
+eligibility:
+  minimum_classes: 3
+  minimum_class_support_rule: "provisional Stage 0 floor: n_min_class >= 5 for five-fold stratification with k_neighbors=3; final threshold must be frozen at scope lock"
+  categorical_only: exclude_until_smoten
+  require_public_source: true
+  require_license_or_terms: true
+  require_sha256: true
+
+classifiers:
+  random_forest:
+    n_estimators: 200
+    n_jobs: 1
+  logistic_regression:
+    max_iter: 1000
+  xgboost:
+    n_estimators: 200
+    eval_metric: mlogloss
+    tree_method: hist
+    n_jobs: 1
+
+conditions:
+  - id: raw
+    family: baseline
+  - id: class_weighted
+    family: weighting
+    weighting_rule: balanced
+  - id: random_over
+    family: resampling
+    sampling_strategy: not_majority
+  - id: random_under
+    family: resampling
+    sampling_strategy: not_minority
+  - id: smote
+    family: resampling
+    sampling_strategy: not_majority
+    k_neighbors: 3
+  - id: adasyn
+    family: resampling
+    sampling_strategy: not_majority
+    n_neighbors: 3
+  - id: borderline_smote
+    family: resampling
+    sampling_strategy: not_majority
+    kind: borderline-1
+    k_neighbors: 3
+  - id: smotenc
+    family: resampling
+    applicability: mixed_only
+    sampling_strategy: not_majority
+    k_neighbors: 3
+  - id: smoteenn
+    family: resampling
+    sampling_strategy: not_majority
+    k_neighbors: 3
+  - id: smotetomek
+    family: resampling
+    sampling_strategy: not_majority
+    k_neighbors: 3
+  - id: balanced_random_forest
+    family: balanced_ensemble
+    classifier_applicability: random_forest_only
+    sampling_strategy: all
+    replacement: true
+    n_estimators: 200
+
+metrics:
+  primary: macro_f1
+  secondary: [g_mean, mcc, balanced_accuracy, per_class_recall]
+  zero_division: 0
+
+paths:
+  registry: data/dataset_registry.csv
+  raw_data: data/raw
+  processed_data: data/processed
+  results: results/stage0
+  environment_record: artifacts/environment
