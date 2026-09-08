@@ -11,7 +11,7 @@ to preserve the target date.
 
 ## Live progress
 
-Last updated: 2026-08-21
+Last updated: 2026-09-08
 
 The critical-path table below is the forecast. The task-status table is the
 current execution source of truth and must be updated whenever a task is
@@ -24,10 +24,10 @@ Status markers: `[x]` complete, `[>]` current, `[!]` blocked, `[ ]` pending.
 | SETUP-01 | Prepare the pre-research repository foundation, governance, skills, Stage 0 protocol, and pilot utilities. | [x] Complete | `c6143a5` plus the Stage 0 runbook, acquisition manifest, and setup verification script; PowerShell syntax and manifest-header checks passed. |
 | ENV-01 | Install supported Python, create `.venv`, install dependencies, and run the local test/import smoke checks. | [x] Complete | Repository-local Python 3.12.10 and `.venv` are usable without elevation; 3 tests passed; Ruff and both Stage 0 module smoke checks passed. |
 | ENV-02 | Record the reproducible OS, hardware, Python, and package environment. | [x] Complete | `artifacts/environment/metadata.json`, `pip-freeze.txt`, and clean `pip-check.txt` generated. |
-| REG-01 | Build and version the candidate dataset registry and acquisition manifests. | [x] Complete | Seven OpenML candidates recorded with source IDs, source URLs, retrieval metadata, local hashes, class distributions, and canonical semicolon-delimited applicability; Letter is explicitly deferred for the corrected runtime-budget failure, while Yeast, CMC, and Glass remain eligible. |
-| AUD-01 | Audit eligibility, leakage, duplicates, identifiers, missingness, labels, support, and feature types. | [x] Complete | Seven candidates manually resolved: Yeast, CMC, and Glass retained; Letter deferred after the corrected run exceeded 900 seconds without complete artifacts; vehicle, page-blocks, and raw abalone remain excluded for documented group/support reasons. The provisional floor remains `n_min_class >= 5`; it is not final statistical-power policy. |
-| PILOT-01 | Run the representative Stage 0 pilot across numeric, mixed, low-support, and larger/high-dimensional datasets. | [x] Complete | Each retained candidate has 495 expected cells across 3 classifiers, 11 conditions, 3 seeds, and 5 folds. CMC completed 330 valid cells and 165 explicit applicability failures in about 130.7 seconds; Glass completed 375 valid cells and 120 explicit failures in about 102.2 seconds; Yeast completed 375 valid cells and 120 explicit failures in about 193 seconds. Recorded peak RSS was 203.99 MiB, 186.56 MiB, and 223.61 MiB respectively using the pilot's psutil RSS samples. The corrected Letter rerun exceeded the 900-second budget without complete artifacts. Deterministic replay is not yet independently evidenced. |
-| LOCK-01 | Resolve failures and freeze dataset count, applicability, samplers, classifiers, and settings. | [!] Blocked | Gate A remains pending until the hashed pilot-review manifest records current registry/manifest/configuration/environment evidence, deterministic replay, failure review, runtime/memory evidence, and complete cells for Yeast, CMC, and Glass. Do not start the full benchmark. |
+| REG-01 | Build and version the candidate dataset registry and acquisition manifests. | [x] Complete | Twenty-five OpenML/UCI candidates are recorded with exact source IDs/URLs, versioned retrieval metadata, local SHA-256/file-size evidence, class distributions, and canonical semicolon-delimited applicability. The reproducible acquisition script and semantic categorical override manifest are committed; raw files remain ignored. |
+| AUD-01 | Audit eligibility, leakage, duplicates, identifiers, missingness, labels, support, and feature types. | [x] Complete | Twelve candidates are provisionally retained: Yeast, CMC, Glass, Balance Scale, Multiple Features (Factors), Optdigits, Dermatology, Iris, Wine, CNAE-9, Seeds, and Wine Quality Red. Thirteen candidates are excluded or deferred for documented runtime, support, group, duplicate-label, related-source, spatial, or categorical-only reasons. The provisional floor remains `n_min_class >= 5`; it is not final statistical-power policy. |
+| PILOT-01 | Run the representative Stage 0 pilot across numeric, mixed, low-support, and larger/high-dimensional datasets. | [>] Current | Existing pilot evidence covers CMC, Glass, and Yeast only. Run the locked representative pilot for the expanded provisional set using the recorded categorical overrides; do not select datasets or methods from pilot scores. |
+| LOCK-01 | Resolve failures and freeze dataset count, applicability, samplers, classifiers, and settings. | [!] Blocked | Gate A remains pending until the expanded retained set has complete hashed pilot-review evidence, deterministic replay, failure review, runtime/memory evidence, and complete cells. The current ignored pilot-review manifest hashes the previous seven-row registry and is stale after this audit update. Do not start the full benchmark. |
 | PROTO-01 | Freeze the statistical analysis plan and complete-case rules. | [ ] Pending | Finalize before full benchmark execution. |
 | TEST-01 | Pass leakage, fold-boundary, categorical, and weight-routing tests. | [ ] Pending | Gate B. |
 | RUN-01 | Execute the locked benchmark with resumability, provenance, failure logs, and resource logging. | [ ] Pending | Starts only after Gates A-C. |
@@ -44,7 +44,7 @@ blocker for `[!]`, move `[>]` to the next actionable task, and update the
 `Last updated` date. A pilot is a feasibility gate, not evidence for the final
 paper's claims.
 
-### Stage 0 evidence boundary (2026-08-21)
+### Stage 0 evidence boundary (2026-09-08)
 
 The retained local pilot artifacts under ignored `artifacts/runs/` are the
 evidence source for the counts above; they are not committed results. Their
@@ -68,6 +68,13 @@ validator still have to pass before any full benchmark work begins. The three-
 dataset retained set is documented as a provisional smaller feasibility scope;
 it does not meet the provisional 12–19 target, and its scope approval remains
 an explicit Gate A review item rather than an invented approval.
+
+The expanded audit now records a fixed 25-candidate OpenML/UCI pool and 12
+provisional retained datasets. The new records are structural eligibility
+evidence only: no model scores were used, no full benchmark was run, and the
+existing three-dataset pilot-review manifest is stale against the updated
+registry and acquisition-manifest hashes. The next safe action is the
+representative pilot and deterministic replay for the expanded retained set.
 
 ## Completed before Week 1
 
