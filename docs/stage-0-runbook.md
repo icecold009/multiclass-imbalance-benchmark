@@ -93,7 +93,9 @@ hashed review manifest from the ignored run directories:
 
 The generator compares replay metrics, sampled-row counts, and failure cells;
 timing and RSS fields are recorded separately because they can vary between
-runs. Set `--failure-review passed` only after reviewing every failure row.
+runs. When replay runtime evidence is present, the scope-lock validator also
+requires that replay to remain within its recorded runtime budget. Set
+`--failure-review passed` only after reviewing every failure row.
 
 ## 5. Scope-lock review
 

@@ -106,6 +106,7 @@ def _pilot_fixture(
     manifest_path: Path,
     *,
     deterministic_replay: str = "passed",
+    replay_wall_clock_seconds: float | None = None,
 ) -> Path:
     run_dir = tmp_path / "artifacts" / "runs" / "pilot-cmc"
     run_dir.mkdir(parents=True, exist_ok=True)
@@ -146,6 +147,26 @@ def _pilot_fixture(
     environment_path.parent.mkdir(parents=True, exist_ok=True)
     environment_path.write_text('{"python":"fixture"}\n', encoding="utf-8")
     artifacts = [_reference(path) for path in sorted(run_dir.iterdir())]
+    run = {
+        "dataset_id": "cmc",
+        "artifacts": artifacts,
+        "results_path": str(run_dir / "pilot_results.csv"),
+        "failures_path": str(run_dir / "pilot_failures.csv"),
+        "runtime_evidence": _reference(run_dir / "pilot_results.csv") | {"wall_clock_seconds": 1.0},
+        "memory_evidence": _reference(run_dir / "pilot_results.csv") | {"method": "fixture RSS", "peak_mb": 1.0},
+        "runtime_budget_seconds": 10,
+        "deterministic_replay": deterministic_replay,
+        "failure_review": "passed",
+        "output_completeness": "complete",
+        "expected_cells": 495,
+        "valid_cells": 1,
+        "failure_cells": 494,
+    }
+    if replay_wall_clock_seconds is not None:
+        run["replay_runtime_evidence"] = _reference(run_dir / "pilot_results.csv") | {
+            "wall_clock_seconds": replay_wall_clock_seconds,
+            "runtime_budget_seconds": 10,
+        }
     evidence = {
         "schema_version": "stage0-pilot-review-v1",
         "reviewed_at_utc": dt.datetime.now(dt.UTC).isoformat(),
@@ -153,23 +174,7 @@ def _pilot_fixture(
         "manifest_sha256": sha256_file(manifest_path),
         "environment": _reference(environment_path),
         "configuration": _reference(config_path),
-        "runs": [
-            {
-                "dataset_id": "cmc",
-                "artifacts": artifacts,
-                "results_path": str(run_dir / "pilot_results.csv"),
-                "failures_path": str(run_dir / "pilot_failures.csv"),
-                "runtime_evidence": _reference(run_dir / "pilot_results.csv") | {"wall_clock_seconds": 1.0},
-                "memory_evidence": _reference(run_dir / "pilot_results.csv") | {"method": "fixture RSS", "peak_mb": 1.0},
-                "runtime_budget_seconds": 10,
-                "deterministic_replay": deterministic_replay,
-                "failure_review": "passed",
-                "output_completeness": "complete",
-                "expected_cells": 495,
-                "valid_cells": 1,
-                "failure_cells": 494,
-            }
-        ],
+        "runs": [run],
     }
     evidence_path = tmp_path / "artifacts" / "runs" / "stage0-pilot-review.json"
     evidence_path.write_text(json.dumps(evidence, indent=2) + "\n", encoding="utf-8")
@@ -319,6 +324,27 @@ def test_scope_lock_never_reports_ready_with_unresolved_gate(tmp_path: Path) -> 
 
     assert payload["status"] == "pending"
     assert any("deterministic replay is not passed" in blocker for blocker in payload["blockers"])
+
+
+def test_scope_lock_rejects_replay_runtime_over_budget(tmp_path: Path) -> None:
+    registry, manifest, _ = _provenance_fixture(tmp_path)
+    evidence = _pilot_fixture(
+        tmp_path,
+        registry,
+        manifest,
+        replay_wall_clock_seconds=11.0,
+    )
+
+    payload = build_scope_lock(
+        registry,
+        tmp_path / "lock.json",
+        pilot_status="passed",
+        manifest_path=manifest,
+        pilot_evidence_path=evidence,
+    )
+
+    assert payload["status"] == "pending"
+    assert any("replay runtime exceeds" in blocker for blocker in payload["blockers"])
 
 
 def test_scope_lock_accepts_human_approval_only_when_evidence_is_complete(tmp_path: Path) -> None:
