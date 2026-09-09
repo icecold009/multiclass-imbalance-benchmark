@@ -11,7 +11,7 @@ to preserve the target date.
 
 ## Live progress
 
-Last updated: 2026-09-08
+Last updated: 2026-09-09
 
 The critical-path table below is the forecast. The task-status table is the
 current execution source of truth and must be updated whenever a task is
@@ -26,8 +26,8 @@ Status markers: `[x]` complete, `[>]` current, `[!]` blocked, `[ ]` pending.
 | ENV-02 | Record the reproducible OS, hardware, Python, and package environment. | [x] Complete | `artifacts/environment/metadata.json`, `pip-freeze.txt`, and clean `pip-check.txt` generated. |
 | REG-01 | Build and version the candidate dataset registry and acquisition manifests. | [x] Complete | Twenty-five OpenML/UCI candidates are recorded with exact source IDs/URLs, versioned retrieval metadata, local SHA-256/file-size evidence, class distributions, and canonical semicolon-delimited applicability. The reproducible acquisition script and semantic categorical override manifest are committed; raw files remain ignored. |
 | AUD-01 | Audit eligibility, leakage, duplicates, identifiers, missingness, labels, support, and feature types. | [x] Complete | Twelve candidates are provisionally retained: Yeast, CMC, Glass, Balance Scale, Multiple Features (Factors), Optdigits, Dermatology, Iris, Wine, CNAE-9, Seeds, and Wine Quality Red. Thirteen candidates are excluded or deferred for documented runtime, support, group, duplicate-label, related-source, spatial, or categorical-only reasons. The provisional floor remains `n_min_class >= 5`; it is not final statistical-power policy. |
-| PILOT-01 | Run the representative Stage 0 pilot across numeric, mixed, low-support, and larger/high-dimensional datasets. | [>] Current | Existing pilot evidence covers CMC, Glass, and Yeast only. Run the locked representative pilot for the expanded provisional set using the recorded categorical overrides; do not select datasets or methods from pilot scores. |
-| LOCK-01 | Resolve failures and freeze dataset count, applicability, samplers, classifiers, and settings. | [!] Blocked | Gate A remains pending until the expanded retained set has complete hashed pilot-review evidence, deterministic replay, failure review, runtime/memory evidence, and complete cells. The current ignored pilot-review manifest hashes the previous seven-row registry and is stale after this audit update. Do not start the full benchmark. |
+| PILOT-01 | Run the representative Stage 0 pilot across numeric, mixed, low-support, and larger/high-dimensional datasets. | [x] Complete | All twelve provisional datasets completed the locked 495-cell matrix with explicit valid/failure rows; outputs, runtime/RSS evidence, and categorical overrides are recorded under ignored `artifacts/runs/`. No scores were used for selection. |
+| LOCK-01 | Resolve failures and freeze dataset count, applicability, samplers, classifiers, and settings. | [!] Blocked | The hashed pilot-review manifest verifies all twelve datasets, complete cells, reviewed failures, and deterministic replay. The Multiple Features (Factors) replay took 1,043.5 seconds against the 900-second budget, so Gate A still needs independent scope and resource approval; the validator remains pending by design. Do not start the full benchmark. |
 | PROTO-01 | Freeze the statistical analysis plan and complete-case rules. | [ ] Pending | Finalize before full benchmark execution. |
 | TEST-01 | Pass leakage, fold-boundary, categorical, and weight-routing tests. | [ ] Pending | Gate B. |
 | RUN-01 | Execute the locked benchmark with resumability, provenance, failure logs, and resource logging. | [ ] Pending | Starts only after Gates A-C. |
@@ -44,7 +44,7 @@ blocker for `[!]`, move `[>]` to the next actionable task, and update the
 `Last updated` date. A pilot is a feasibility gate, not evidence for the final
 paper's claims.
 
-### Stage 0 evidence boundary (2026-09-08)
+### Stage 0 evidence boundary (2026-09-09)
 
 The retained local pilot artifacts under ignored `artifacts/runs/` are the
 evidence source for the counts above; they are not committed results. Their
@@ -62,19 +62,20 @@ approved resource-budget amendment. The registry and acquisition manifest
 continue to preserve Letter's source ID, path, byte size, hash, license, and
 exclusion rationale.
 
-Gate A is not frozen by this evidence summary. An independent deterministic
-replay and a hashed pilot-review manifest still have to pass the scope-lock
-validator still have to pass before any full benchmark work begins. The three-
-dataset retained set is documented as a provisional smaller feasibility scope;
-it does not meet the provisional 12–19 target, and its scope approval remains
-an explicit Gate A review item rather than an invented approval.
+Gate A is not frozen by this evidence summary. The expanded twelve-dataset
+pilot and deterministic replay pass the mechanical scope-lock checks. The
+Multiple Features (Factors) replay took 1,043.5 seconds against the 900-second
+budget, so the human pilot-status field remains pending until an independent
+reviewer approves the dataset count, applicability matrix, and resource
+envelope. The validator therefore remains pending by design; no full benchmark
+work has begun.
 
-The expanded audit now records a fixed 25-candidate OpenML/UCI pool and 12
-provisional retained datasets. The new records are structural eligibility
-evidence only: no model scores were used, no full benchmark was run, and the
-existing three-dataset pilot-review manifest is stale against the updated
-registry and acquisition-manifest hashes. The next safe action is the
-representative pilot and deterministic replay for the expanded retained set.
+The expanded audit records a fixed 25-candidate OpenML/UCI pool and 12
+provisional retained datasets. The locked pilot ran all 12 candidates, and a
+second identical pass matched every metric, sampled-row count, and failure
+cell. Model scores remain feasibility evidence only: no full benchmark was
+run, no dataset or method was selected from scores, and Gate A remains an
+explicit scope-approval item.
 
 ## Completed before Week 1
 

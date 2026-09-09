@@ -81,6 +81,20 @@ Friedman summary. Record runtime, memory, sampler failures, output completeness,
 and deterministic replay results. Pilot scores are feasibility evidence only;
 they must not select datasets or methods.
 
+After the first pass and an identical replay pass are complete, build the
+hashed review manifest from the ignored run directories:
+
+```powershell
+.venv\Scripts\python.exe scripts\build_pilot_review.py `
+  --run-root artifacts\runs `
+  --replay-root artifacts\runs `
+  --failure-review passed
+```
+
+The generator compares replay metrics, sampled-row counts, and failure cells;
+timing and RSS fields are recorded separately because they can vary between
+runs. Set `--failure-review passed` only after reviewing every failure row.
+
 ## 5. Scope-lock review
 
 The repository provides a deterministic evidence writer for the scope lock.
