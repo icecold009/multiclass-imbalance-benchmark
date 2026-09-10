@@ -4,7 +4,13 @@ import pytest
 from sklearn.utils.class_weight import compute_sample_weight
 
 from src import pilot
-from src.pilot import build_pipeline, feature_layout, fit_kwargs_for, sampler_for
+from src.pilot import (
+    build_pipeline,
+    feature_layout,
+    fit_kwargs_for,
+    geometric_mean,
+    sampler_for,
+)
 
 
 def test_feature_layout_honours_semantic_categorical_override() -> None:
@@ -138,3 +144,18 @@ def test_xgboost_weight_routing_matches_balanced_training_weights() -> None:
         compute_sample_weight(class_weight="balanced", y=y_train),
     )
     assert fit_kwargs_for("class_weighted", "random_forest", y_train) == {}
+
+
+def test_geometric_mean_is_zero_when_any_declared_class_has_zero_recall() -> None:
+    y_true = pd.Series([0, 1, 2, 2])
+    y_pred = np.array([0, 0, 1, 1])
+
+    assert geometric_mean(y_true, y_pred, labels=[0, 1, 2]) == 0.0
+
+
+def test_geometric_mean_uses_all_declared_class_recalls() -> None:
+    y_true = pd.Series([0, 0, 1, 1, 2, 2])
+    y_pred = np.array([0, 0, 1, 1, 2, 0])
+
+    expected = (1.0 * 1.0 * 0.5) ** (1 / 3)
+    assert geometric_mean(y_true, y_pred, labels=[0, 1, 2]) == pytest.approx(expected)

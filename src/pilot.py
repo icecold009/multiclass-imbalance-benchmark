@@ -343,6 +343,12 @@ def build_pipeline(
 
 
 def geometric_mean(y_true: pd.Series, y_pred: np.ndarray, labels: list[Any]) -> float:
+    """Return the geometric mean of recall for every declared class.
+
+    ``zero_division=0`` makes an unobserved or never-recalled class contribute
+    zero, so the metric is exactly zero rather than undefined or imputed.
+    """
+
     recalls = recall_score(
         y_true, y_pred, labels=labels, average=None, zero_division=0
     )
