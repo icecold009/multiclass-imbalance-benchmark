@@ -150,3 +150,33 @@ Before the full benchmark, commit evidence for every Stage 0 gate:
 
 Only after this review may the timeline advance from Stage 0 to the locked
 benchmark phase.
+
+## 6. Verify Gates B and C
+
+Run the focused pipeline tests from a writable temporary pytest location. They
+cover train-only preprocessing, untouched test folds, target exclusion, mixed
+categorical ordering, and training-fold weight routing:
+
+```powershell
+$validationRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("stage0-gates-" + [guid]::NewGuid().ToString("N"))
+New-Item -ItemType Directory -Path $validationRoot -Force | Out-Null
+.venv\Scripts\python.exe -m pytest tests\test_pilot.py `
+  --override-ini "addopts=" `
+  --basetemp "$validationRoot\pytest" `
+  -o "cache_dir=$validationRoot\cache"
+```
+
+After Gate A is approved, verify Gate C from the retained ignored pilot and
+replay directories:
+
+```powershell
+$gateCReview = Join-Path ([System.IO.Path]::GetTempPath()) "stage0-gate-c-review.json"
+.venv\Scripts\python.exe scripts\verify_gate_c.py --output $gateCReview
+```
+
+The Gate C command revalidates the eleven-dataset scope lock, exact 495-cell
+output and failure schemas, deterministic replay equality, reviewed failures,
+and first-pass/replay runtime budgets. It does not execute the full benchmark.
+The repository's `artifacts\runs` directory may be read-only on OneDrive, so
+the optional review payload is written to the system temporary directory and
+the canonical ignored scope-lock and pilot-review artifacts are preserved.

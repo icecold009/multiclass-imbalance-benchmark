@@ -29,7 +29,8 @@ Status markers: `[x]` complete, `[>]` current, `[!]` blocked, `[ ]` pending.
 | PILOT-01 | Run the representative Stage 0 pilot across numeric, mixed, low-support, and larger/high-dimensional datasets. | [x] Complete | The twelve-candidate feasibility pilot completed the locked 495-cell matrix with explicit valid/failure rows; after the runtime review, eleven remain provisionally retained. Outputs, runtime/RSS evidence, and categorical overrides are recorded under ignored `artifacts/runs/`. No scores were used for selection. |
 | LOCK-01 | Resolve failures and freeze dataset count, applicability, samplers, classifiers, and settings. | [x] Complete | Independent review approved the eleven-dataset scope. The hashed pilot-review manifest verifies complete cells, reviewed failures, deterministic replay, and runtime/memory evidence; Multiple Features (Factors) remains deferred for exceeding the 900-second replay budget. The approved scope lock is `artifacts/runs/scope-lock.json`; do not start the full benchmark. |
 | PROTO-01 | Freeze the statistical analysis plan and complete-case rules. | [>] Current | Begin the final-protocol package from this approved scope before any full benchmark execution. |
-| TEST-01 | Pass leakage, fold-boundary, categorical, and weight-routing tests. | [ ] Pending | Gate B. |
+| TEST-01 | Pass leakage, fold-boundary, categorical, and weight-routing tests. | [x] Complete | Gate B tests are covered by the focused `tests/test_pilot.py` suite: training-only preprocessing, untouched test folds, target exclusion, mixed categorical ordering, and XGBoost training-weight routing. |
+| REPLAY-01 | Confirm the locked replay is reproducible and feasible within the recorded resource budget. | [x] Complete | `scripts/verify_gate_c.py` independently revalidated the eleven retained datasets, 495 cells per dataset, exact replay result/failure rows, reviewed failures, and replay runtimes below 900 seconds. The payload was emitted to the system temp directory because `artifacts/runs` is read-only in this checkout. |
 | RUN-01 | Execute the locked benchmark with resumability, provenance, failure logs, and resource logging. | [ ] Pending | Starts only after Gates A-C. |
 | ANALYSIS-01 | Aggregate results, run pre-specified statistics/effect sizes, and generate figures. | [ ] Pending | Starts after Gate D. |
 | PAPER-01 | Write and review the paper against generated evidence. | [ ] Pending | Starts after the analysis freeze. |
@@ -75,6 +76,21 @@ the computational deferral, and a second identical pass matched every metric,
 sampled-row count, and failure cell. Model scores remain feasibility evidence
 only: no full benchmark was run, no dataset or method was selected from scores,
 and the next controlled step is the final-protocol package.
+
+### Gate B/C evidence boundary (2026-09-10)
+
+Gate B is complete on `research/final-protocol`. The focused pipeline tests
+prove that training-derived preprocessing and samplers see training rows only,
+the declared target is excluded from features, mixed data is ordinal-encoded
+before SMOTENC and one-hot encoded afterward, and balanced XGBoost receives
+training-fold sample weights.
+
+Gate C is complete for the locked eleven-dataset scope. The executable replay
+validator rechecks the current scope lock and pilot-review hashes, exact output
+schemas and cell accounting, every first-pass/replay result and failure table,
+failure-review status, and the 900-second runtime budget. It emits a complete
+review payload without running the full benchmark or changing any generated
+research artifacts.
 
 ## Completed before Week 1
 
