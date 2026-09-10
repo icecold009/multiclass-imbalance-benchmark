@@ -213,3 +213,41 @@ without fitting models. Do not pass datasets outside the approved scope, add
 seeds or folds, or inspect scores to change the locked conditions. Aggregation,
 confirmatory statistics, and figures are separate Gate D/E work after the
 full raw run is reviewed.
+
+## 8. Review Gate D raw-output integrity
+
+After the locked run is complete, verify the manifest, every dataset completion
+marker, aggregate schemas, cell accounting, and all frozen input hashes:
+
+```powershell
+.venv\Scripts\python.exe scripts\verify_gate_d.py `
+  --run-dir results\full-run `
+  --output-dir $env:TEMP\stage0-gate-d-review
+```
+
+The command must report a `passed` review payload. It does not rerun models or
+change the locked protocol. Keep the generated review payload as the audit
+record; the canonical result files remain ignored under `results\full-run\`.
+
+## 9. Run the frozen analysis package
+
+Only after Gate D passes, run the pre-registered aggregation and analysis:
+
+```powershell
+.venv\Scripts\python.exe scripts\run_analysis.py
+```
+
+This validates Gate D again, aggregates only complete dataset cells, runs the
+frozen scalar-metric Friedman/Nemenyi and raw-versus-alternative Wilcoxon tests
+with Holm correction, computes paired rank-biserial effects and deterministic
+10,000-resample bootstrap intervals, summarizes registry moderators, writes
+complete-cell efficiency means for runtime, RSS, and post-sampling rows, and
+generates the class-distribution overview, ranking heatmap, baseline-delta plot,
+and critical-difference diagrams where the frozen Friedman/Nemenyi results are
+valid. Outputs are ignored under `results\analysis\` and include an analysis
+manifest with hashes, counts, procedure settings, and skipped-test reasons.
+Per-class recall is retained as a descriptive summary because class labels are
+dataset-specific; no cross-dataset inferential class matrix is created. Do not
+use these commands to change the dataset scope, conditions, seeds, folds, or
+claim boundary, and do not draft paper claims until the independent Gate E
+robustness review is complete.

@@ -9,10 +9,11 @@ portfolio research program.
 
 ## Current phase
 
-Stage 0 Gates A-C are complete and the locked full-run raw evidence is now
-recorded under the ignored `results/full-run/` directory. The authoritative
-scope gate is [`docs/stage-0-feasibility.md`](docs/stage-0-feasibility.md); the
-next review is Gate D raw-output integrity before any confirmatory analysis.
+Stage 0 Gates A-C and Gate D are complete. The locked full-run raw evidence and
+the frozen analysis outputs are recorded under the ignored `results/full-run/`
+and `results/analysis/` directories. The authoritative scope gate is
+[`docs/stage-0-feasibility.md`](docs/stage-0-feasibility.md); the next review is
+Gate E robustness before paper claims.
 
 ## Git and change control
 
