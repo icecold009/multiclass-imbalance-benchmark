@@ -180,3 +180,36 @@ and first-pass/replay runtime budgets. It does not execute the full benchmark.
 The repository's `artifacts\runs` directory may be read-only on OneDrive, so
 the optional review payload is written to the system temporary directory and
 the canonical ignored scope-lock and pilot-review artifacts are preserved.
+
+## 7. Execute the locked benchmark
+
+After the final protocol is committed and Gates A-C are approved, run the
+locked benchmark from the repository root:
+
+```powershell
+.venv\Scripts\python.exe scripts\run_benchmark.py
+```
+
+The executor validates the protocol's frozen hashes, the ready scope lock,
+every retained raw-file hash and byte size, and the semantic categorical
+overrides before fitting a model. It writes ignored outputs under
+`results\full-run\`, including a provenance manifest, one directory per
+dataset, explicit valid and failure rows, per-cell runtime/RSS fields, and a
+completion marker for each dataset. A dataset is skipped on later invocations
+only when its marker and every referenced artifact still match their hashes;
+an incomplete or tampered marker stops the run instead of silently replacing
+evidence.
+
+For staged execution, repeat the command with one or more locked IDs. The
+root manifest retains the same eleven-dataset scope and changes to complete
+only after every dataset has a valid 495-cell accounting record:
+
+```powershell
+.venv\Scripts\python.exe scripts\run_benchmark.py --dataset balance_scale
+```
+
+Use `--dry-run` to validate the frozen inputs and print the planned cells
+without fitting models. Do not pass datasets outside the approved scope, add
+seeds or folds, or inspect scores to change the locked conditions. Aggregation,
+confirmatory statistics, and figures are separate Gate D/E work after the
+full raw run is reviewed.
