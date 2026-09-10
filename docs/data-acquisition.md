@@ -50,7 +50,7 @@ Multiple Features (Factors) remains in the candidate pool but is deferred after
 its corrected Stage 0 replay exceeded the 900-second runtime budget at 1,043.5
 seconds. This is a structural and computational Stage 0 decision only; the
 minimum support threshold remains provisional, and the retained set still needs
-scope-lock review. The candidate pool keeps explicit exclusions for runtime,
+final-protocol review. The candidate pool keeps explicit exclusions for runtime,
 support, group, duplicate-label, related-source, and categorical-only reasons.
 
 ## Storage policy

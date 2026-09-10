@@ -106,14 +106,15 @@ outputs remain ignored but must not enter the retained-scope evidence manifest.
 The repository provides a deterministic evidence writer for the scope lock.
 `--pilot-status passed` records a human review decision only; it cannot replace
 the hashed pilot-review evidence. Missing, stale, malformed, or incomplete
-evidence keeps Gate A pending:
+evidence keeps Gate A pending. Use `pending` while review is outstanding and
+`passed` only after the independent scope decision is recorded:
 
 ```powershell
 .venv\Scripts\python.exe -m src.stage0 lock `
   --registry data\dataset_registry.csv `
   --manifest data\acquisition_manifest.csv `
   --pilot-evidence artifacts\runs\stage0-pilot-review.json `
-  --pilot-status pending `
+  --pilot-status passed `
   --json-out artifacts\runs\scope-lock.json
 ```
 
