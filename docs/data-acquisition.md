@@ -44,13 +44,14 @@ Do not merge duplicate OpenML/UCI/KEEL versions as independent evidence. Mark
 related or derived datasets so they cannot silently inflate the effective number
 of blocks.
 
-The current audit retains 12 provisional candidates: CMC, Glass, Yeast, Balance
-Scale, Multiple Features (Factors), Optdigits, Dermatology, Iris, Wine, CNAE-9,
-Seeds, and Wine Quality Red. This is a structural Stage 0 decision only. The
+The current audit retains 11 provisional candidates: CMC, Glass, Yeast, Balance
+Scale, Optdigits, Dermatology, Iris, Wine, CNAE-9, Seeds, and Wine Quality Red.
+Multiple Features (Factors) remains in the candidate pool but is deferred after
+its corrected Stage 0 replay exceeded the 900-second runtime budget at 1,043.5
+seconds. This is a structural and computational Stage 0 decision only; the
 minimum support threshold remains provisional, and the retained set still needs
-the representative pilot, deterministic replay, and scope-lock review. The
-candidate pool keeps explicit exclusions for runtime, support, group, duplicate
-label, related-source, and categorical-only reasons.
+scope-lock review. The candidate pool keeps explicit exclusions for runtime,
+support, group, duplicate-label, related-source, and categorical-only reasons.
 
 ## Storage policy
 

@@ -88,7 +88,9 @@ hashed review manifest from the ignored run directories:
 .venv\Scripts\python.exe scripts\build_pilot_review.py `
   --run-root artifacts\runs `
   --replay-root artifacts\runs `
-  --failure-review passed
+  --failure-review passed `
+  --datasets balance_scale cmc cnae_9 dermatology glass iris optdigits `
+    seeds wine wine_quality_red yeast
 ```
 
 The generator compares replay metrics, sampled-row counts, and failure cells;
@@ -96,6 +98,8 @@ timing and RSS fields are recorded separately because they can vary between
 runs. When replay runtime evidence is present, the scope-lock validator also
 requires that replay to remain within its recorded runtime budget. Set
 `--failure-review passed` only after reviewing every failure row.
+List only currently retained dataset IDs in `--datasets`; deferred pilot
+outputs remain ignored but must not enter the retained-scope evidence manifest.
 
 ## 5. Scope-lock review
 
