@@ -506,6 +506,30 @@ def _validate_pilot_outputs(
         blockers.append(f"{dataset_id}: runtime budget is missing or invalid")
     elif runtime_seconds is not None and runtime_seconds > runtime_budget:
         blockers.append(f"{dataset_id}: pilot runtime exceeds the recorded budget")
+    replay_runtime = run.get("replay_runtime_evidence")
+    if replay_runtime is not None:
+        _verify_file_reference(
+            replay_runtime,
+            f"{dataset_id} replay runtime evidence",
+            root,
+            blockers,
+        )
+        replay_seconds = _as_finite_number(
+            replay_runtime.get("wall_clock_seconds")
+            if isinstance(replay_runtime, dict)
+            else None
+        )
+        replay_budget = _as_finite_number(
+            replay_runtime.get("runtime_budget_seconds")
+            if isinstance(replay_runtime, dict)
+            else runtime_budget
+        )
+        if replay_seconds is None or replay_seconds < 0:
+            blockers.append(f"{dataset_id}: replay runtime has no finite wall-clock value")
+        if replay_budget is None or replay_budget <= 0:
+            blockers.append(f"{dataset_id}: replay runtime budget is missing or invalid")
+        elif replay_seconds is not None and replay_seconds > replay_budget:
+            blockers.append(f"{dataset_id}: replay runtime exceeds the recorded budget")
     if not isinstance(memory, dict) or not _text(memory.get("method")):
         blockers.append(f"{dataset_id}: peak-memory measurement method is missing")
     if memory_mb is None or memory_mb < 0:

@@ -9,6 +9,12 @@ Use OpenML, UCI, KEEL, or another public source only when the exact dataset
 identity, version, access method, and license/terms can be recorded. Prefer
 source IDs and download scripts over manually renamed files.
 
+The current Stage 0 candidate pool contains 25 OpenML/UCI records. The fixed
+acquisition list and target checks are in
+[`scripts/acquire_openml_candidates.py`](../scripts/acquire_openml_candidates.py).
+Run it only when refreshing the deliberately fixed pool; it does not decide
+eligibility and it never runs a model.
+
 ## Required evidence
 
 For every candidate, add a registry record containing:
@@ -23,6 +29,11 @@ For every candidate, add a registry record containing:
 - applicable condition families;
 - inclusion decision and exclusion reason where relevant.
 
+Semantic categorical overrides for numerically encoded source columns are
+recorded in [`data/dataset_feature_overrides.csv`](../data/dataset_feature_overrides.csv).
+The semicolon-delimited values are passed to the pilot as categorical-column
+overrides; they are never inferred from preliminary scores.
+
 ## Cleaning rules
 
 Apply only protocol-defined, domain-neutral cleaning. Do not drop a dataset
@@ -32,6 +43,15 @@ only when the decision is documented and reproducible.
 Do not merge duplicate OpenML/UCI/KEEL versions as independent evidence. Mark
 related or derived datasets so they cannot silently inflate the effective number
 of blocks.
+
+The current audit retains 11 provisional candidates: CMC, Glass, Yeast, Balance
+Scale, Optdigits, Dermatology, Iris, Wine, CNAE-9, Seeds, and Wine Quality Red.
+Multiple Features (Factors) remains in the candidate pool but is deferred after
+its corrected Stage 0 replay exceeded the 900-second runtime budget at 1,043.5
+seconds. This is a structural and computational Stage 0 decision only; the
+minimum support threshold remains provisional, and the retained set still needs
+final-protocol review. The candidate pool keeps explicit exclusions for runtime,
+support, group, duplicate-label, related-source, and categorical-only reasons.
 
 ## Storage policy
 

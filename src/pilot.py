@@ -291,6 +291,22 @@ def classifier_for(name: str, random_state: int, weighted: bool = False) -> Any:
     raise ValueError(f"Unknown classifier: {name}")
 
 
+def fit_kwargs_for(
+    condition: str,
+    classifier_name: str,
+    y_train: pd.Series,
+) -> dict[str, Any]:
+    """Return classifier fit parameters that are derived from training labels."""
+
+    if condition == "class_weighted" and classifier_name == "xgboost":
+        return {
+            "classifier__sample_weight": compute_sample_weight(
+                class_weight="balanced", y=y_train
+            )
+        }
+    return {}
+
+
 def build_pipeline(
     layout: FeatureLayout,
     condition: str,
@@ -421,11 +437,7 @@ def run_pilot(
                         pipeline = build_pipeline(
                             layout, condition, classifier_name, random_state=seed
                         )
-                        fit_kwargs: dict[str, Any] = {}
-                        if condition == "class_weighted" and classifier_name == "xgboost":
-                            fit_kwargs["classifier__sample_weight"] = compute_sample_weight(
-                                class_weight="balanced", y=y_train
-                            )
+                        fit_kwargs = fit_kwargs_for(condition, classifier_name, y_train)
                         pipeline.fit(X_train, y_train, **fit_kwargs)
                         predicted = pipeline.predict(X_test)
                         elapsed = time.perf_counter() - started

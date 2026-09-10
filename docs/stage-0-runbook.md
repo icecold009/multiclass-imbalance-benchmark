@@ -81,19 +81,40 @@ Friedman summary. Record runtime, memory, sampler failures, output completeness,
 and deterministic replay results. Pilot scores are feasibility evidence only;
 they must not select datasets or methods.
 
+After the first pass and an identical replay pass are complete, build the
+hashed review manifest from the ignored run directories:
+
+```powershell
+.venv\Scripts\python.exe scripts\build_pilot_review.py `
+  --run-root artifacts\runs `
+  --replay-root artifacts\runs `
+  --failure-review passed `
+  --datasets balance_scale cmc cnae_9 dermatology glass iris optdigits `
+    seeds wine wine_quality_red yeast
+```
+
+The generator compares replay metrics, sampled-row counts, and failure cells;
+timing and RSS fields are recorded separately because they can vary between
+runs. When replay runtime evidence is present, the scope-lock validator also
+requires that replay to remain within its recorded runtime budget. Set
+`--failure-review passed` only after reviewing every failure row.
+List only currently retained dataset IDs in `--datasets`; deferred pilot
+outputs remain ignored but must not enter the retained-scope evidence manifest.
+
 ## 5. Scope-lock review
 
 The repository provides a deterministic evidence writer for the scope lock.
 `--pilot-status passed` records a human review decision only; it cannot replace
 the hashed pilot-review evidence. Missing, stale, malformed, or incomplete
-evidence keeps Gate A pending:
+evidence keeps Gate A pending. Use `pending` while review is outstanding and
+`passed` only after the independent scope decision is recorded:
 
 ```powershell
 .venv\Scripts\python.exe -m src.stage0 lock `
   --registry data\dataset_registry.csv `
   --manifest data\acquisition_manifest.csv `
   --pilot-evidence artifacts\runs\stage0-pilot-review.json `
-  --pilot-status pending `
+  --pilot-status passed `
   --json-out artifacts\runs\scope-lock.json
 ```
 
@@ -129,3 +150,33 @@ Before the full benchmark, commit evidence for every Stage 0 gate:
 
 Only after this review may the timeline advance from Stage 0 to the locked
 benchmark phase.
+
+## 6. Verify Gates B and C
+
+Run the focused pipeline tests from a writable temporary pytest location. They
+cover train-only preprocessing, untouched test folds, target exclusion, mixed
+categorical ordering, and training-fold weight routing:
+
+```powershell
+$validationRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("stage0-gates-" + [guid]::NewGuid().ToString("N"))
+New-Item -ItemType Directory -Path $validationRoot -Force | Out-Null
+.venv\Scripts\python.exe -m pytest tests\test_pilot.py `
+  --override-ini "addopts=" `
+  --basetemp "$validationRoot\pytest" `
+  -o "cache_dir=$validationRoot\cache"
+```
+
+After Gate A is approved, verify Gate C from the retained ignored pilot and
+replay directories:
+
+```powershell
+$gateCReview = Join-Path ([System.IO.Path]::GetTempPath()) "stage0-gate-c-review.json"
+.venv\Scripts\python.exe scripts\verify_gate_c.py --output $gateCReview
+```
+
+The Gate C command revalidates the eleven-dataset scope lock, exact 495-cell
+output and failure schemas, deterministic replay equality, reviewed failures,
+and first-pass/replay runtime budgets. It does not execute the full benchmark.
+The repository's `artifacts\runs` directory may be read-only on OneDrive, so
+the optional review payload is written to the system temporary directory and
+the canonical ignored scope-lock and pilot-review artifacts are preserved.
