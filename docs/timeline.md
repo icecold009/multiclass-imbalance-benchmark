@@ -31,8 +31,8 @@ Status markers: `[x]` complete, `[>]` current, `[!]` blocked, `[ ]` pending.
 | PROTO-01 | Freeze the statistical analysis plan and complete-case rules. | [x] Complete | `docs/protocol.md` records `final-analysis-v1`: exact metric and zero-recall rules, dataset-level complete cells, numeric/mixed/BRF analysis families, Friedman/Nemenyi and Wilcoxon procedures, Holm correction, paired effect sizes, bootstrap intervals, and claim boundaries. Registry, acquisition, configuration, and environment hashes are frozen in the document. |
 | TEST-01 | Pass leakage, fold-boundary, categorical, and weight-routing tests. | [x] Complete | Gate B tests are covered by the focused `tests/test_pilot.py` suite: training-only preprocessing, untouched test folds, target exclusion, mixed categorical ordering, and XGBoost training-weight routing. |
 | REPLAY-01 | Confirm the locked replay is reproducible and feasible within the recorded resource budget. | [x] Complete | `scripts/verify_gate_c.py` independently revalidated the eleven retained datasets, 495 cells per dataset, exact replay result/failure rows, reviewed failures, and replay runtimes below 900 seconds. The payload was emitted to the system temp directory because `artifacts/runs` is read-only in this checkout. |
-| RUN-01 | Execute the locked benchmark with resumability, provenance, failure logs, and resource logging. | [ ] Pending | Starts only after Gates A-C. |
-| ANALYSIS-01 | Aggregate results, run pre-specified statistics/effect sizes, and generate figures. | [ ] Pending | Starts after Gate D. |
+| RUN-01 | Execute the locked benchmark with resumability, provenance, failure logs, and resource logging. | [x] Complete | `results/full-run/benchmark_manifest.json` records the frozen hashes, all 11 datasets, 5,445 expected cells, 4,191 valid cells, and 1,254 explicit failure cells; aggregate result and failure hashes are recorded in the ignored manifest. |
+| ANALYSIS-01 | Aggregate results, run pre-specified statistics/effect sizes, and generate figures. | [>] Current | Starts after the Gate D raw-output integrity review. |
 | PAPER-01 | Write and review the paper against generated evidence. | [ ] Pending | Starts after the analysis freeze. |
 | REPRO-01 | Reproduce the locked workflow from a clean checkout and archive manifests. | [ ] Pending | Gate F. |
 | SUBMIT-01 | Finalize release materials and preserve the submitted commit snapshot. | [ ] Pending | Gate G. |
@@ -98,8 +98,17 @@ The final analysis plan is frozen in `docs/protocol.md` as
 `final-analysis-v1`. It fixes the primary and secondary metric definitions,
 zero-recall behavior, complete-case rules, analysis families, confirmatory and
 exploratory procedures, multiplicity correction, paired effect sizes,
-bootstrap intervals, and the claim boundary before any full-run result exists.
+bootstrap intervals, and the claim boundary before the full benchmark run.
 The G-mean edge cases are covered by focused tests in `tests/test_pilot.py`.
+
+### Full-run evidence boundary (2026-09-10)
+
+RUN-01 completed against the frozen protocol on `codex/run-01-benchmark`.
+The ignored manifest records all eleven retained datasets, 5,445 expected
+cells, 4,191 valid records, 1,254 explicit failure records, raw-file hashes,
+the environment and configuration hashes, per-cell runtime/RSS fields, and
+dataset completion markers. Aggregate raw tables are hashed in the manifest;
+no statistical analysis, figures, or paper claims have been generated.
 
 ## Completed before Week 1
 

@@ -9,7 +9,9 @@ import pandas as pd
 METRICS = ("macro_f1", "g_mean", "mcc", "balanced_accuracy")
 
 
-def write_rankings(results: pd.DataFrame, output_dir: Path) -> pd.DataFrame:
+def write_rankings(
+    results: pd.DataFrame, output_dir: Path, prefix: str = "pilot"
+) -> pd.DataFrame:
     """Write per-dataset/classifier ranks without treating folds as blocks."""
 
     grouped = (
@@ -42,11 +44,13 @@ def write_rankings(results: pd.DataFrame, output_dir: Path) -> pd.DataFrame:
             ]
         )
     rankings = pd.concat(rows, ignore_index=True) if rows else pd.DataFrame()
-    rankings.to_csv(output_dir / "pilot_rankings.csv", index=False)
+    rankings.to_csv(output_dir / f"{prefix}_rankings.csv", index=False)
     return rankings
 
 
-def write_friedman_summary(results: pd.DataFrame, output_dir: Path) -> pd.DataFrame:
+def write_friedman_summary(
+    results: pd.DataFrame, output_dir: Path, prefix: str = "pilot"
+) -> pd.DataFrame:
     """Run Friedman only on complete, multi-dataset blocks.
 
     This is a feasibility diagnostic. It does not replace the preregistered
@@ -94,14 +98,16 @@ def write_friedman_summary(results: pd.DataFrame, output_dir: Path) -> pd.DataFr
                     }
                 )
     summary = pd.DataFrame(records)
-    summary.to_csv(output_dir / "pilot_friedman_summary.csv", index=False)
+    summary.to_csv(output_dir / f"{prefix}_friedman_summary.csv", index=False)
     return summary
 
 
-def analyse_results(results_path: Path, output_dir: Path) -> None:
+def analyse_results(
+    results_path: Path, output_dir: Path, prefix: str = "pilot"
+) -> None:
     output_dir.mkdir(parents=True, exist_ok=True)
     results = pd.read_csv(results_path)
     if results.empty:
         raise ValueError("Cannot analyse an empty pilot result file")
-    write_rankings(results, output_dir)
-    write_friedman_summary(results, output_dir)
+    write_rankings(results, output_dir, prefix=prefix)
+    write_friedman_summary(results, output_dir, prefix=prefix)

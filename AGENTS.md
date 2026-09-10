@@ -9,10 +9,10 @@ portfolio research program.
 
 ## Current phase
 
-The project is in **Stage 0: feasibility and dataset audit**. The authoritative
-gate is [`docs/stage-0-feasibility.md`](docs/stage-0-feasibility.md). Do not
-start or describe a full benchmark run until the dataset registry, applicability
-matrix, environment record, and representative pilot have passed that gate.
+Stage 0 Gates A-C are complete and the locked full-run raw evidence is now
+recorded under the ignored `results/full-run/` directory. The authoritative
+scope gate is [`docs/stage-0-feasibility.md`](docs/stage-0-feasibility.md); the
+next review is Gate D raw-output integrity before any confirmatory analysis.
 
 ## Git and change control
 

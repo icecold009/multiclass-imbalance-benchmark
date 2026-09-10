@@ -385,7 +385,10 @@ def run_pilot(
     seeds: tuple[int, ...] = (0, 1, 2),
     folds: int = 5,
     categorical_columns: tuple[str, ...] = (),
+    artifact_prefix: str = "pilot",
 ) -> None:
+    if not artifact_prefix.isidentifier():
+        raise ValueError("artifact_prefix must be a valid identifier")
     frame = pd.read_csv(csv_path)
     if target not in frame.columns:
         raise ValueError(f"Target column {target!r} is not present")
@@ -401,7 +404,7 @@ def run_pilot(
         raise ValueError("Every class must have at least one example per fold")
 
     output_dir.mkdir(parents=True, exist_ok=True)
-    (output_dir / "pilot_metadata.json").write_text(
+    (output_dir / f"{artifact_prefix}_metadata.json").write_text(
         json.dumps(
             {
                 "target_column": target,
@@ -409,6 +412,7 @@ def run_pilot(
                 "categorical_columns": list(categorical_columns),
                 "folds": folds,
                 "seeds": list(seeds),
+                "artifact_prefix": artifact_prefix,
             },
             indent=2,
         )
@@ -462,6 +466,15 @@ def run_pilot(
                                 "balanced_accuracy": balanced_accuracy_score(
                                     y_test, predicted
                                 ),
+                                "per_class_recall": json.dumps(
+                                    recall_score(
+                                        y_test,
+                                        predicted,
+                                        labels=labels,
+                                        average=None,
+                                        zero_division=0,
+                                    ).tolist()
+                                ),
                                 "fit_predict_seconds": elapsed,
                                 "rss_before_mb": rss_before,
                                 "rss_after_mb": rss_after,
@@ -488,10 +501,49 @@ def run_pilot(
                             }
                         )
 
-    pd.DataFrame(results).to_csv(output_dir / "pilot_results.csv", index=False)
-    pd.DataFrame(failures).to_csv(output_dir / "pilot_failures.csv", index=False)
+    result_columns = [
+        "dataset",
+        "seed",
+        "fold",
+        "classifier",
+        "condition",
+        "feature_type",
+        "macro_f1",
+        "g_mean",
+        "mcc",
+        "balanced_accuracy",
+        "per_class_recall",
+        "fit_predict_seconds",
+        "rss_before_mb",
+        "rss_after_mb",
+        "rss_delta_mb",
+        "train_rows_before_sampling",
+        "train_rows_after_sampling",
+    ]
+    failure_columns = [
+        "dataset",
+        "seed",
+        "fold",
+        "classifier",
+        "condition",
+        "feature_type",
+        "stage",
+        "error_type",
+        "error",
+        "elapsed_seconds",
+    ]
+    pd.DataFrame(results, columns=result_columns).to_csv(
+        output_dir / f"{artifact_prefix}_results.csv", index=False
+    )
+    pd.DataFrame(failures, columns=failure_columns).to_csv(
+        output_dir / f"{artifact_prefix}_failures.csv", index=False
+    )
     if results:
-        analyse_results(output_dir / "pilot_results.csv", output_dir)
+        analyse_results(
+            output_dir / f"{artifact_prefix}_results.csv",
+            output_dir,
+            prefix=artifact_prefix,
+        )
 
 
 def main() -> None:

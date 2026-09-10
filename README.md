@@ -3,9 +3,9 @@ Benchmark of resampling strategies for multi-class imbalanced tabular classifica
 
 ## Current phase
 
-The repository is in **Stage 0: feasibility and dataset audit**. The full
-dataset list and comparison matrix will be locked only after the pilot passes
-the gates in [`docs/stage-0-feasibility.md`](docs/stage-0-feasibility.md).
+Stage 0 Gates A-C are complete. The locked full benchmark raw run is recorded
+under the ignored `results/full-run/` directory; Gate D integrity review and
+the pre-registered analysis remain pending.
 
 The staged work plan is documented in
 [`docs/timeline.md`](docs/timeline.md).
@@ -24,6 +24,17 @@ python -m src.stage0 path\to\candidate.csv --target target_column
 
 The pilot is evidence-gathering only; its scores must not be used to select
 datasets or methods.
+
+The locked benchmark executor is:
+
+```powershell
+.venv\Scripts\python.exe scripts\run_benchmark.py
+```
+
+It validates the frozen protocol and scope lock, resumes only from hashed
+dataset markers, and writes raw result and failure tables without running the
+statistical analysis. See [`docs/stage-0-runbook.md`](docs/stage-0-runbook.md)
+for staged execution and review boundaries.
 
 Before acquiring research data, follow [`docs/environment.md`](docs/environment.md)
 and [`docs/data-acquisition.md`](docs/data-acquisition.md). The pre-registered
