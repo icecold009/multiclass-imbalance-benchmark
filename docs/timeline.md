@@ -123,7 +123,8 @@ runtime/RSS/resampling means, descriptive per-class-recall summaries because
 class labels are dataset-specific, registry-derived moderators, a class
 distribution overview, a ranking heatmap, a baseline-delta plot, and valid
 critical-difference diagrams. These are evidence artifacts reviewed by Gate E;
-they do not approve paper claims, amend the protocol, or complete Gates F-G.
+at that stage they did not approve paper claims, amend the protocol, or
+complete Gates F-G.
 
 ### Gate E analysis-freeze boundary (2026-09-11)
 

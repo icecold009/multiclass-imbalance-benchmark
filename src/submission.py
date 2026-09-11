@@ -29,6 +29,7 @@ REQUIRED_RELEASE_FILES = (
     "docs/data-acquisition.md",
     "docs/environment.md",
     "docs/protocol.md",
+    "docs/release.md",
     "docs/stage-0-feasibility.md",
     "docs/stage-0-runbook.md",
     "docs/timeline.md",
