@@ -35,7 +35,7 @@ Status markers: `[x]` complete, `[>]` current, `[!]` blocked, `[ ]` pending.
 | ANALYSIS-01 | Aggregate results, run pre-specified statistics/effect sizes, and generate figures. | [x] Complete | `results/analysis/analysis_manifest.json` records Gate D status, complete-cell aggregates and efficiency means, frozen scalar tests/effects, descriptive per-class summaries, moderator data, and the planned figures. |
 | ROBUST-01 | Review analysis outputs for protocol, scope, failure, and locked-sensitivity consistency. | [x] Complete | `results/analysis/gate-e-review.json` passed the frozen-reference, table-invariant, skipped-test, artifact-hash, and deterministic replay checks. |
 | PAPER-01 | Write and review the paper against generated evidence. | [>] Current | Draft Methods and Results only from the frozen analysis package; report failures, skipped tests, uncertainty, and efficiency evidence. |
-| REPRO-01 | Reproduce the locked workflow from a clean checkout and archive manifests. | [ ] Pending | Gate F. |
+| REPRO-01 | Reproduce the locked workflow from a clean checkout and archive manifests. | [x] Complete | `scripts/verify_gate_f.py` archives the exact tracked source, runs the full checks in that temporary checkout, and revalidates the frozen Gate E evidence; the ignored payload is `results/analysis/gate-f-review.json`. |
 | SUBMIT-01 | Finalize release materials and preserve the submitted commit snapshot. | [ ] Pending | Gate G. |
 
 ### Update rule
