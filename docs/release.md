@@ -14,8 +14,8 @@ working tree. It records:
 - the passed Gate F clean-checkout review;
 - the environment, scope-lock, full-run, Gate D, analysis, and Gate E manifest
   hashes;
-- the explicit boundary that no paper, venue, external review, deployment, or
-  publication claim is implied.
+- the explicit boundary that the tracked paper is a draft and no venue,
+  external review, deployment, or publication claim is implied.
 
 Generated raw data, environment records, and result tables remain ignored by
 Git. Their hashes are recorded in the Gate G payload so the local evidence can
@@ -27,6 +27,8 @@ The tracked release package consists of:
 
 - `src/submission.py` and `scripts/verify_gate_g.py` for validation;
 - `tests/test_submission.py` for snapshot-digest coverage;
+- `paper/main.tex`, `paper/references.bib`, the review checklist, and the
+  official TMLR style assets;
 - this checklist, the README entry point, and the existing protocol and
   provenance documents;
 - the ignored local `results\analysis\gate-g-review.json` evidence payload.
@@ -41,6 +43,8 @@ Gate G passes only when:
   manifests exist with their recorded hashes;
 - the source `git archive` matches the tracked-file set and contains no raw or
   generated data;
+- the anonymous paper source and its review checklist are present in the
+  tracked archive;
 - the payload records `external_submission: false` unless a separately
   authorized submission workflow is added.
 
@@ -61,7 +65,8 @@ requires a new Gate F review and a new Gate G snapshot.
 
 ## Non-goals
 
-This package does not submit a manuscript, choose a venue, upload data, merge
-to `main`, publish a release, deploy an application, or claim independent
-external review. Those actions require their own explicit authorization and
+This package does not submit the manuscript, upload data, merge to `main`,
+publish a release, deploy an application, or claim independent external
+review. The tracked paper is an anonymous draft; venue submission,
+de-anonymization, and publication require their own explicit authorization and
 evidence.

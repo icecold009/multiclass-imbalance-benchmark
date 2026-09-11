@@ -34,7 +34,7 @@ Status markers: `[x]` complete, `[>]` current, `[!]` blocked, `[ ]` pending.
 | RUN-01 | Execute the locked benchmark with resumability, provenance, failure logs, and resource logging. | [x] Complete | `results/full-run/benchmark_manifest.json` records the frozen hashes, all 11 datasets, 5,445 expected cells, 4,191 valid cells, and 1,254 explicit failure cells; aggregate result and failure hashes are recorded in the ignored manifest. |
 | ANALYSIS-01 | Aggregate results, run pre-specified statistics/effect sizes, and generate figures. | [x] Complete | `results/analysis/analysis_manifest.json` records Gate D status, complete-cell aggregates and efficiency means, frozen scalar tests/effects, descriptive per-class summaries, moderator data, and the planned figures. |
 | ROBUST-01 | Review analysis outputs for protocol, scope, failure, and locked-sensitivity consistency. | [x] Complete | `results/analysis/gate-e-review.json` passed the frozen-reference, table-invariant, skipped-test, artifact-hash, and deterministic replay checks. |
-| PAPER-01 | Write and review the paper against generated evidence. | [>] Current | Draft Methods and Results only from the frozen analysis package; report failures, skipped tests, uncertainty, and efficiency evidence. |
+| PAPER-01 | Write and review the paper against generated evidence. | [x] Complete | Anonymous TMLR-formatted draft in `paper/main.tex`, references, official style assets, and `paper/review-checklist.md`; all reported results are tied to the frozen analysis package. |
 | REPRO-01 | Reproduce the locked workflow from a clean checkout and archive manifests. | [x] Complete | `scripts/verify_gate_f.py` archives the exact tracked source, runs the full checks in that temporary checkout, and revalidates the frozen Gate E evidence; the ignored payload is `results/analysis/gate-f-review.json`. |
 | SUBMIT-01 | Finalize release materials and preserve the submitted commit snapshot. | [x] Complete | Gate G technical release snapshot: `docs/release.md`, `scripts/verify_gate_g.py`, and ignored `results/analysis/gate-g-review.json`; no external submission is claimed. |
 
@@ -144,8 +144,8 @@ environment, scope-lock, full-run, Gate D, analysis, and Gate E evidence
 manifests. The validator requires a clean dedicated branch and a current
 passed Gate F review, then records the `git archive` hash in the ignored
 `results/analysis/gate-g-review.json` payload. This is a technical release
-snapshot only: no paper artifact, venue submission, acceptance, deployment,
-or publication claim is made.
+snapshot only: it preserves the anonymous paper draft but makes no venue
+submission, acceptance, deployment, or publication claim.
 
 ## Completed before Week 1
 

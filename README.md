@@ -3,8 +3,9 @@ Benchmark of resampling strategies for multi-class imbalanced tabular classifica
 
 ## Current phase
 
-Stage 0 Gates A-F are complete. The locked full benchmark raw run and the
-pre-registered analysis are recorded under the ignored `results/full-run/` and
+Stage 0 Gates A-F are complete, and the anonymous TMLR paper draft is tracked
+under `paper/`. The locked full benchmark raw run and the pre-registered
+analysis are recorded under the ignored `results/full-run/` and
 `results/analysis/` directories; clean-checkout reproducibility is recorded by
 Gate F before the Gate G technical release snapshot.
 
@@ -69,3 +70,13 @@ source snapshot. It writes the ignored `results\analysis\gate-g-review.json`.
 See [`docs/release.md`](docs/release.md) for the archive boundary and explicit
 non-goals. Gate G does not claim a paper submission, venue acceptance,
 deployment, or publication.
+
+## Paper draft
+
+The anonymous TMLR-formatted source is
+[`paper/main.tex`](paper/main.tex). It reports only the frozen full-run and
+analysis evidence, including explicit failures, skipped tests, uncertainty,
+and efficiency outcomes. See [`paper/README.md`](paper/README.md) for local
+compilation instructions and
+[`paper/review-checklist.md`](paper/review-checklist.md) for the pre-submission
+review boundary. The draft has not been submitted to a venue.
