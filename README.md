@@ -3,9 +3,10 @@ Benchmark of resampling strategies for multi-class imbalanced tabular classifica
 
 ## Current phase
 
-Stage 0 Gates A-D are complete. The locked full benchmark raw run and the
+Stage 0 Gates A-E are complete. The locked full benchmark raw run and the
 pre-registered analysis are recorded under the ignored `results/full-run/` and
-`results/analysis/` directories; Gate E robustness review remains pending.
+`results/analysis/` directories; paper drafting against the frozen evidence is
+next.
 
 The staged work plan is documented in
 [`docs/timeline.md`](docs/timeline.md).

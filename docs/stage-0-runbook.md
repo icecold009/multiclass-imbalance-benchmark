@@ -251,3 +251,25 @@ dataset-specific; no cross-dataset inferential class matrix is created. Do not
 use these commands to change the dataset scope, conditions, seeds, folds, or
 claim boundary, and do not draft paper claims until the independent Gate E
 robustness review is complete.
+
+## 10. Freeze the analysis at Gate E
+
+Before drafting the paper, validate the analysis manifest and replay the full
+analysis package into an isolated temporary directory:
+
+```powershell
+.venv\Scripts\python.exe scripts\verify_gate_e.py `
+  --run-dir results\full-run `
+  --analysis-dir results\analysis `
+  --output-dir results\analysis
+```
+
+The command must report `passed`. It rechecks the Gate D payload, frozen scope
+and protocol references, artifact hashes and schemas, complete-cell and family
+rules, skipped-test reasons, p-value and interval bounds, and descriptive
+efficiency coverage. It then reruns aggregation and figure generation in a
+fresh temporary directory and requires every analysis table and generated
+figure to match byte-for-byte. The resulting `gate-e-review.json` is the Gate E
+freeze record. This step does not amend the protocol, change the dataset or
+condition scope, select a method from scores, or authorize paper claims beyond
+what the evidence supports.

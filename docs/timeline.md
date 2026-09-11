@@ -33,8 +33,8 @@ Status markers: `[x]` complete, `[>]` current, `[!]` blocked, `[ ]` pending.
 | REPLAY-01 | Confirm the locked replay is reproducible and feasible within the recorded resource budget. | [x] Complete | `scripts/verify_gate_c.py` independently revalidated the eleven retained datasets, 495 cells per dataset, exact replay result/failure rows, reviewed failures, and replay runtimes below 900 seconds. The payload was emitted to the system temp directory because `artifacts/runs` is read-only in this checkout. |
 | RUN-01 | Execute the locked benchmark with resumability, provenance, failure logs, and resource logging. | [x] Complete | `results/full-run/benchmark_manifest.json` records the frozen hashes, all 11 datasets, 5,445 expected cells, 4,191 valid cells, and 1,254 explicit failure cells; aggregate result and failure hashes are recorded in the ignored manifest. |
 | ANALYSIS-01 | Aggregate results, run pre-specified statistics/effect sizes, and generate figures. | [x] Complete | `results/analysis/analysis_manifest.json` records Gate D status, complete-cell aggregates and efficiency means, frozen scalar tests/effects, descriptive per-class summaries, moderator data, and the planned figures. |
-| ROBUST-01 | Review analysis outputs for protocol, scope, failure, and locked-sensitivity consistency. | [>] Current | Gate E robustness review of `results/analysis/`; freeze the evidence package before any paper claims. |
-| PAPER-01 | Write and review the paper against generated evidence. | [ ] Pending | Starts after the independent Gate E robustness review; no paper claims are approved by this package. |
+| ROBUST-01 | Review analysis outputs for protocol, scope, failure, and locked-sensitivity consistency. | [x] Complete | `results/analysis/gate-e-review.json` passed the frozen-reference, table-invariant, skipped-test, artifact-hash, and deterministic replay checks. |
+| PAPER-01 | Write and review the paper against generated evidence. | [>] Current | Draft Methods and Results only from the frozen analysis package; report failures, skipped tests, uncertainty, and efficiency evidence. |
 | REPRO-01 | Reproduce the locked workflow from a clean checkout and archive manifests. | [ ] Pending | Gate F. |
 | SUBMIT-01 | Finalize release materials and preserve the submitted commit snapshot. | [ ] Pending | Gate G. |
 
@@ -122,9 +122,19 @@ dataset cells using the frozen scalar-metric procedures, paired effects, and
 runtime/RSS/resampling means, descriptive per-class-recall summaries because
 class labels are dataset-specific, registry-derived moderators, a class
 distribution overview, a ranking heatmap, a baseline-delta plot, and valid
-critical-difference diagrams. These are evidence artifacts for
-the pending Gate E robustness review; they do not approve paper claims, amend
-the protocol, or complete Gates F-G.
+critical-difference diagrams. These are evidence artifacts reviewed by Gate E;
+they do not approve paper claims, amend the protocol, or complete Gates F-G.
+
+### Gate E analysis-freeze boundary (2026-09-11)
+
+Gate E passed for the locked analysis package. The validator rechecked the Gate
+D counts and frozen references, all analysis artifact hashes and schemas,
+complete-cell and family restrictions, statistical output invariants, and the
+descriptive efficiency tables. A fresh replay regenerated every analysis table
+and generated figure byte-for-byte. The resulting ignored
+`results/analysis/gate-e-review.json` freezes the evidence for paper drafting;
+it does not authorize scope changes, protocol amendments, or claims beyond the
+complete dataset-level evidence.
 
 ## Completed before Week 1
 
