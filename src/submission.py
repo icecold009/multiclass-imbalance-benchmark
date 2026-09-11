@@ -34,6 +34,14 @@ REQUIRED_RELEASE_FILES = (
     "docs/stage-0-runbook.md",
     "docs/timeline.md",
     "requirements.txt",
+    "paper/main.tex",
+    "paper/references.bib",
+    "paper/README.md",
+    "paper/review-checklist.md",
+    "paper/tmlr.sty",
+    "paper/tmlr.bst",
+    "paper/fancyhdr.sty",
+    "paper/math_commands.tex",
 )
 DISALLOWED_TRACKED_PREFIXES = (
     "artifacts/environment/",
@@ -202,6 +210,14 @@ def verify_gate_g(root: Path, output_path: Path | None = None) -> dict[str, Any]
     if snapshot["tracked_file_set_sha256"] != gate_f["source_snapshot"]["tracked_file_set_sha256"]:
         raise RuntimeError("Gate F and Gate G tracked source snapshots differ")
 
+    paper_sources = [
+        "paper/main.tex",
+        "paper/references.bib",
+        "paper/README.md",
+        "paper/review-checklist.md",
+    ]
+    paper_artifact = _reference(root / "paper/main.tex", root)
+
     payload: dict[str, Any] = {
         "schema_version": "gate-g-review-v1",
         "status": "passed",
@@ -212,7 +228,10 @@ def verify_gate_g(root: Path, output_path: Path | None = None) -> dict[str, Any]
         "frozen_evidence": frozen,
         "submission": {
             "kind": "technical-release-snapshot",
-            "paper_artifact": None,
+            "paper_artifact": paper_artifact,
+            "paper_source_files": [
+                _reference(root / relative, root) for relative in paper_sources
+            ],
             "venue": None,
             "external_submission": False,
         },
