@@ -36,7 +36,7 @@ Status markers: `[x]` complete, `[>]` current, `[!]` blocked, `[ ]` pending.
 | ROBUST-01 | Review analysis outputs for protocol, scope, failure, and locked-sensitivity consistency. | [x] Complete | `results/analysis/gate-e-review.json` passed the frozen-reference, table-invariant, skipped-test, artifact-hash, and deterministic replay checks. |
 | PAPER-01 | Write and review the paper against generated evidence. | [>] Current | Draft Methods and Results only from the frozen analysis package; report failures, skipped tests, uncertainty, and efficiency evidence. |
 | REPRO-01 | Reproduce the locked workflow from a clean checkout and archive manifests. | [x] Complete | `scripts/verify_gate_f.py` archives the exact tracked source, runs the full checks in that temporary checkout, and revalidates the frozen Gate E evidence; the ignored payload is `results/analysis/gate-f-review.json`. |
-| SUBMIT-01 | Finalize release materials and preserve the submitted commit snapshot. | [ ] Pending | Gate G. |
+| SUBMIT-01 | Finalize release materials and preserve the submitted commit snapshot. | [x] Complete | Gate G technical release snapshot: `docs/release.md`, `scripts/verify_gate_g.py`, and ignored `results/analysis/gate-g-review.json`; no external submission is claimed. |
 
 ### Update rule
 
@@ -135,6 +135,16 @@ and generated figure byte-for-byte. The resulting ignored
 `results/analysis/gate-e-review.json` freezes the evidence for paper drafting;
 it does not authorize scope changes, protocol amendments, or claims beyond the
 complete dataset-level evidence.
+
+### Gate G technical release boundary (2026-09-11)
+
+Gate G preserves the exact feature-branch source snapshot and the hashes of the
+environment, scope-lock, full-run, Gate D, analysis, and Gate E evidence
+manifests. The validator requires a clean dedicated branch and a current
+passed Gate F review, then records the `git archive` hash in the ignored
+`results/analysis/gate-g-review.json` payload. This is a technical release
+snapshot only: no paper artifact, venue submission, acceptance, deployment,
+or publication claim is made.
 
 ## Completed before Week 1
 

@@ -35,7 +35,10 @@ EXPECTED_SOURCE_FILES = (
     "src/pilot.py",
     "src/reproducibility.py",
     "src/robustness.py",
+    "src/submission.py",
+    "scripts/verify_gate_g.py",
     "tests/test_reproducibility.py",
+    "tests/test_submission.py",
 )
 EVIDENCE_PATHS = (
     "artifacts/environment/metadata.json",
@@ -243,6 +246,7 @@ def verify_gate_f(root: Path, output_path: Path | None = None) -> dict[str, Any]
             _run([python, "-m", "src.pilot", "--help"], checkout),
             _run([python, "scripts/verify_gate_e.py", "--help"], checkout),
             _run([python, "scripts/verify_gate_f.py", "--help"], checkout),
+            _run([python, "scripts/verify_gate_g.py", "--help"], checkout),
         ]
         for check in checks:
             _require_passed(check)
