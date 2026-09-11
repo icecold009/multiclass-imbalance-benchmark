@@ -41,7 +41,7 @@ EVIDENCE_PATHS = (
     "artifacts/environment/metadata.json",
     "artifacts/runs/scope-lock.json",
     "results/full-run/benchmark_manifest.json",
-    "results/full-run/gate-d-review.json",
+    "results/analysis/gate-d-review.json",
     "results/analysis/analysis_manifest.json",
     "results/analysis/gate-e-review.json",
 )
@@ -155,7 +155,7 @@ def _validate_evidence(root: Path) -> dict[str, Any]:
     expected_statuses = {
         "artifacts/runs/scope-lock.json": "ready",
         "results/full-run/benchmark_manifest.json": "complete",
-        "results/full-run/gate-d-review.json": "passed",
+        "results/analysis/gate-d-review.json": "passed",
         "results/analysis/analysis_manifest.json": "complete",
         "results/analysis/gate-e-review.json": "passed",
     }
