@@ -273,3 +273,20 @@ figure to match byte-for-byte. The resulting `gate-e-review.json` is the Gate E
 freeze record. This step does not amend the protocol, change the dataset or
 condition scope, select a method from scores, or authorize paper claims beyond
 what the evidence supports.
+
+## 11. Verify Gate F from a clean source checkout
+
+After the analysis freeze, validate the committed source snapshot and the
+frozen ignored evidence package:
+
+```powershell
+.venv\Scripts\python.exe scripts\verify_gate_f.py
+```
+
+The command creates a temporary `git archive` checkout, confirms that generated
+data and environment artifacts are absent from the source snapshot, runs the
+full tests, Ruff, and module smoke checks there, and revalidates the Gate E
+manifest and byte-for-byte analysis replay in the original evidence checkout.
+It writes the ignored `results\analysis\gate-f-review.json` payload. This is an
+independent-style source and manifest check; it does not rerun the benchmark,
+expand the dataset scope, amend the protocol, or authorize paper claims.

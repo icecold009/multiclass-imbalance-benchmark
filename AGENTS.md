@@ -9,11 +9,11 @@ portfolio research program.
 
 ## Current phase
 
-Stage 0 Gates A-D and Gate E are complete. The locked full-run raw evidence and
+Stage 0 Gates A-F are complete. The locked full-run raw evidence and
 the frozen analysis outputs are recorded under the ignored `results/full-run/`
 and `results/analysis/` directories. The authoritative scope gate is
-[`docs/stage-0-feasibility.md`](docs/stage-0-feasibility.md); the next work is
-paper drafting against the frozen evidence.
+[`docs/stage-0-feasibility.md`](docs/stage-0-feasibility.md); paper drafting
+and release review use the clean-checkout evidence recorded by Gate F.
 
 ## Git and change control
 

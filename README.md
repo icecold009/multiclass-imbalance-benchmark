@@ -3,10 +3,10 @@ Benchmark of resampling strategies for multi-class imbalanced tabular classifica
 
 ## Current phase
 
-Stage 0 Gates A-E are complete. The locked full benchmark raw run and the
+Stage 0 Gates A-F are complete. The locked full benchmark raw run and the
 pre-registered analysis are recorded under the ignored `results/full-run/` and
-`results/analysis/` directories; paper drafting against the frozen evidence is
-next.
+`results/analysis/` directories; clean-checkout reproducibility is recorded by
+Gate F before release review.
 
 The staged work plan is documented in
 [`docs/timeline.md`](docs/timeline.md).
@@ -40,3 +40,17 @@ for staged execution and review boundaries.
 Before acquiring research data, follow [`docs/environment.md`](docs/environment.md)
 and [`docs/data-acquisition.md`](docs/data-acquisition.md). The pre-registered
 protocol template is [`docs/protocol.md`](docs/protocol.md).
+
+## Gate F clean-checkout reproducibility
+
+After the analysis freeze, run:
+
+```powershell
+.venv\Scripts\python.exe scripts\verify_gate_f.py
+```
+
+This creates a temporary `git archive` checkout, runs the full tests, Ruff, and
+module smoke checks there, and revalidates the frozen Gate E evidence. The
+ignored `results\analysis\gate-f-review.json` payload records the source
+snapshot and manifest hashes. It does not rerun the benchmark, expand the
+dataset scope, amend the protocol, or authorize paper claims.
