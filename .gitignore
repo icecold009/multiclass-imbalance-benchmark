@@ -31,3 +31,14 @@ artifacts/environment/*
 # Local notebooks and logs
 .ipynb_checkpoints/
 *.log
+
+# LaTeX build outputs; keep only the manuscript source and official style files.
+paper/*.aux
+paper/*.bbl
+paper/*.blg
+paper/*.fdb_latexmk
+paper/*.fls
+paper/*.out
+paper/*.pdf
+paper/*.synctex.gz
+paper/*.toc
