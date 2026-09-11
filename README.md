@@ -6,7 +6,7 @@ Benchmark of resampling strategies for multi-class imbalanced tabular classifica
 Stage 0 Gates A-F are complete. The locked full benchmark raw run and the
 pre-registered analysis are recorded under the ignored `results/full-run/` and
 `results/analysis/` directories; clean-checkout reproducibility is recorded by
-Gate F before release review.
+Gate F before the Gate G technical release snapshot.
 
 The staged work plan is documented in
 [`docs/timeline.md`](docs/timeline.md).
@@ -54,3 +54,18 @@ module smoke checks there, and revalidates the frozen Gate E evidence. The
 ignored `results\analysis\gate-f-review.json` payload records the source
 snapshot and manifest hashes. It does not rerun the benchmark, expand the
 dataset scope, amend the protocol, or authorize paper claims.
+
+## Gate G technical release snapshot
+
+After the exact release-candidate commit is created, run:
+
+```powershell
+.venv\Scripts\python.exe scripts/verify_gate_g.py
+```
+
+This validates the dedicated feature branch, clean working tree, passed Gate F
+review, frozen environment/results manifests, and the exact `git archive`
+source snapshot. It writes the ignored `results\analysis\gate-g-review.json`.
+See [`docs/release.md`](docs/release.md) for the archive boundary and explicit
+non-goals. Gate G does not claim a paper submission, venue acceptance,
+deployment, or publication.
