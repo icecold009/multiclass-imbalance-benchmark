@@ -21,6 +21,29 @@ Generated raw data, environment records, and result tables remain ignored by
 Git. Their hashes are recorded in the Gate G payload so the local evidence can
 be checked against the preserved commit without committing the generated data.
 
+## Package
+
+The tracked release package consists of:
+
+- `src/submission.py` and `scripts/verify_gate_g.py` for validation;
+- `tests/test_submission.py` for snapshot-digest coverage;
+- this checklist, the README entry point, and the existing protocol and
+  provenance documents;
+- the ignored local `results\analysis\gate-g-review.json` evidence payload.
+
+## Acceptance criteria
+
+Gate G passes only when:
+
+- the feature branch is dedicated and the working tree is clean;
+- Gate F is passed for the current commit;
+- the frozen environment, scope-lock, full-run, Gate D, analysis, and Gate E
+  manifests exist with their recorded hashes;
+- the source `git archive` matches the tracked-file set and contains no raw or
+  generated data;
+- the payload records `external_submission: false` unless a separately
+  authorized submission workflow is added.
+
 ## Verification
 
 After committing the release-candidate source changes and regenerating Gate F
