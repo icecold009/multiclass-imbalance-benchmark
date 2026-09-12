@@ -23,8 +23,10 @@
       citation order, and page-level readability.
 - [x] Verify every numerical sentence against the final Gate G payload and
       regenerate the payload after any source change.
-- [ ] Add author names, affiliations, contact details, funding, and
-      acknowledgments only when de-anonymization is authorized.
+- [x] Add the author name, contact detail, and acknowledgments to this
+      de-anonymized local draft.
+- [ ] Confirm the final affiliation, funding statement, and target-venue
+      de-anonymization requirements before external submission.
 - [ ] Decide whether to provide supplementary artifacts or an external
       anonymous repository link under the target venue's current rules.
 - [ ] Perform an independent technical and claim review; no external review or

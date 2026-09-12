@@ -28,6 +28,5 @@ files are intentionally not tracked.
 
 The companion [`review-checklist.md`](review-checklist.md) records the paper
 completion checks, evidence boundary, and remaining venue-preparation items.
-Before de-anonymization, replace the anonymous author block only after the
-authors, affiliations, acknowledgments, and target submission workflow are
-known.
+Before external submission, confirm the author affiliation, funding statement,
+acknowledgments, and target-venue de-anonymization requirements.

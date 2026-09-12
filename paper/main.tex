@@ -1,5 +1,9 @@
 \documentclass[10pt]{article}
-\usepackage{tmlr}
+\usepackage[preprint]{tmlr}
+\makeatletter
+\@acceptedtrue
+\@preprinttrue
+\makeatother
 \input{math_commands.tex}
 
 \usepackage{graphicx}
@@ -16,9 +20,9 @@
 
 \title{A Reproducible Benchmark of Imbalance Handling\\for Multiclass Tabular Classification}
 
-% Keep the submission anonymous. Replace this block only for an accepted or
-% explicitly de-anonymized version.
-\author{Anonymous authors}
+% De-anonymized local draft. Confirm affiliation and venue-specific metadata
+% before any external submission.
+\author{Shaurya Saria\\\texttt{sariashaurya09@gmail.com}}
 
 \newcommand{\method}[1]{\texttt{#1}}
 \newcommand{\metric}[1]{\textit{#1}}
@@ -244,7 +248,9 @@ We presented a reproducible benchmark of imbalance handling for multiclass tabul
 
 \section*{Acknowledgments}
 
-This anonymous draft does not include author or funding information. The source package preserves the provenance, configuration, and evidence hashes needed for later de-anonymized release.
+The author thanks the maintainers and contributors of the open-source
+scientific Python ecosystem, particularly scikit-learn and imbalanced-learn,
+whose software supported this benchmark.
 
 \bibliography{references}
 \bibliographystyle{tmlr}
