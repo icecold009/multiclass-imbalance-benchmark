@@ -10,6 +10,8 @@
 \usepackage{amssymb}
 \usepackage{hyperref}
 \usepackage{url}
+\usepackage{microtype}
+\usepackage{needspace}
 \hypersetup{hidelinks}
 
 \title{A Reproducible Benchmark of Imbalance Handling\\for Multiclass Tabular Classification}
@@ -40,24 +42,23 @@
 \maketitle
 
 \begin{abstract}
-Imbalance handling for multiclass tabular classification is often evaluated with small method comparisons, incomplete failure accounting, or folds treated as independent evidence. We present a preregistered, reproducible benchmark of eleven public datasets spanning numeric and mixed feature types, three classifiers, and a locked set of weighting, over-sampling, under-sampling, and combined sampling conditions. The benchmark uses training-fold-only preprocessing, five-fold stratified cross-validation under three seeds, dataset-level complete-cell aggregation, macro-F1 as the primary outcome, and paired uncertainty-aware comparisons. The run produced 4,191 valid cell records and 1,254 explicit failure records from 5,445 expected records. Across 32 Friedman tests, four were significant; all four were for XGBoost in the numeric core family, and the corresponding Nemenyi analysis identified SMOTEENN versus SMOTETomek for each metric. Across 184 Holm-adjusted baseline comparisons, one was significant: SMOTEENN reduced MCC relative to the raw logistic-regression baseline in the numeric core. The pattern is therefore not evidence for a universally best sampler. It instead demonstrates why applicability, complete-cell coverage, paired effect sizes, and computational consequences must be reported alongside mean scores. All claims are bounded by the locked eleven-dataset scope and the observed complete-cell coverage.
+Class imbalance in multiclass tabular classification is commonly studied with incomplete comparisons and fold-level inference. We present a preregistered, reproducible benchmark of 11 public datasets (9 numeric, 2 mixed), three classifiers, and locked weighting and sampling conditions. Preprocessing is fit within training folds; evaluation uses stratified five-fold cross-validation under three seeds, dataset-level complete-cell aggregation, macro-F1 as the primary outcome, and paired uncertainty-aware comparisons. The run produced 4,191 valid and 1,254 failed records from 5,445 expected records. Four of 32 Friedman tests were significant, all for numeric XGBoost; Nemenyi tests isolated SMOTEENN versus SMOTETomek. Among 184 Holm-adjusted raw-baseline comparisons, one was significant: SMOTEENN reduced MCC for numeric logistic regression. These results do not support a universally best sampler. They instead show that benchmark conclusions depend on applicability, complete-cell coverage, paired effects, and computational cost. Claims are limited to the locked 11-dataset scope and observed coverage.
 \end{abstract}
 
 \section{Introduction}
 
 Class imbalance is a recurring source of difficulty in multiclass classification. A model can obtain a strong aggregate score while failing systematically on a rare class, and a resampling method that helps one classifier or feature representation can be neutral or harmful for another. This is especially important for tabular data, where the interaction between preprocessing, categorical representation, model inductive bias, and the sampling operator is part of the empirical question rather than a disposable implementation detail.
 
-The literature contains mature families of imbalance interventions, including class weighting, random over- and under-sampling, synthetic minority generation, and combinations of over-sampling with cleaning or boundary-based methods \citep{he2009learning,branco2016survey}. The methods are widely available, but their comparison is frequently difficult to interpret. Datasets may be selected after seeing pilot scores, unsupported combinations may be silently dropped, folds may be treated as independent replications, or a single metric may conceal failures on particular classes. Benchmark studies in adjacent tabular settings show the value of fixed data collections, explicit protocols, and broad model comparisons \citep{gorishniy2022why}; those principles are particularly valuable when the benchmark question concerns a family of interacting preprocessing and sampling choices.
+The literature contains mature families of imbalance interventions, including class weighting, random over- and under-sampling, synthetic minority generation, and combinations of over-sampling with cleaning or boundary-based methods \citep{he2009learning,branco2016survey}. Their comparison is nevertheless difficult to interpret when datasets are selected after pilot scores, unsupported combinations are silently dropped, folds are treated as independent replications, or one metric conceals class-specific failures. Benchmark studies in adjacent tabular settings show the value of fixed data collections, explicit protocols, and broad model comparisons \citep{gorishniy2022why}; the same principles matter when preprocessing and sampling choices interact.
 
-This paper asks: (i) how do locked imbalance-handling conditions compare with a raw baseline on multiclass tabular data; (ii) how do patterns differ between numeric and mixed feature families and across logistic regression, random forest, and XGBoost; and (iii) what coverage, failure, runtime, and post-sampling-size costs accompany the observed metric changes? We answer these questions with a full-run benchmark whose scope, conditions, metric definitions, and complete-case rules were fixed before analysis.
+We ask how locked conditions compare with raw baselines; whether results differ by feature family and classifier; and what coverage, failure, runtime, and post-sampling row-count costs accompany the metric changes. Scope, conditions, metric definitions, and complete-case rules were fixed before analysis.
 
-Our contributions are fourfold:
+Our contributions are threefold:
 
 \begin{itemize}
-  \item We provide a reproducible benchmark design covering eleven public datasets, three classifiers, and feature-type-appropriate imbalance conditions.
-  \item We enforce fold-safe preprocessing and retain unsupported or failed records as explicit audit rows instead of turning them into zeros or silently missing observations.
-  \item We analyse dataset-level means with paired effect sizes, bootstrap intervals, Friedman and Nemenyi procedures, and Holm-adjusted baseline comparisons.
-  \item We report the negative, skipped, and incomplete parts of the experiment together with runtime and post-sampling row-count evidence, and release the executable protocol and analysis source with the paper.
+  \item A locked comparison of eleven public datasets, three classifiers, and feature-type-appropriate conditions.
+  \item A fold-safe protocol that retains unsupported and failed runs as explicit audit rows.
+  \item Dataset-level paired effects, uncertainty, statistical tests, runtime, row counts, and reproducible source.
 \end{itemize}
 
 The resulting evidence supports a narrow conclusion: imbalance handling is conditional on the dataset, classifier, feature family, and metric, and the cost of a method is part of its practical evaluation. The paper does not claim a universally superior sampler.
@@ -76,7 +77,7 @@ Benchmark conclusions depend on the data collection, comparison matrix, aggregat
 \section{Benchmark Design}
 \label{sec:design}
 
-\subsection{Research scope and dataset collection}
+\subsection{Datasets and scope}
 
 The benchmark was scoped to independent, public, multiclass tabular datasets with at least three classes, documented source terms, and sufficient support for five-fold stratification under the locked feasibility rule. The candidate registry contained 25 OpenML/UCI records. Eligibility and feature-type decisions were made from provenance, target, leakage, duplicate, missingness, and support audits; preliminary scores were not used to retain or remove datasets. Eleven datasets were retained: nine numeric datasets and two mixed datasets (CMC and Dermatology). Multiple Features (Factors) was deferred because its corrected replay took 1,043.5 seconds against the 900-second Stage 0 feasibility budget. This is a computational scope decision, not a score-based exclusion.
 
@@ -108,13 +109,13 @@ Dermatology & 366 & 6 & 34 & 20 & Mixed & 5.60 \\
 
 The raw files, source identifiers, retrieval metadata, licenses or terms, target semantics, class counts, and SHA-256 hashes are recorded in the versioned dataset registry and acquisition manifest. Raw and processed data are not committed to the source repository; the manifests are the provenance boundary for reproducing the local evidence package.
 
-\subsection{Cross-validation and fold-safe preprocessing}
+\subsection{Evaluation protocol}
 
 Each dataset uses stratified five-fold cross-validation with shuffling and seeds $0$, $1$, and $2$. A required record is identified by dataset, classifier, condition, seed, and fold, yielding 15 seed-fold records per cell. Rows with missing targets are removed before splitting. Predictor imputation, encoding, scaling, resampling, and training-fold weights are fitted within each training fold. The held-out fold is only transformed and predicted; it is never resampled or used to fit a preprocessing operation.
 
 Numeric pipelines impute numeric values with the training median and scale after imputation. Mixed pipelines impute numeric values with the training median and categorical values with the training mode, ordinal-encode categorical predictors before SMOTENC, and one-hot encode after resampling with unknown categories ignored. Semantic categorical overrides are recorded separately from the registry so that numeric source codes are not treated as continuous by accident.
 
-\subsection{Classifiers and locked conditions}
+\subsection{Models and conditions}
 
 The classifiers are logistic regression, random forest, and XGBoost. Logistic regression uses a maximum of 1,000 iterations. Random forest uses 200 trees and one worker. XGBoost uses 200 estimators, the histogram tree method, multiclass log loss for evaluation, and one worker. The locked conditions are summarized in Table~\ref{tab:conditions}; sampler parameters are deliberately simple and fixed rather than tuned after seeing the full-run scores.
 
@@ -138,7 +139,7 @@ Balanced ensemble & Balanced Random Forest & Random Forest only; 200 trees; repl
 
 The numeric core contains nine conditions for each classifier: raw, class-weighted, random over-sampling, random under-sampling, SMOTE, ADASYN, Borderline-SMOTE, SMOTEENN, and SMOTETomek. The mixed core contains seven conditions, replacing the ordinary synthetic methods with SMOTENC, SMOTEENN, and SMOTETomek. Balanced Random Forest is analysed only within the RF classifier and is kept separate from the general classifier comparisons.
 
-\subsection{Outcomes and aggregation}
+\subsection{Metrics and aggregation}
 
 Macro-F1 is the primary outcome, computed over all declared target classes with zero division set to zero. Secondary outcomes are multiclass G-mean, MCC, balanced accuracy, and per-class recall. If $R_c$ denotes recall for class $c$, then
 
@@ -151,7 +152,7 @@ All encoded classes are included in Equation~\ref{eq:gmean}; a zero class recall
 
 Metric values are first averaged over the 15 seed-fold records within a complete dataset--classifier--condition cell. A cell is complete only if all 15 records are valid. The statistical block is the dataset, not the fold or seed. For each family, classifier, and metric, only datasets with a complete cell for every condition in that family are included. This produces paired dataset-level comparisons and prevents a method with more failures from appearing artificially strong because only its easiest cells remain.
 
-\subsection{Statistical and efficiency analysis}
+\subsection{Statistics and efficiency}
 
 For every non-baseline condition, the paired difference is the condition mean minus the raw-baseline mean for the same dataset, classifier, and metric. We report mean and median paired differences, win/tie/loss counts, paired rank-biserial correlation, and a 95\% percentile bootstrap interval with 10,000 resamples and NumPy generator seed 0. Ties are defined using the locked $10^{-12}$ tolerance.
 
@@ -166,15 +167,15 @@ The source package freezes the configuration, registry, acquisition manifest, en
 \section{Results}
 \label{sec:results}
 
-\subsection{Coverage and explicit failures}
+\subsection{Coverage and failures}
 
 The full run enumerated 5,445 expected records, of which 4,191 were valid and 1,254 were explicit failures. The analysis package contains 278 complete dataset--classifier--condition cells. Complete-cell counts were 75, 84, and 75 for logistic regression, random forest, and XGBoost in the numeric family, respectively; the corresponding mixed-family counts were 14, 16, and 14. The additional RF counts reflect the Balanced Random Forest comparator. These counts are not interchangeable with the number of folds: every complete cell contains 15 seed-fold records.
 
 Failures are interpretable protocol and applicability evidence. The grouped failure messages contain 405 records for applying SMOTENC outside mixed data, 330 records for applying Balanced Random Forest outside RF, 270 records for ordinary numeric synthetic samplers declared invalid for mixed data in Stage 0, 207 records in which the requested ratio generated no samples, and 42 ADASYN records reporting that no majority neighbours were available for the dataset. Unsupported combinations and sampler-specific failures therefore remain visible in the denominator rather than being treated as poor scores or silently discarded.
 
-\analysisfigure{../results/analysis/figures/class_distribution_overview.png}{Class distributions for the eleven retained datasets. The figure is generated from the locked registry and analysis inputs; it is descriptive evidence for the moderator range, not a score-based selection plot.}{class-distribution}
+\analysisfigure{../results/analysis/figures/class_distribution_overview.png}{Class distributions for the 11 retained datasets; descriptive evidence for the moderator range.}{class-distribution}
 
-\subsection{Descriptive performance patterns}
+\subsection{Descriptive performance}
 
 Figure~\ref{fig:macro-f1-heatmap} shows the complete-cell macro-F1 means by classifier, condition, and dataset. Because each condition can have a different complete-cell set, the heatmap is descriptive and should not be read as a single pooled estimate. In the numeric family, the complete-cell mean for ADASYN is high for all three classifiers (0.9465 for logistic regression, 0.9332 for random forest, and 0.9242 for XGBoost), but only three numeric dataset blocks are complete for that condition. Its paired baseline comparison consequently has only three pairs, all ties. The result is evidence of limited applicability in this run, not evidence that ADASYN is generally superior.
 
@@ -182,7 +183,7 @@ For the nine-pair numeric comparisons, the largest observed mean paired macro-F1
 
 \begin{table}[t]
 \centering
-\caption{Largest observed paired macro-F1 differences from the raw baseline within each classifier and feature family. These rows summarize the largest mean delta among conditions with the shown complete-pair count; they are not score-selected inferential tests. Intervals are the locked paired percentile bootstrap intervals.}
+\caption{Largest mean paired macro-F1 differences from the raw baseline by family and classifier. Intervals are bootstrap confidence intervals; rows are descriptive, not score-selected.}
 \label{tab:macro-deltas}
 \scriptsize
 \begin{tabular}{@{}lllrrrrr@{}}
@@ -199,21 +200,22 @@ Mixed & XGBoost & SMOTEENN & 2 & +0.0113 & [-0.0076, 0.0303] & 1/0/1 & 1.000 \\
 \end{tabular}
 \end{table}
 
-\analysisfigure{../results/analysis/figures/macro_f1_ranking_heatmap.png}{Complete-cell macro-F1 ranking heatmap. Rankings are displayed for the valid dataset--condition--classifier cells and are not a replacement for the paired complete-case analysis.}{macro-f1-heatmap}
+\analysisfigure{../results/analysis/figures/macro_f1_ranking_heatmap.png}{Complete-cell macro-F1 means by classifier, condition, and dataset. Rankings are descriptive; inference uses paired complete cases.}{macro-f1-heatmap}
 
-\subsection{Confirmatory tests and uncertainty}
+\subsection{Confirmatory analysis}
 
 There were 32 planned Friedman rows. Four were significant, all in the numeric-core XGBoost block: macro-F1, G-mean, MCC, and balanced accuracy each had Friedman statistic 24.0 and $p=0.002292$ across three complete dataset blocks and nine conditions. The associated Nemenyi results identified SMOTEENN versus SMOTETomek as the only $p<0.05$ pair for each of those four metrics, with $p=0.010464$. The remaining 28 Friedman rows were non-significant or skipped. In particular, mixed-family tests had only two complete dataset blocks and were reported as skipped rather than over-interpreted.
 
 Across 184 raw-versus-alternative Wilcoxon rows, exactly one remained significant after Holm correction. For numeric logistic regression and MCC, SMOTEENN had mean paired delta $-0.0667$, median delta $-0.0265$, zero wins, zero ties, nine losses, rank-biserial correlation $-1.0$, and a 95\% bootstrap interval of $[-0.1105,-0.0283]$; the unadjusted $p$-value was 0.003906 and the Holm-adjusted value was 0.03125. This is a statistically supported negative comparison, not a positive sampler recommendation. The remaining corrected baseline comparisons did not meet the declared threshold.
 
-\analysisfigure{../results/analysis/figures/macro_f1_baseline_deltas.png}{Paired baseline deltas for macro-F1. Positive values indicate improvement over the raw baseline; uncertainty and complete-pair counts are preserved in the tabular analysis output.}{macro-f1-deltas}
+\analysisfigure{../results/analysis/figures/macro_f1_baseline_deltas.png}{Paired macro-F1 differences from the raw baseline. Positive values indicate improvement; intervals and pair counts are retained in the analysis output.}{macro-f1-deltas}
 
 The class-wise results are reported in the analysis package rather than collapsed into one cross-dataset class index, because class labels and class semantics differ across datasets. The per-class recall summaries provide descriptive evidence for which classes drive a macro metric while preserving the dataset-specific label space.
 
-\subsection{Efficiency and resampling consequences}
+\Needspace{9\baselineskip}
+\subsection{Efficiency costs}
 
-Sampling changed the number of training rows in the expected direction, but the magnitude depended strongly on the dataset. Across complete numeric cells, the average training set size before sampling was 992 rows. SMOTE increased this to an average of 1,548 rows, random over-sampling had the same average post-sampling size, SMOTETomek averaged 1,518 rows, and SMOTEENN averaged 1,247 rows; random under-sampling reduced it to 661 rows. These are descriptive averages over dataset-level efficiency rows, not a claim that every dataset follows the same pattern.
+Sampling changed the number of training rows in the expected direction, but the magnitude depended strongly on the dataset. Across raw numeric cells, the average training set size before sampling was 992 rows. SMOTE increased this to an average of 1,548 rows, random over-sampling had the same average post-sampling size, SMOTETomek averaged 1,518 rows, and SMOTEENN averaged 1,247 rows; random under-sampling reduced it to 661 rows. These are descriptive averages over dataset-level efficiency rows, not a claim that every dataset follows the same pattern.
 
 The average fit-and-predict time for numeric random forest was 0.474 seconds for the raw baseline and 0.625 seconds for SMOTETomek; Balanced Random Forest averaged 0.721 seconds. For numeric XGBoost, the raw baseline averaged 0.538 seconds, while SMOTETomek averaged 0.737 seconds. The numeric ADASYN mean for XGBoost was 0.860 seconds, again based on only three complete datasets. In the two mixed datasets, RF averaged 0.365 seconds for the raw baseline, 0.501 seconds for SMOTENC, and 0.538 seconds for Balanced Random Forest. These measurements support treating computational cost and applicability as first-class benchmark outcomes.
 
@@ -222,8 +224,10 @@ The average fit-and-predict time for numeric random forest was 0.474 seconds for
 
 The main result is conditionality rather than a leaderboard. A few numeric XGBoost comparisons separated in the all-condition Friedman/Nemenyi block, while the only Holm-significant raw-baseline comparison was a negative MCC result for SMOTEENN with logistic regression. Several descriptive macro-F1 deltas were positive, but their intervals or corrected $p$-values do not support a general recommendation. The high ADASYN complete-cell means illustrate the same point from the coverage side: the method is complete on only three numeric dataset blocks, and its paired comparison has no non-zero differences. Reporting the coverage and failure denominator changes the interpretation of the raw mean.
 
+\Needspace{9\baselineskip}
 The benchmark also shows why feature type should be part of the protocol. Ordinary SMOTE-family conditions are not applied to mixed one-hot features; mixed data uses SMOTENC before one-hot encoding. As a result, the mixed family has a different comparison matrix and only two retained dataset blocks. Pooling numeric and mixed conditions would either violate applicability or conceal that the mixed inference block is too small for the planned tests.
 
+\Needspace{8\baselineskip}
 The efficiency evidence reinforces this interpretation. Over-sampling usually increased the number of training rows, and more elaborate conditions generally increased fit-and-predict time relative to the raw baseline. The effect is not a universal penalty: random under-sampling reduced row counts and often reduced runtime, but its performance deltas varied by classifier and dataset. A practical choice therefore involves a task-specific trade-off among class-wise performance, failure risk, resource cost, and reproducibility.
 
 \subsection{Limitations}
