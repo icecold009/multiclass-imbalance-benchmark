@@ -18,10 +18,10 @@
 
 ## Required before an external submission
 
-- [ ] Install a LaTeX distribution and compile the source with BibTeX.
-- [ ] Inspect the rendered PDF for table/figure placement, overfull boxes,
+- [x] Install a LaTeX distribution and compile the source with BibTeX.
+- [x] Inspect the rendered PDF for table/figure placement, overfull boxes,
       citation order, and page-level readability.
-- [ ] Verify every numerical sentence against the final Gate G payload and
+- [x] Verify every numerical sentence against the final Gate G payload and
       regenerate the payload after any source change.
 - [ ] Add author names, affiliations, contact details, funding, and
       acknowledgments only when de-anonymization is authorized.
