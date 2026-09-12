@@ -43,3 +43,6 @@ paper/*.out
 paper/*.pdf
 paper/*.synctex.gz
 paper/*.toc
+
+# Local paper release artifacts
+output/
