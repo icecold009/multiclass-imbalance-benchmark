@@ -65,6 +65,13 @@ STATUS_VALID = "VALID"
 STATUS_FAILED = "FAILED / NOT APPLICABLE"
 
 
+class NoOpSampler:
+    """Sampler-compatible no-op for balanced folds with no rows to add."""
+
+    def fit_resample(self, X: Any, y: Any) -> tuple[Any, Any]:
+        return X, y
+
+
 class NotApplicableError(ValueError):
     """A protocol-defined cell failure, not an implementation crash."""
 
@@ -181,6 +188,10 @@ def sampler_for_v2(
         return None
     if condition not in SAMPLER_CONDITIONS:
         raise ValueError(f"Unknown V2 condition: {condition}")
+    labels = list(y_train)
+    counts = pd.Series(labels, dtype="object").value_counts()
+    if len(counts) > 1 and counts.nunique() == 1:
+        return NoOpSampler()
     spec = fold_local_neighbours(y_train, condition)
     if condition == "random_over":
         return RandomOverSampler(sampling_strategy="not majority", random_state=random_state)
