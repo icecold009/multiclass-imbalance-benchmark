@@ -72,6 +72,7 @@ RESULT_COLUMNS = (
     "peak_rss_mb",
     "worker_count",
     "timeout",
+    "retry_count",
     "config_sha256",
     "status",
 )
@@ -407,6 +408,7 @@ def _cell_failure(
     applicability: str,
     wall_seconds: float,
     config_sha256: str,
+    retry_count: int = 0,
 ) -> dict[str, Any]:
     record = failure_record(
         dataset_id=dataset_id,
@@ -420,7 +422,7 @@ def _cell_failure(
         applicability=applicability,
         wall_seconds=wall_seconds,
         resource_status="not_started" if applicability == "NOT_APPLICABLE" else "failed",
-        retry_count=0,
+        retry_count=retry_count,
         config_sha256=config_sha256,
     )
     record.update(
@@ -446,6 +448,7 @@ def _run_cell(
     classifier: str,
     condition: str,
     trial_rows: list[dict[str, Any]],
+    retry_count: int = 0,
 ) -> tuple[dict[str, Any] | None, dict[str, Any] | None]:
     started = time.perf_counter()
     applicable, reason = _applicability(layout.feature_type, classifier, condition)
@@ -461,6 +464,7 @@ def _run_cell(
             applicability="NOT_APPLICABLE",
             wall_seconds=0.0,
             config_sha256=context.config_sha256,
+            retry_count=retry_count,
         )
 
     best_score = -math.inf
@@ -530,6 +534,7 @@ def _run_cell(
             applicability="APPLICABLE",
             wall_seconds=time.perf_counter() - started,
             config_sha256=context.config_sha256,
+            retry_count=retry_count,
         )
 
     calibration_status = STATUS_VALID
@@ -599,6 +604,7 @@ def _run_cell(
                 "peak_rss_mb": None,
                 "worker_count": WORKER_COUNT,
                 "timeout": False,
+                "retry_count": retry_count,
                 "config_sha256": context.config_sha256,
                 "status": STATUS_VALID,
             },
@@ -616,7 +622,20 @@ def _run_cell(
             applicability="APPLICABLE",
             wall_seconds=time.perf_counter() - started,
             config_sha256=context.config_sha256,
+            retry_count=retry_count,
         )
+
+
+def _is_infrastructure_failure(failure: dict[str, Any]) -> bool:
+    """Classify only failures eligible for the single frozen retry."""
+
+    return failure.get("exception_type") in {
+        "BrokenProcessPool",
+        "ConnectionError",
+        "MemoryError",
+        "OSError",
+        "TimeoutError",
+    }
 
 
 def validate_v2_output_frames(
@@ -686,19 +705,26 @@ def _run_dataset(context: V2ExecutionContext, spec: V2DatasetSpec, dataset_dir: 
     splitter = StratifiedKFold(n_splits=OUTER_FOLDS, shuffle=True, random_state=OUTER_SEED)
     for outer_fold, (train_index, test_index) in enumerate(splitter.split(X, y)):
         for classifier, condition in itertools.product(V2_MODELS, V2_CONDITIONS):
-            result, failure = _run_cell(
-                context=context,
-                spec=spec,
-                layout=layout,
-                X_train=X.iloc[train_index],
-                y_train=y[train_index],
-                X_test=X.iloc[test_index],
-                y_test=y[test_index],
-                outer_fold=outer_fold,
-                classifier=classifier,
-                condition=condition,
-                trial_rows=trials,
-            )
+            result = None
+            failure = None
+            max_retries = int(context.config["execution"]["retry_infrastructure_failures"])
+            for retry_count in range(max_retries + 1):
+                result, failure = _run_cell(
+                    context=context,
+                    spec=spec,
+                    layout=layout,
+                    X_train=X.iloc[train_index],
+                    y_train=y[train_index],
+                    X_test=X.iloc[test_index],
+                    y_test=y[test_index],
+                    outer_fold=outer_fold,
+                    classifier=classifier,
+                    condition=condition,
+                    trial_rows=trials,
+                    retry_count=retry_count,
+                )
+                if result is not None or failure is None or not _is_infrastructure_failure(failure):
+                    break
             if result is not None:
                 results.append(result)
             if failure is not None:
