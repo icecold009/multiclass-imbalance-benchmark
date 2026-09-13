@@ -724,6 +724,50 @@ def _run_dataset(context: V2ExecutionContext, spec: V2DatasetSpec, dataset_dir: 
     return counts
 
 
+def _aggregate_v2_outputs(
+    context: V2ExecutionContext,
+) -> dict[str, int]:
+    """Aggregate only after every locked dataset has a validated marker."""
+
+    result_frames: list[pd.DataFrame] = []
+    failure_frames: list[pd.DataFrame] = []
+    total_counts = {"expected_cells": 0, "valid_cells": 0, "failure_cells": 0}
+    for spec in context.datasets:
+        dataset_dir = context.output_dir / spec.dataset_id
+        marker_path = dataset_dir / "v2_complete.json"
+        if not marker_path.is_file():
+            raise RuntimeError(f"{spec.dataset_id}: complete marker is missing")
+        marker = json.loads(marker_path.read_text(encoding="utf-8"))
+        if marker.get("status") != "complete":
+            raise RuntimeError(f"{spec.dataset_id}: complete marker is not complete")
+        if marker.get("raw_sha256") != spec.raw_sha256:
+            raise RuntimeError(f"{spec.dataset_id}: complete marker has a stale raw hash")
+        if marker.get("config_sha256") != context.config_sha256:
+            raise RuntimeError(f"{spec.dataset_id}: complete marker has a stale config hash")
+        results_path = dataset_dir / "v2_results.csv"
+        failures_path = dataset_dir / "v2_failures.csv"
+        if not results_path.is_file() or not failures_path.is_file():
+            raise RuntimeError(f"{spec.dataset_id}: per-dataset result artifacts are incomplete")
+        results = pd.read_csv(results_path)
+        failures = pd.read_csv(failures_path)
+        counts = validate_v2_output_frames(spec.dataset_id, results, failures)
+        if marker.get("counts") != counts:
+            raise RuntimeError(f"{spec.dataset_id}: marker counts do not match output tables")
+        result_frames.append(results)
+        failure_frames.append(failures)
+        for key in total_counts:
+            total_counts[key] += counts[key]
+    if total_counts["valid_cells"] + total_counts["failure_cells"] != total_counts["expected_cells"]:
+        raise RuntimeError("aggregate V2 outputs do not cover the locked cell matrix")
+    pd.concat(result_frames, ignore_index=True).to_csv(
+        context.output_dir / "v2_results.csv", index=False
+    )
+    pd.concat(failure_frames, ignore_index=True).to_csv(
+        context.output_dir / "v2_failures.csv", index=False
+    )
+    return total_counts
+
+
 def run_v2_benchmark(
     context: V2ExecutionContext,
     *,
@@ -746,6 +790,7 @@ def run_v2_benchmark(
 
     context.output_dir.mkdir(parents=True, exist_ok=True)
     manifest_path = context.output_dir / "v2_manifest.json"
+    locked_dataset_ids = [spec.dataset_id for spec in context.datasets]
     manifest = {
         "schema_version": "v2-full-run-v1",
         "status": "running",
@@ -753,13 +798,19 @@ def run_v2_benchmark(
         "config_sha256": context.config_sha256,
         "registry_sha256": context.registry_sha256,
         "protocol_sha256": context.protocol_sha256,
-        "dataset_ids": list(selected),
+        "dataset_ids": locked_dataset_ids,
         "expected_cells_per_dataset": context.expected_cells_per_dataset,
         "dataset_runs": {},
     }
     if manifest_path.exists():
         existing = json.loads(manifest_path.read_text(encoding="utf-8"))
-        for field in ("schema_version", "config_sha256", "registry_sha256", "protocol_sha256", "dataset_ids"):
+        for field in (
+            "schema_version",
+            "config_sha256",
+            "registry_sha256",
+            "protocol_sha256",
+            "dataset_ids",
+        ):
             if existing.get(field) != manifest[field]:
                 raise RuntimeError(f"frozen V2 manifest field changed: {field}")
         manifest = existing
@@ -778,7 +829,20 @@ def run_v2_benchmark(
         counts = _run_dataset(context, spec, dataset_dir)
         manifest["dataset_runs"][spec.dataset_id] = {"status": "complete", "counts": counts}
         _write_json_atomic(manifest_path, manifest)
-    manifest["status"] = "complete" if len(manifest["dataset_runs"]) == len(selected) else "partial"
+    all_complete = all(
+        (context.output_dir / dataset_id / "v2_complete.json").is_file()
+        for dataset_id in locked_dataset_ids
+    )
+    if all_complete:
+        counts = _aggregate_v2_outputs(context)
+        manifest["aggregate"] = {
+            "results": "v2_results.csv",
+            "failures": "v2_failures.csv",
+            "counts": counts,
+            "results_sha256": _sha256_file(context.output_dir / "v2_results.csv"),
+            "failures_sha256": _sha256_file(context.output_dir / "v2_failures.csv"),
+        }
+    manifest["status"] = "complete" if all_complete else "partial"
     manifest["completed_at_utc"] = _utc_now()
     _write_json_atomic(manifest_path, manifest)
     return manifest

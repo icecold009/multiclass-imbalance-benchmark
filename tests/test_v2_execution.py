@@ -1,4 +1,6 @@
+import json
 from pathlib import Path
+from types import SimpleNamespace
 
 import numpy as np
 import pandas as pd
@@ -8,6 +10,7 @@ from src.v2_engineering import (
     STATUS_VALID,
     V2_CONDITIONS,
     V2_MODELS,
+    failure_record,
     infer_feature_layout,
 )
 from src.v2_execution import (
@@ -15,6 +18,7 @@ from src.v2_execution import (
     FAILURE_COLUMNS,
     RESULT_COLUMNS,
     V2DatasetSpec,
+    _aggregate_v2_outputs,
     _run_cell,
     dry_run_summary,
     execution_blockers,
@@ -118,3 +122,54 @@ def test_one_real_nested_cell_runs_hpo_oof_calibration_and_outer_test() -> None:
     assert result["selected_trial"] >= 1
     assert len(trial_rows) == 20
     assert result["calibration_status"] in {STATUS_VALID, "FAILED"}
+
+
+def test_complete_dataset_outputs_are_aggregated_only_after_marker_validation(tmp_path: Path) -> None:
+    spec = V2DatasetSpec(
+        dataset_id="fixture",
+        raw_path=tmp_path / "fixture.csv",
+        raw_sha256="raw-hash",
+        target_column="target",
+        categorical_columns=(),
+        feature_type="numeric",
+    )
+    dataset_dir = tmp_path / "fixture"
+    dataset_dir.mkdir()
+    failures = []
+    for dataset_id, outer_fold, outer_seed, classifier, condition in expected_cell_keys("fixture"):
+        row = failure_record(
+            dataset_id=dataset_id,
+            outer_fold=outer_fold,
+            outer_seed=outer_seed,
+            classifier=classifier,
+            condition=condition,
+            stage="applicability",
+            exception_type="NotApplicableError",
+            reason="fixture failure",
+            applicability="NOT_APPLICABLE",
+            wall_seconds=0.0,
+            resource_status="not_started",
+            retry_count=0,
+            config_sha256="config-hash",
+        )
+        row.update({"feature_type": "numeric", "worker_count": 1, "timeout": False})
+        failures.append(row)
+    pd.DataFrame(columns=RESULT_COLUMNS).to_csv(dataset_dir / "v2_results.csv", index=False)
+    pd.DataFrame(failures, columns=FAILURE_COLUMNS).to_csv(dataset_dir / "v2_failures.csv", index=False)
+    pd.DataFrame(columns=["trial"]).to_csv(dataset_dir / "v2_trials.csv", index=False)
+    marker = {
+        "status": "complete",
+        "raw_sha256": "raw-hash",
+        "config_sha256": "config-hash",
+        "counts": {"expected_cells": 275, "valid_cells": 0, "failure_cells": 275},
+    }
+    (dataset_dir / "v2_complete.json").write_text(json.dumps(marker), encoding="utf-8")
+    context = SimpleNamespace(
+        output_dir=tmp_path,
+        datasets=(spec,),
+        config_sha256="config-hash",
+    )
+    counts = _aggregate_v2_outputs(context)
+    assert counts == {"expected_cells": 275, "valid_cells": 0, "failure_cells": 275}
+    assert (tmp_path / "v2_results.csv").is_file()
+    assert (tmp_path / "v2_failures.csv").is_file()
