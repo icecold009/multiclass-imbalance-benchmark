@@ -1,0 +1,376 @@
+project: multiclass-imbalance-benchmark
+protocol_version: expanded-v2
+status: gate-1-freeze
+python_version: 3.12.10
+
+scope:
+  development_branch: experiment/v2-expanded-benchmark
+  v1_reference: main
+  dataset_target: 50
+  dataset_minimum: 40
+  dataset_maximum: 60
+  minimum_classes: 3
+  minimum_minority_support: 10
+  selection_rule: registry_provenance_eligibility_only
+  pilot_scores_may_select_scope: false
+
+dataset_sources:
+  - openml-cc18
+  - openml-multiclass-public
+  - climb
+  - documented-public-tabular-suite
+
+dataset_coverage:
+  feature_type_minimums:
+    numeric: 20
+    mixed: 10
+  imbalance_band_minimums:
+    near_balanced_ir_lt_2: 8
+    mild_ir_2_to_5: 10
+    moderate_ir_5_to_20: 15
+    severe_ir_gt_20: 8
+  required_dimensions:
+    - class_count
+    - row_count
+    - raw_dimensionality
+    - missingness
+    - categorical_proportion
+  duplicate_policy: one_underlying_task_counts_once
+  time_series_policy: exclude_from_core_benchmark
+  grouped_data_policy: exclude_unless_grouped_split_is_explicitly_supported
+
+cross_validation:
+  outer:
+    splitter: StratifiedKFold
+    n_splits: 5
+    shuffle: true
+    random_state: 20260913
+  inner:
+    splitter: StratifiedKFold
+    n_splits: 3
+    shuffle: true
+    random_state: 20260914
+  statistical_unit: dataset
+  folds_are_independent_datasets: false
+
+hyperparameter_search:
+  strategy: randomized_search
+  trials_per_dataset_outer_fold_classifier_condition: 20
+  scoring: macro_average_precision
+  random_state: 20260915
+  n_jobs: 1
+  sampler_parameters_tuned: false
+  sampler_parameter_exception: fold_local_dynamic_neighbour_rule_only
+  spaces:
+    logistic_regression:
+      C: {distribution: loguniform, low: 0.0001, high: 1000.0}
+      penalty: {distribution: categorical, values: [l1, l2]}
+      solver: saga
+      max_iter: 5000
+    random_forest:
+      n_estimators: {distribution: randint, low: 300, high: 1001}
+      max_depth: {distribution: categorical, values: [null, 5, 10, 20, 40]}
+      min_samples_leaf: {distribution: randint, low: 1, high: 11}
+      max_features: {distribution: categorical, values: [sqrt, log2, 0.5, 1.0]}
+    xgboost:
+      n_estimators: {distribution: randint, low: 100, high: 1001}
+      learning_rate: {distribution: loguniform, low: 0.01, high: 0.3}
+      max_depth: {distribution: randint, low: 2, high: 11}
+      min_child_weight: {distribution: loguniform, low: 0.1, high: 20.0}
+      subsample: {distribution: uniform, bounds: [0.6, 1.0]}
+      colsample_bytree: {distribution: uniform, bounds: [0.5, 1.0]}
+      reg_alpha: {distribution: loguniform, low: 0.00000001, high: 10.0}
+      reg_lambda: {distribution: loguniform, low: 0.001, high: 100.0}
+    lightgbm:
+      n_estimators: {distribution: randint, low: 100, high: 1001}
+      learning_rate: {distribution: loguniform, low: 0.01, high: 0.3}
+      num_leaves: {distribution: randint, low: 7, high: 128}
+      max_depth: {distribution: categorical, values: [-1, 3, 5, 8, 12, 16]}
+      min_child_samples: {distribution: randint, low: 5, high: 101}
+      subsample: {distribution: uniform, bounds: [0.6, 1.0]}
+      colsample_bytree: {distribution: uniform, bounds: [0.5, 1.0]}
+      reg_alpha: {distribution: loguniform, low: 0.00000001, high: 10.0}
+      reg_lambda: {distribution: loguniform, low: 0.001, high: 100.0}
+    catboost:
+      iterations: {distribution: randint, low: 200, high: 1001}
+      learning_rate: {distribution: loguniform, low: 0.01, high: 0.3}
+      depth: {distribution: randint, low: 4, high: 11}
+      l2_leaf_reg: {distribution: loguniform, low: 1.0, high: 100.0}
+      random_strength: {distribution: uniform, bounds: [0.0, 2.0]}
+      bagging_temperature: {distribution: uniform, bounds: [0.0, 1.0]}
+    balanced_random_forest:
+      n_estimators: {distribution: randint, low: 300, high: 1001}
+      max_depth: {distribution: categorical, values: [null, 5, 10, 20, 40]}
+      min_samples_leaf: {distribution: randint, low: 1, high: 11}
+      max_features: {distribution: categorical, values: [sqrt, log2, 0.5, 1.0]}
+
+models:
+  logistic_regression:
+    role: linear_baseline
+    class_weighted_rule: balanced
+    mixed_representation: one_hot_after_smotenc
+  random_forest:
+    role: bagged_tree_baseline
+    class_weighted_rule: balanced
+    mixed_representation: encoded_tree_features
+    scaling: false
+  xgboost:
+    role: established_gbdt_baseline
+    objective: multi:softprob
+    eval_metric: mlogloss
+    tree_method: hist
+    enable_categorical: true
+    class_weighted_rule: fit_time_sample_weight
+    n_jobs: 1
+  lightgbm:
+    role: modern_categorical_gbdt
+    objective: multiclass
+    class_weighted_rule: fit_time_sample_weight
+    categorical_feature_mode: native
+    n_jobs: 1
+    verbosity: -1
+  catboost:
+    role: modern_categorical_gbdt
+    loss_function: MultiClass
+    class_weighted_rule: fit_time_sample_weight
+    categorical_feature_mode: native
+    thread_count: 1
+    allow_writing_files: false
+  balanced_random_forest:
+    role: rf_only_imbalance_comparator
+    classifier: random_forest
+    sampling_strategy: all
+    replacement: true
+    n_jobs: 1
+
+conditions:
+  - id: raw
+    family: baseline
+    applicable_feature_types: [numeric, mixed]
+    applicable_models: [logistic_regression, random_forest, xgboost, lightgbm, catboost]
+  - id: class_weighted
+    family: weighting
+    weighting_rule: balanced
+    applicable_feature_types: [numeric, mixed]
+    applicable_models: [logistic_regression, random_forest, xgboost, lightgbm, catboost]
+  - id: random_over
+    family: resampling
+    sampling_strategy: not_majority
+    applicable_feature_types: [numeric, mixed]
+    applicable_models: [logistic_regression, random_forest, xgboost, lightgbm, catboost]
+  - id: random_under
+    family: resampling
+    sampling_strategy: not_minority
+    applicable_feature_types: [numeric, mixed]
+    applicable_models: [logistic_regression, random_forest, xgboost, lightgbm, catboost]
+  - id: smote
+    family: numeric_resampling
+    sampling_strategy: not_majority
+    neighbour_rule: dynamic_fold_local
+    applicable_feature_types: [numeric]
+    applicable_models: [logistic_regression, random_forest, xgboost, lightgbm, catboost]
+  - id: adasyn
+    family: numeric_resampling
+    sampling_strategy: not_majority
+    neighbour_rule: dynamic_fold_local
+    applicable_feature_types: [numeric]
+    applicable_models: [logistic_regression, random_forest, xgboost, lightgbm, catboost]
+  - id: borderline_smote
+    family: numeric_resampling
+    sampling_strategy: not_majority
+    kind: borderline-1
+    neighbour_rule: dynamic_fold_local_with_bounded_m_neighbors
+    applicable_feature_types: [numeric]
+    applicable_models: [logistic_regression, random_forest, xgboost, lightgbm, catboost]
+  - id: smotenc
+    family: mixed_resampling
+    sampling_strategy: not_majority
+    neighbour_rule: dynamic_fold_local
+    applicable_feature_types: [mixed]
+    applicable_models: [logistic_regression, random_forest, xgboost, lightgbm, catboost]
+  - id: smoteenn
+    family: combination_resampling
+    sampling_strategy: not_majority
+    neighbour_rule: dynamic_fold_local
+    mixed_sampler_component: smotenc
+    numeric_sampler_component: smote
+    applicable_feature_types: [numeric, mixed]
+    applicable_models: [logistic_regression, random_forest, xgboost, lightgbm, catboost]
+  - id: smotetomek
+    family: combination_resampling
+    sampling_strategy: not_majority
+    neighbour_rule: dynamic_fold_local
+    mixed_sampler_component: smotenc
+    numeric_sampler_component: smote
+    applicable_feature_types: [numeric, mixed]
+    applicable_models: [logistic_regression, random_forest, xgboost, lightgbm, catboost]
+  - id: balanced_random_forest
+    family: balanced_ensemble
+    applicable_feature_types: [numeric, mixed]
+    applicable_models: [random_forest]
+    is_universal_sampler_condition: false
+
+sampling:
+  dynamic_neighbour_formula: "k = min(5, N_minority_target - 1)"
+  minority_definition: smallest_class_count_the_sampler_attempts_to_synthesize
+  calculation_scope: every_actual_training_split_including_inner_cv
+  fewer_than_two_training_examples: FAILED / NOT APPLICABLE with explicit reason
+  borderline_m_parameter: bounded_by_available_fold_size
+  class_weight_formula: compute_sample_weight(class_weight=balanced, y=current_fit_labels)
+  class_weight_scope: xgboost_lightgbm_catboost_fit_time_only
+
+threshold_calibration:
+  decision_rule: argmax(p_c / t_c)
+  parameterization: log_threshold_offsets
+  reference_class: lowest_encoded_class_index
+  free_offset_bounds: [-2.0, 2.0]
+  objective: macro_f1
+  source: inner_cv_out_of_fold_validation_probabilities_only
+  optimizer: scipy_differential_evolution
+  seed: 20260916
+  maxiter: 40
+  popsize: 8
+  polish: false
+  workers: 1
+  tie_break: lexicographically_smallest_offset_vector
+  fallback: default_argmax_if_optimizer_or_class_support_is_invalid
+
+metrics:
+  primary: macro_average_precision
+  primary_definition: mean_of_one_vs_rest_average_precision_per_class
+  decision_metrics: [macro_f1_argmax, macro_f1_calibrated]
+  secondary_probability_metrics: [per_class_average_precision, multiclass_brier, multiclass_log_loss]
+  secondary_decision_metrics: [g_mean_argmax, mcc_argmax, balanced_accuracy_argmax, per_class_recall_argmax]
+  brier_definition: mean_over_rows_and_classes_of_probability_minus_one_hot_squared
+  threshold_free_metrics_use_untouched_probabilities: true
+  zero_division: 0
+
+bayesian_analysis:
+  package: pymc
+  estimand: population_mean_method_difference
+  observations: outer_fold_paired_differences_within_complete_dataset_blocks
+  model: exchangeable_fold_correlated_hierarchical_normal
+  equation: delta_d ~ MVNormal((mu + dataset_offset_d) * ones(F), Sigma_fold)
+  dataset_offset: Normal(mu=0, sigma=tau_dataset)
+  fold_covariance: sigma_fold^2 * ((1-rho)I + rho * ones(F,F))
+  priors:
+    mu: Normal(mu=0, sigma=0.5)
+    tau_dataset: HalfNormal(sigma=0.5)
+    sigma_fold: HalfNormal(sigma=0.25)
+    rho: Beta(alpha=2, beta=2)
+  sampler: NUTS
+  draws: 2000
+  tune: 2000
+  chains: 4
+  target_accept: 0.9
+  random_seed: 20260917
+  diagnostics:
+    r_hat_max: 1.01
+    bulk_ess_minimum: 400
+    tail_ess_minimum: 400
+    divergences: 0
+  credible_interval: 0.95
+  rope_macro_average_precision: [-0.01, 0.01]
+  posterior_categories: [practically_worse, practically_equivalent, practically_better]
+  minimum_complete_dataset_blocks: 3
+
+contrasts:
+  raw_vs_all_applicable: true
+  weighting_vs_sampling:
+    - [class_weighted, random_over]
+    - [class_weighted, random_under]
+    - [class_weighted, smote]
+    - [class_weighted, adasyn]
+    - [class_weighted, borderline_smote]
+    - [class_weighted, smotenc]
+    - [class_weighted, smoteenn]
+    - [class_weighted, smotetomek]
+  balanced_random_forest_vs_rf_interventions:
+    - [balanced_random_forest, raw]
+    - [balanced_random_forest, class_weighted]
+    - [balanced_random_forest, random_over]
+    - [balanced_random_forest, random_under]
+    - [balanced_random_forest, smote]
+    - [balanced_random_forest, smotenc]
+    - [balanced_random_forest, smoteenn]
+    - [balanced_random_forest, smotetomek]
+  sampler_pairs:
+    - [smote, adasyn]
+    - [smote, borderline_smote]
+    - [smote, smoteenn]
+    - [smote, smotetomek]
+    - [smotenc, smoteenn]
+    - [smotenc, smotetomek]
+  availability_rule: contrast_only_when_both_conditions_are_applicable_to_same_dataset_and_model
+
+execution:
+  cpu_only: true
+  workers_per_model: 1
+  fit_timeout_seconds: 1800
+  dataset_job_timeout_seconds: 21600
+  peak_memory_limit_mb: 32768
+  retry_infrastructure_failures: 1
+  retry_protocol_failures: 0
+  resumability_unit: dataset
+  resource_fields: [wall_seconds, fit_seconds, predict_seconds, peak_rss_mb, worker_count, timeout]
+
+record_schemas:
+  valid_result_required:
+    - dataset_id
+    - outer_fold
+    - outer_seed
+    - classifier
+    - condition
+    - selected_trial
+    - macro_average_precision
+    - per_class_average_precision
+    - macro_f1_argmax
+    - macro_f1_calibrated
+    - g_mean_argmax
+    - mcc_argmax
+    - balanced_accuracy_argmax
+    - per_class_recall_argmax
+    - multiclass_brier
+    - multiclass_log_loss
+    - threshold_offsets
+    - rows_before_sampling
+    - rows_after_sampling
+    - wall_seconds
+    - fit_seconds
+    - predict_seconds
+    - peak_rss_mb
+    - config_sha256
+    - status
+  failure_required:
+    - dataset_id
+    - outer_fold
+    - outer_seed
+    - classifier
+    - condition
+    - stage
+    - exception_type
+    - reason
+    - applicability
+    - wall_seconds
+    - resource_status
+    - retry_count
+    - config_sha256
+    - status
+  status_values: [VALID, FAILED / NOT APPLICABLE]
+
+paths:
+  protocol: docs/protocol-v2.md
+  analysis_plan: docs/analysis-plan-v2.md
+  config: config/v2.yaml
+  registry: data/dataset_registry_v2.csv
+  raw_data: data/raw/v2
+  processed_data: data/processed/v2
+  environment_record: artifacts/environment/v2
+  smoke_results: results/v2-smoke
+  full_results: results/v2-full
+  analysis_results: results/v2-analysis
+
+amendment_policy:
+  lock_required_before: dataset_acquisition_and_outcome_bearing_runs
+  post_lock_changes: dated_documented_amendment_with_reason_and_impact
+  v1_files_may_change: false
