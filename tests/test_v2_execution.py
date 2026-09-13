@@ -1,13 +1,21 @@
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 import pytest
 
-from src.v2_engineering import STATUS_VALID, V2_CONDITIONS, V2_MODELS
+from src.v2_engineering import (
+    STATUS_VALID,
+    V2_CONDITIONS,
+    V2_MODELS,
+    infer_feature_layout,
+)
 from src.v2_execution import (
     CELL_COLUMNS,
     FAILURE_COLUMNS,
     RESULT_COLUMNS,
+    V2DatasetSpec,
+    _run_cell,
     dry_run_summary,
     execution_blockers,
     expected_cell_keys,
@@ -70,3 +78,43 @@ def test_v2_output_validation_requires_one_record_per_cell() -> None:
             pd.DataFrame([result]),
             pd.DataFrame(columns=FAILURE_COLUMNS),
         )
+
+
+def test_one_real_nested_cell_runs_hpo_oof_calibration_and_outer_test() -> None:
+    context = load_execution_context(ROOT)
+    labels = np.tile([0, 1, 2], 10)
+    frame = pd.DataFrame(
+        {
+            "x1": np.arange(len(labels), dtype=float),
+            "x2": np.sin(np.arange(len(labels))),
+            "target": labels,
+        }
+    )
+    layout = infer_feature_layout(frame, "target")
+    trial_rows: list[dict[str, object]] = []
+    result, failure = _run_cell(
+        context=context,
+        spec=V2DatasetSpec(
+            dataset_id="synthetic_nested",
+            raw_path=ROOT / "synthetic_nested.csv",
+            raw_sha256="",
+            target_column="target",
+            categorical_columns=(),
+            feature_type="numeric",
+        ),
+        layout=layout,
+        X_train=frame.drop(columns=["target"]).iloc[:21],
+        y_train=labels[:21],
+        X_test=frame.drop(columns=["target"]).iloc[21:],
+        y_test=labels[21:],
+        outer_fold=0,
+        classifier="logistic_regression",
+        condition="raw",
+        trial_rows=trial_rows,
+    )
+    assert failure is None
+    assert result is not None
+    assert result["status"] == STATUS_VALID
+    assert result["selected_trial"] >= 1
+    assert len(trial_rows) == 20
+    assert result["calibration_status"] in {STATUS_VALID, "FAILED"}
