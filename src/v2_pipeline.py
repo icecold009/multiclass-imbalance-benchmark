@@ -133,43 +133,56 @@ def _classifier(
     raise ValueError(f"{name} is not a sklearn numeric baseline")
 
 
-def _native_classifier(name: str, random_state: int, n_classes: int, n_estimators: int) -> Any:
+def _native_classifier(
+    name: str,
+    random_state: int,
+    n_classes: int,
+    n_estimators: int,
+    model_params: dict[str, Any] | None = None,
+) -> Any:
+    params = dict(model_params or {})
     if name == "xgboost":
         from xgboost import XGBClassifier
 
-        return XGBClassifier(
-            n_estimators=n_estimators,
-            objective="multi:softprob",
-            num_class=n_classes,
-            eval_metric="mlogloss",
-            tree_method="hist",
-            enable_categorical=True,
-            n_jobs=1,
-            random_state=random_state,
-            verbosity=0,
-        )
+        base_params = {
+            "n_estimators": n_estimators,
+            "objective": "multi:softprob",
+            "num_class": n_classes,
+            "eval_metric": "mlogloss",
+            "tree_method": "hist",
+            "enable_categorical": True,
+            "n_jobs": 1,
+            "random_state": random_state,
+            "verbosity": 0,
+        }
+        base_params.update(params)
+        return XGBClassifier(**base_params)
     if name == "lightgbm":
         from lightgbm import LGBMClassifier
 
-        return LGBMClassifier(
-            n_estimators=n_estimators,
-            objective="multiclass",
-            num_class=n_classes,
-            n_jobs=1,
-            verbosity=-1,
-            random_state=random_state,
-        )
+        base_params = {
+            "n_estimators": n_estimators,
+            "objective": "multiclass",
+            "num_class": n_classes,
+            "n_jobs": 1,
+            "verbosity": -1,
+            "random_state": random_state,
+        }
+        base_params.update(params)
+        return LGBMClassifier(**base_params)
     if name == "catboost":
         from catboost import CatBoostClassifier
 
-        return CatBoostClassifier(
-            iterations=n_estimators,
-            loss_function="MultiClass",
-            thread_count=1,
-            random_seed=random_state,
-            allow_writing_files=False,
-            verbose=False,
-        )
+        base_params = {
+            "iterations": params.pop("iterations", n_estimators),
+            "loss_function": "MultiClass",
+            "thread_count": 1,
+            "random_seed": random_state,
+            "allow_writing_files": False,
+            "verbose": False,
+        }
+        base_params.update(params)
+        return CatBoostClassifier(**base_params)
     raise ValueError(f"{name} is not a native categorical model")
 
 
@@ -189,12 +202,14 @@ class NativeCategoricalEstimator(BaseEstimator, ClassifierMixin):
         condition: str,
         random_state: int,
         n_estimators: int = 40,
+        model_params: dict[str, Any] | None = None,
     ):
         self.classifier = classifier
         self.layout = layout
         self.condition = condition
         self.random_state = random_state
         self.n_estimators = n_estimators
+        self.model_params = model_params
 
     def _numeric_frame(self, X: pd.DataFrame, *, fit: bool) -> pd.DataFrame:
         if fit:
@@ -284,6 +299,7 @@ class NativeCategoricalEstimator(BaseEstimator, ClassifierMixin):
             self.random_state,
             n_classes=len(self.classes_),
             n_estimators=self.n_estimators,
+            model_params=self.model_params,
         )
         fit_kwargs: dict[str, Any] = {}
         if fit_weight is not None:
@@ -311,6 +327,7 @@ def build_pipeline_v2(
     random_state: int,
     *,
     n_estimators: int = 40,
+    model_params: dict[str, Any] | None = None,
 ) -> Any:
     """Build one frozen V2 model/condition pipeline for a fold-local fit."""
 
@@ -321,6 +338,7 @@ def build_pipeline_v2(
             condition,
             random_state,
             n_estimators=n_estimators,
+            model_params=model_params,
         )
     if classifier not in {"logistic_regression", "random_forest"}:
         raise ValueError(f"Unknown V2 classifier: {classifier}")
@@ -341,6 +359,8 @@ def build_pipeline_v2(
             weighted=condition == "class_weighted",
             n_estimators=n_estimators,
         )
+        if model_params:
+            estimator.set_params(**model_params)
     steps: list[tuple[str, Any]] = []
     if layout.categorical:
         steps.append(("pre_sampler", _mixed_sampler_preprocessor(layout)))
