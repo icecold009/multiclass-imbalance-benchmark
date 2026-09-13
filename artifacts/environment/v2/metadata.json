@@ -1,0 +1,28 @@
+﻿{
+    "schema_version":  "v2-environment-v1",
+    "recorded_at_utc":  "2026-09-13T11:03:51.0663868Z",
+    "purpose":  "V2 development, validation, and explicitly approved full-run host record",
+    "os":  "Microsoft Windows NT 10.0.26200.0",
+    "python":  "Python 3.12.10",
+    "cpu":  {
+                "Name":  "11th Gen Intel(R) Core(TM) i3-1115G4 @ 3.00GHz",
+                "NumberOfCores":  2,
+                "NumberOfLogicalProcessors":  4
+            },
+    "memory":  {
+                   "TotalPhysicalMemory":  16801976320
+               },
+    "git_commit":  "ff89dcf9b0b851b936ff71f1522e8a416245c8f3",
+    "git_branch":  "codex/v2-readiness-lock",
+    "requirements_v2_sha256":  "9becb9dca7c36dcb83acf4217a46a627f207664487b5defef9a30685f0335f26",
+    "config_v2_sha256":  "66433ad95c1f400dafecb26a13c5b9f1cc225244dadf704fa94ae493855429d1",
+    "execution_policy":  "cpu_only; workers_per_model=1; cloud_instance=not_selected",
+    "working_tree_status":  [
+                                " M config/v2.yaml",
+                                " M docs/protocol-v2.md",
+                                "?? docs/decision-register-v2.md",
+                                "?? output/",
+                                "?? paper/",
+                                "?? scripts/record_environment_v2.ps1"
+                            ]
+}

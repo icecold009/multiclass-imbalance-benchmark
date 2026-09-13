@@ -1,6 +1,7 @@
 project: multiclass-imbalance-benchmark
 protocol_version: expanded-v2
-status: gate-1-freeze
+status: gate-6-analysis-ready
+readiness_blocker: compute_instance_approval
 python_version: 3.12.10
 
 scope:
@@ -361,6 +362,7 @@ record_schemas:
 paths:
   protocol: docs/protocol-v2.md
   analysis_plan: docs/analysis-plan-v2.md
+  decision_register: docs/decision-register-v2.md
   config: config/v2.yaml
   candidate_manifest: data/v2_candidate_manifest.csv
   registry: data/dataset_registry_v2.csv

@@ -1,7 +1,7 @@
 # V2 Expanded Multiclass Imbalance Benchmark Protocol
 
 **Protocol ID:** `expanded-v2`
-**Status:** Proposed; all entries marked *must lock* are prerequisites for outcome-bearing runs
+**Status:** Methodological decisions locked; full execution remains gated by compute allocation
 **V1 boundary:** The completed V1 benchmark, paper, configuration, registry, and evidence package remain frozen
 **V2 development branch:** `experiment/v2-expanded-benchmark`
 **Statistical unit:** Dataset, with outer-fold dependence retained within dataset
@@ -585,28 +585,18 @@ geometry in a way that is poorly matched to a single global linear surface.
 Use qualified, observational language and do not claim that ENN “destroys
 global linear separability.”
 
-## 15. Decision register: must lock before protocol freeze
+## 15. Decision register
 
-The following items are intentionally surfaced rather than silently chosen.
-Resolve each in `config/v2.yaml` or `docs/analysis-plan-v2.md`, record the
-rationale, and hash the result before the dataset or full-run freeze.
+The formal V2 decision register is locked in
+[`docs/decision-register-v2.md`](decision-register-v2.md). It records the
+likelihood and priors, contrast matrix, threshold optimizer, native-library
+compatibility, HPO spaces, sampler applicability, runtime policy, optional
+metrics, registry quotas, output schemas, and manuscript evidence boundary.
 
-| Decision | Required resolution |
-|---|---|
-| Bayesian likelihood and priors | Specify the response model, priors, dataset-level and fold-level correlation structure, posterior sampler, diagnostics, and convergence thresholds |
-| Primary contrast matrix | List every confirmatory/primary pairwise contrast and the exact compatible dataset/model family for each |
-| Threshold optimizer | Fix parameterization, bounds, optimizer, initialization, ties, class-support failures, and deterministic seed |
-| Native categorical compatibility | Pin XGBoost, LightGBM, and CatBoost versions and prove that each declared mixed-data path is supported by tests |
-| HPO search spaces | Freeze exact parameter names, ranges, distributions, trial seeds, invalid-combination handling, and 20-trial budget |
-| Sampler applicability | Define the exact class-targeting behavior and failure policy for every sampler and combination sampler |
-| Runtime/resource policy | Freeze instance, timeout, worker count, peak-memory method, retry rule, and infrastructure-failure classification |
-| Optional metrics | Decide whether log loss is included and freeze its exact multiclass definition if included |
-| Dataset coverage quotas | Convert the representation, imbalance, size, dimensionality, missingness, and categorical-proportion goals into an auditable registry rule |
-| Output schema | Freeze raw-record, aggregate, failure, posterior, figure, and manifest schemas before the smoke run |
-
-If any item remains unresolved, the V2 run is blocked. A later change must be
-handled as a dated protocol amendment and must state whether prior evidence is
-still comparable.
+The compute instance remains intentionally unresolved and is the only current
+readiness blocker. A later methodological change requires a dated amendment
+that states the reason, affected artifacts, comparability of prior evidence,
+and schedule impact.
 
 ## 16. Final acceptance checklist
 

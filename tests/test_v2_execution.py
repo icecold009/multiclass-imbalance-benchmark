@@ -25,12 +25,12 @@ def test_v2_expected_matrix_has_five_by_five_by_eleven_cells() -> None:
     assert all(len(key) == len(CELL_COLUMNS) for key in keys)
 
 
-def test_v2_execution_is_blocked_until_protocol_environment_and_register_are_ready() -> None:
+def test_v2_execution_is_blocked_until_full_run_and_compute_are_ready() -> None:
     context = load_execution_context(ROOT)
     blockers = execution_blockers(context)
     assert any("full-run-ready" in blocker for blocker in blockers)
-    assert any("decision register" in blocker for blocker in blockers)
-    assert any("environment record" in blocker for blocker in blockers)
+    assert any("compute_instance_approval" in blocker for blocker in blockers)
+    assert not any("environment record" in blocker for blocker in blockers)
 
 
 def test_v2_dry_run_reports_scope_without_creating_outcome_artifacts(tmp_path: Path) -> None:

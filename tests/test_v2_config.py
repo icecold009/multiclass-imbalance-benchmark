@@ -14,7 +14,8 @@ def test_v2_configuration_freezes_protocol_and_analysis_contract() -> None:
     config = _config()
 
     assert config["protocol_version"] == "expanded-v2"
-    assert config["status"] == "gate-1-freeze"
+    assert config["status"] == "gate-6-analysis-ready"
+    assert config["readiness_blocker"] == "compute_instance_approval"
     assert config["scope"]["minimum_classes"] == 3
     assert config["scope"]["minimum_minority_support"] == 10
     assert config["hyperparameter_search"]["trials_per_dataset_outer_fold_classifier_condition"] == 20

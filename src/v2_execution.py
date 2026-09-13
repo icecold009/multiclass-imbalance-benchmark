@@ -244,11 +244,30 @@ def execution_blockers(context: V2ExecutionContext) -> tuple[str, ...]:
     blockers: list[str] = []
     if context.config.get("status") != "full-run-ready":
         blockers.append("config status is not full-run-ready")
+    if context.config.get("readiness_blocker"):
+        blockers.append(f"readiness blocker: {context.config['readiness_blocker']}")
     protocol_text = context.protocol_path.read_text(encoding="utf-8").casefold()
     if "must lock before protocol freeze" in protocol_text or "if any item remains unresolved" in protocol_text:
         blockers.append("protocol decision register still contains unresolved must-lock language")
     if not context.environment_path.is_dir():
         blockers.append(f"environment record is missing: {_relative(context.environment_path, context.root)}")
+    else:
+        required_environment_files = ("metadata.json", "pip-freeze.txt", "pip-check.txt")
+        missing_environment_files = [
+            name for name in required_environment_files if not (context.environment_path / name).is_file()
+        ]
+        if missing_environment_files:
+            blockers.append(
+                "environment record is incomplete: " + ", ".join(missing_environment_files)
+            )
+        metadata_path = context.environment_path / "metadata.json"
+        if metadata_path.is_file():
+            try:
+                metadata = json.loads(metadata_path.read_text(encoding="utf-8-sig"))
+                if metadata.get("config_v2_sha256") != context.config_sha256:
+                    blockers.append("environment record config hash is stale")
+            except (OSError, UnicodeError, json.JSONDecodeError):
+                blockers.append("environment record metadata is unreadable")
     if context.registry_validation.status != "READY":
         blockers.extend(context.registry_validation.blockers)
     for spec in context.datasets:
