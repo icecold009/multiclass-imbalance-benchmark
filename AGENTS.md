@@ -27,9 +27,10 @@ and release review use the clean-checkout evidence recorded by Gate F.
   `research(stage0): record mixed-data applicability rules`.
 - Keep each commit focused on one logical change. Put the reason, evidence,
   validation, and material risks in the body when the subject is insufficient.
-- Commit and push coherent work whenever doing so is necessary and relevant to
-  the task or enables review. Do not push unrelated work or use pushes as a
-  substitute for review.
+- Commit coherent work only when the user has authorized the commit. Push only
+  when the user explicitly requests the push or release step; do not treat task
+  relevance or review convenience as authorization. Do not push unrelated work
+  or use pushes as a substitute for review.
 - A push never authorizes merging. Preserve explicit user approval for merge or
   direct `main` work.
 - Do not commit generated results with implementation changes.
@@ -78,8 +79,11 @@ tests from the documented module entry points. State clearly which checks ran,
 which were blocked by environment or data availability, and whether results
 are local pilot evidence or full benchmark evidence.
 
-Do not push, open, or merge a pull request unless the user asks for that release
-step. Before handoff, report the branch, commit(s), changed files, checks,
+Do not push, open, or merge a pull request unless the user explicitly asks for
+that exact release step. For GitHub branch, pull request, review, check, and
+merge operations, use the GitHub connector whenever supported; do not ask for
+`gh auth login`, `gh pr`, or a local GitHub CLI token. Before handoff, report
+the branch, commit(s), changed files, checks,
 remaining blockers, and the next safe action.
 
 ## Codex package workflow
