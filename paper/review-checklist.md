@@ -1,9 +1,9 @@
 # Paper review checklist
 
-## Complete in this draft
+## Complete in this V1 release candidate
 
 - [x] Official TMLR source format and current JMLR-maintained style assets.
-- [x] Anonymous title, abstract, introduction, related work, methods,
+- [x] De-anonymized title, abstract, introduction, related work, methods,
       results, discussion, limitations, reproducibility, and conclusion.
 - [x] Locked eleven-dataset scope and registry-derived dataset table.
 - [x] Fold-safe preprocessing, classifier settings, condition applicability,
@@ -15,6 +15,7 @@
       adjacent tabular benchmark work.
 - [x] Figure paths linked to the frozen analysis outputs with compile-safe
       placeholders when ignored result artifacts are unavailable.
+- [x] V1/V2 boundary recorded; no V2 execution result is used in this paper.
 
 ## Required before an external submission
 

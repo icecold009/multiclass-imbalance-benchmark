@@ -1,8 +1,11 @@
-# TMLR paper draft
+# TMLR paper release candidate
 
-This directory contains the anonymous TMLR-formatted manuscript source for
-the locked multiclass imbalance benchmark. The manuscript is a technical draft
+This directory contains the de-anonymized, TMLR-formatted V1 manuscript source
+for the locked multiclass imbalance benchmark. It is a local release candidate
 and has not been submitted to TMLR or any other venue.
+
+The manuscript contains only the frozen V1 benchmark evidence. The expanded V2
+study is a separate follow-up and must not be used to amend these results.
 
 ## Compile locally
 
@@ -26,7 +29,7 @@ files are intentionally not tracked.
 
 ## Review checklist
 
-The companion [`review-checklist.md`](review-checklist.md) records the paper
+The companion [`review-checklist.md`](review-checklist.md) records the V1 paper
 completion checks, evidence boundary, and remaining venue-preparation items.
 Before external submission, confirm the author affiliation, funding statement,
 acknowledgments, and target-venue de-anonymization requirements.

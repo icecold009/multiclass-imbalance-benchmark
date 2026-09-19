@@ -14,7 +14,8 @@ working tree. It records:
 - the passed Gate F clean-checkout review;
 - the environment, scope-lock, full-run, Gate D, analysis, and Gate E manifest
   hashes;
-- the explicit boundary that the tracked paper is a draft and no venue,
+- the explicit boundary that the tracked paper is a de-anonymized local V1
+  release candidate and no venue,
   external review, deployment, or publication claim is implied.
 
 Generated raw data, environment records, and result tables remain ignored by
@@ -43,7 +44,7 @@ Gate G passes only when:
   manifests exist with their recorded hashes;
 - the source `git archive` matches the tracked-file set and contains no raw or
   generated data;
-- the anonymous paper source and its review checklist are present in the
+- the de-anonymized V1 paper source and its review checklist are present in the
   tracked archive;
 - the payload records `external_submission: false` unless a separately
   authorized submission workflow is added.
@@ -67,6 +68,6 @@ requires a new Gate F review and a new Gate G snapshot.
 
 This package does not submit the manuscript, upload data, merge to `main`,
 publish a release, deploy an application, or claim independent external
-review. The tracked paper is an anonymous draft; venue submission,
-de-anonymization, and publication require their own explicit authorization and
-evidence.
+review. The tracked paper is a de-anonymized local V1 release candidate; venue
+submission and external publication require their own explicit authorization
+and evidence.
