@@ -1,0 +1,34 @@
+# Paper review checklist
+
+## Complete in this V1 release candidate
+
+- [x] Official TMLR source format and current JMLR-maintained style assets.
+- [x] De-anonymized title, abstract, introduction, related work, methods,
+      results, discussion, limitations, reproducibility, and conclusion.
+- [x] Locked eleven-dataset scope and registry-derived dataset table.
+- [x] Fold-safe preprocessing, classifier settings, condition applicability,
+      metric definitions, complete-cell aggregation, and statistical plan.
+- [x] Exact full-run counts: 5,445 expected, 4,191 valid, and 1,254 failures.
+- [x] Explicit failure categories, skipped-test rationale, complete-cell
+      coverage, uncertainty, negative result, and efficiency evidence.
+- [x] References for the imbalance methods, models, metrics, statistics, and
+      adjacent tabular benchmark work.
+- [x] Figure paths linked to the frozen analysis outputs with compile-safe
+      placeholders when ignored result artifacts are unavailable.
+- [x] V1/V2 boundary recorded; no V2 execution result is used in this paper.
+
+## Required before an external submission
+
+- [x] Install a LaTeX distribution and compile the source with BibTeX.
+- [x] Inspect the rendered PDF for table/figure placement, overfull boxes,
+      citation order, and page-level readability.
+- [x] Verify every numerical sentence against the final Gate G payload and
+      regenerate the payload after any source change.
+- [x] Add the author name, contact detail, and acknowledgments to this
+      de-anonymized local draft.
+- [ ] Confirm the final affiliation, funding statement, and target-venue
+      de-anonymization requirements before external submission.
+- [ ] Decide whether to provide supplementary artifacts or an external
+      anonymous repository link under the target venue's current rules.
+- [ ] Perform an independent technical and claim review; no external review or
+      venue submission is implied by this repository state.
