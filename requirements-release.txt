@@ -1,0 +1,2 @@
+# Additional dependency for Gate G PDF structure and anonymity validation.
+pypdf>=6.10,<7

@@ -29,15 +29,19 @@ EXPECTED_SOURCE_FILES = (
     "docs/timeline.md",
     "pyproject.toml",
     "requirements.txt",
+    "requirements-release.txt",
+    "scripts/build_release_artifacts.py",
     "scripts/verify_gate_e.py",
     "src/analysis.py",
     "src/benchmark.py",
     "src/pilot.py",
     "src/reproducibility.py",
+    "src/release_artifacts.py",
     "src/robustness.py",
     "src/submission.py",
     "scripts/verify_gate_g.py",
     "tests/test_reproducibility.py",
+    "tests/test_analysis.py",
     "tests/test_submission.py",
 )
 EVIDENCE_PATHS = (
@@ -118,7 +122,9 @@ def _safe_extract(archive: Path, destination: Path) -> list[str]:
             try:
                 target.relative_to(destination.resolve())
             except ValueError as error:
-                raise RuntimeError(f"source archive contains an escaping path: {member.name}") from error
+                raise RuntimeError(
+                    f"source archive contains an escaping path: {member.name}"
+                ) from error
             if member.issym() or member.islnk() or not (member.isdir() or member.isfile()):
                 raise RuntimeError(f"source archive contains an unsupported member: {member.name}")
             handle.extract(member, destination)
@@ -185,6 +191,10 @@ def _validate_workflow(checkout: Path) -> dict[str, Any]:
         "pull_request": "pull_request:" in workflow,
         "python_3_11": '"3.11"' in workflow,
         "python_3_12": '"3.12"' in workflow,
+        "release_dependency_cached": "requirements-release.txt" in workflow,
+        "release_dependency_installed": (
+            "python -m pip install --requirement requirements-release.txt" in workflow
+        ),
         "pytest": "python -m pytest" in workflow,
         "ruff": "python -m ruff check src tests" in workflow,
         "read_only_contents": "contents: read" in workflow,
@@ -241,7 +251,9 @@ def verify_gate_f(root: Path, output_path: Path | None = None) -> dict[str, Any]
                 ],
                 checkout,
             ),
-            _run([python, "-m", "ruff", "check", "src", "tests", "scripts", "--no-cache"], checkout),
+            _run(
+                [python, "-m", "ruff", "check", "src", "tests", "scripts", "--no-cache"], checkout
+            ),
             _run([python, "-m", "src.stage0", "--help"], checkout),
             _run([python, "-m", "src.pilot", "--help"], checkout),
             _run([python, "scripts/verify_gate_e.py", "--help"], checkout),
@@ -272,7 +284,9 @@ def verify_gate_f(root: Path, output_path: Path | None = None) -> dict[str, Any]
     }
     if output_path is not None:
         output_path.parent.mkdir(parents=True, exist_ok=True)
-        output_path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        output_path.write_text(
+            json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+        )
     return payload
 
 

@@ -19,16 +19,31 @@
 
 ## Required before an external submission
 
-- [x] Install a LaTeX distribution and compile the source with BibTeX.
-- [x] Inspect the rendered PDF for table/figure placement, overfull boxes,
-      citation order, and page-level readability.
-- [x] Verify every numerical sentence against the final Gate G payload and
-      regenerate the payload after any source change.
+- [x] Compile the current de-anonymized and anonymous PDFs from the source at
+      the exact release commit; run BibTeX and two final LaTeX passes for each.
+- [x] Inspect the current anonymous PDF for layout, overfull boxes, citation
+      order, page readability, and author metadata.
+- [x] Rebuild the Gate E/F analysis evidence twice in fresh processes and the
+      Gate G snapshot twice after the source and artifacts are final.
 - [x] Add the author name, contact detail, and acknowledgments to this
       de-anonymized local draft.
-- [ ] Confirm the final affiliation, funding statement, and target-venue
-      de-anonymization requirements before external submission.
-- [ ] Decide whether to provide supplementary artifacts or an external
-      anonymous repository link under the target venue's current rules.
-- [ ] Perform an independent technical and claim review; no external review or
-      venue submission is implied by this repository state.
+- [x] Choose an anonymized supplementary ZIP rather than an external
+      repository link, and include the directly supporting source, tables,
+      figures, provenance, and a per-file integrity manifest.
+- [x] Confirm the anonymous PDF and supplementary ZIP contain no author,
+      contact, repository, or document metadata that could identify the authors;
+      keep the ZIP under TMLR's 100 MB limit.
+- [ ] Authors must complete active OpenReview profiles with accurate
+      affiliation, conflicts, and publication history, and supply appropriate
+      action-editor suggestions, human-subjects/IRB reporting, funding,
+      competing interests, and any conflicts not covered by institutional
+      history. See the [TMLR Author Guidelines](https://www.jmlr.org/tmlr/author-guide.html);
+      authors must confirm actual values rather than infer or invent them.
+- [ ] Obtain an independent human technical and claim review. Jev's AI review
+      is advisory and does not satisfy this human review item.
+- [ ] Authors confirm that all authorship declarations, funding/conflict
+      statements, and TMLR's CC BY 4.0 submission terms are accurate and
+      acceptable before submission.
+
+No external submission, upload, DOI release, or public source release has been
+performed by preparing this checklist or the local package.

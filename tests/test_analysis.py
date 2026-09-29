@@ -1,4 +1,9 @@
 import json
+import os
+import subprocess
+import sys
+import textwrap
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -12,6 +17,60 @@ from src.analysis import (
     paired_bootstrap_ci,
     paired_rank_biserial,
 )
+
+
+def test_critical_difference_diagram_is_stable_across_hash_seeds(tmp_path) -> None:
+    script = textwrap.dedent(
+        """\
+        import hashlib
+        import io
+
+        import matplotlib
+        matplotlib.use("Agg")
+        import matplotlib.pyplot as plt
+        import pandas as pd
+        import scikit_posthocs as sp
+
+        from src.analysis import _draw_critical_difference_diagram
+
+        labels = ["raw", "random_over", "smote", "smoteenn", "smotetomek"]
+        ranks = pd.Series([1.0, 2.0, 3.0, 4.0, 5.0], index=labels)
+        p_values = pd.DataFrame(0.001, index=labels, columns=labels)
+        for label in labels:
+            p_values.loc[label, label] = 1.0
+        for left, right in (
+            ("raw", "random_over"),
+            ("raw", "smote"),
+            ("random_over", "smoteenn"),
+            ("smote", "smotetomek"),
+        ):
+            p_values.loc[left, right] = p_values.loc[right, left] = 0.5
+
+        figure, axis = plt.subplots(figsize=(8, 3))
+        _draw_critical_difference_diagram(sp, ranks, p_values, axis)
+        figure.tight_layout()
+        buffer = io.BytesIO()
+        figure.savefig(buffer, format="png", dpi=160)
+        print(hashlib.sha256(buffer.getvalue()).hexdigest())
+        plt.close(figure)
+        """
+    )
+    digests = []
+    for hash_seed in ("1", "8675309"):
+        environment = os.environ.copy()
+        environment["PYTHONHASHSEED"] = hash_seed
+        environment["MPLCONFIGDIR"] = str(tmp_path / f"matplotlib-{hash_seed}")
+        completed = subprocess.run(
+            [sys.executable, "-c", script],
+            cwd=Path(__file__).resolve().parents[1],
+            env=environment,
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        digests.append(completed.stdout.strip())
+
+    assert digests[0] == digests[1]
 
 
 def _valid_records(condition: str, scalar: float) -> pd.DataFrame:

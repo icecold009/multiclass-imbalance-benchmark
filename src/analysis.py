@@ -732,13 +732,7 @@ def _generate_figures(
                         significance.loc[right, left] = value
                 ranks = blocks.rank(axis=1, ascending=False, method="average").mean()
                 figure, axis = plt.subplots(figsize=(13, 5))
-                sp.critical_difference_diagram(
-                    ranks,
-                    significance,
-                    alpha=0.05,
-                    ax=axis,
-                    left_only=True,
-                )
+                _draw_critical_difference_diagram(sp, ranks, significance, axis)
                 axis.set_title(f"Critical difference: {family} / {classifier} / {metric}")
                 figure.tight_layout()
                 path = figures_dir / f"critical_difference_{family}_{classifier}_{metric}.png"
@@ -746,6 +740,36 @@ def _generate_figures(
                 plt.close(figure)
                 generated.append({"name": path.name, "status": "generated"})
     return generated
+
+
+def _draw_critical_difference_diagram(
+    sp: Any,
+    ranks: pd.Series,
+    significance: pd.DataFrame,
+    axis: Any,
+) -> None:
+    """Draw a byte-stable diagram despite scikit-posthocs' set-based clique traversal."""
+
+    ordered_labels = list(ranks.sort_values(kind="stable").index)
+    numeric_labels = list(range(len(ordered_labels)))
+    stable_ranks = pd.Series(
+        ranks.loc[ordered_labels].to_numpy(dtype=float),
+        index=numeric_labels,
+    )
+    stable_significance = significance.loc[ordered_labels, ordered_labels].copy()
+    stable_significance.index = numeric_labels
+    stable_significance.columns = numeric_labels
+
+    artists = sp.critical_difference_diagram(
+        stable_ranks,
+        stable_significance,
+        alpha=0.05,
+        ax=axis,
+        left_only=True,
+        label_fmt_left="{label}",
+    )
+    for artist, label in zip(artists["labels"], ordered_labels, strict=True):
+        artist.set_text(f"{label} ({float(ranks.loc[label]):.2g})")
 
 
 def run_analysis(
