@@ -212,9 +212,7 @@ def sampler_for(
             return sampler, True
         if condition in {"random_over", "random_under"}:
             return (
-                RandomOverSampler(
-                    sampling_strategy="not majority", random_state=random_state
-                )
+                RandomOverSampler(sampling_strategy="not majority", random_state=random_state)
                 if condition == "random_over"
                 else RandomUnderSampler(
                     sampling_strategy="not minority", random_state=random_state
@@ -230,9 +228,7 @@ def sampler_for(
         "random_under": RandomUnderSampler(
             sampling_strategy="not minority", random_state=random_state
         ),
-        "smote": SMOTE(
-            sampling_strategy="not majority", random_state=random_state, k_neighbors=3
-        ),
+        "smote": SMOTE(sampling_strategy="not majority", random_state=random_state, k_neighbors=3),
         "adasyn": ADASYN(
             sampling_strategy="not majority", random_state=random_state, n_neighbors=3
         ),
@@ -243,15 +239,11 @@ def sampler_for(
             kind="borderline-1",
         ),
         "smoteenn": SMOTEENN(
-            smote=SMOTE(
-                sampling_strategy="not majority", random_state=random_state, k_neighbors=3
-            ),
+            smote=SMOTE(sampling_strategy="not majority", random_state=random_state, k_neighbors=3),
             sampling_strategy="not majority",
         ),
         "smotetomek": SMOTETomek(
-            smote=SMOTE(
-                sampling_strategy="not majority", random_state=random_state, k_neighbors=3
-            ),
+            smote=SMOTE(sampling_strategy="not majority", random_state=random_state, k_neighbors=3),
             sampling_strategy="not majority",
         ),
     }
@@ -300,9 +292,7 @@ def fit_kwargs_for(
 
     if condition == "class_weighted" and classifier_name == "xgboost":
         return {
-            "classifier__sample_weight": compute_sample_weight(
-                class_weight="balanced", y=y_train
-            )
+            "classifier__sample_weight": compute_sample_weight(class_weight="balanced", y=y_train)
         }
     return {}
 
@@ -331,9 +321,7 @@ def build_pipeline(
         steps: list[tuple[str, Any]] = [("pre_sampler", mixed_pre_sampler(layout))]
         if sampler is not None:
             steps.append(("sampler", sampler))
-        steps.extend(
-            [("post_sampler", mixed_post_sampler(layout)), ("classifier", classifier)]
-        )
+        steps.extend([("post_sampler", mixed_post_sampler(layout)), ("classifier", classifier)])
     else:
         steps = [("preprocess", numeric_preprocessor(layout))]
         if sampler is not None:
@@ -349,9 +337,7 @@ def geometric_mean(y_true: pd.Series, y_pred: np.ndarray, labels: list[Any]) -> 
     zero, so the metric is exactly zero rather than undefined or imputed.
     """
 
-    recalls = recall_score(
-        y_true, y_pred, labels=labels, average=None, zero_division=0
-    )
+    recalls = recall_score(y_true, y_pred, labels=labels, average=None, zero_division=0)
     return float(np.prod(recalls) ** (1 / len(recalls))) if len(recalls) else 0.0
 
 
@@ -370,9 +356,7 @@ def sampled_row_count(
     sampler = pipeline.named_steps.get("sampler")
     if sampler is None:
         return len(y_train)
-    preprocessor_name = (
-        "pre_sampler" if "pre_sampler" in pipeline.named_steps else "preprocess"
-    )
+    preprocessor_name = "pre_sampler" if "pre_sampler" in pipeline.named_steps else "preprocess"
     transformed = pipeline.named_steps[preprocessor_name].transform(X_train)
     _, y_resampled = clone(sampler).fit_resample(transformed, y_train)
     return len(y_resampled)
@@ -463,9 +447,7 @@ def run_pilot(
                                 ),
                                 "g_mean": geometric_mean(y_test, predicted, labels),
                                 "mcc": matthews_corrcoef(y_test, predicted),
-                                "balanced_accuracy": balanced_accuracy_score(
-                                    y_test, predicted
-                                ),
+                                "balanced_accuracy": balanced_accuracy_score(y_test, predicted),
                                 "per_class_recall": json.dumps(
                                     recall_score(
                                         y_test,

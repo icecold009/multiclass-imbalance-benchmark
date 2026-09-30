@@ -66,9 +66,9 @@ def test_preprocessing_statistics_use_training_rows_only() -> None:
     X = frame.drop(columns=["target"])
     pipeline.fit(X.iloc[:4], frame["target"].iloc[:4])
 
-    imputer = pipeline.named_steps["preprocess"].named_transformers_["numeric"].named_steps[
-        "impute"
-    ]
+    imputer = (
+        pipeline.named_steps["preprocess"].named_transformers_["numeric"].named_steps["impute"]
+    )
     assert imputer.statistics_.tolist() == [2.0, 1.5]
 
 

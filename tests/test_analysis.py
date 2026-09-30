@@ -107,9 +107,7 @@ def test_load_cell_means_requires_all_fifteen_seed_fold_records() -> None:
     assert len(means) == 1
     assert means.iloc[0]["macro_f1"] == pytest.approx(0.6)
     assert len(class_means) == 3
-    assert class_means.loc[class_means["class_index"] == 1, "recall"].iloc[0] == pytest.approx(
-        0.3
-    )
+    assert class_means.loc[class_means["class_index"] == 1, "recall"].iloc[0] == pytest.approx(0.3)
     efficiency = load_efficiency_means(_valid_records("raw", 0.6))
     assert len(efficiency) == 1
     assert efficiency.iloc[0]["train_rows_after_sampling_mean"] == pytest.approx(12.0)

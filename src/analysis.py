@@ -286,8 +286,7 @@ def _family_matrix(
 ) -> tuple[pd.DataFrame, tuple[str, ...]]:
     feature_type, conditions = FAMILY_DEFINITIONS[family]
     subset = cell_means[
-        (cell_means["feature_type"] == feature_type)
-        & (cell_means["classifier"] == classifier)
+        (cell_means["feature_type"] == feature_type) & (cell_means["classifier"] == classifier)
     ]
     if class_index is not None:
         subset = subset[subset["class_index"] == class_index]
@@ -313,7 +312,10 @@ def build_baseline_deltas(
                 if condition == "raw":
                     continue
                 for dataset in sorted(set(subset.index.get_level_values("dataset"))):
-                    if (dataset, "raw") not in subset.index or (dataset, condition) not in subset.index:
+                    if (dataset, "raw") not in subset.index or (
+                        dataset,
+                        condition,
+                    ) not in subset.index:
                         continue
                     raw = subset.loc[(dataset, "raw")]
                     alternative = subset.loc[(dataset, condition)]
@@ -342,11 +344,7 @@ def build_baseline_deltas(
                     continue
                 for dataset in sorted(set(subset.index.get_level_values("dataset"))):
                     for class_index in sorted(
-                        {
-                            index[2]
-                            for index in subset.index
-                            if index[0] == dataset
-                        }
+                        {index[2] for index in subset.index if index[0] == dataset}
                     ):
                         raw_key = (dataset, "raw", class_index)
                         alternative_key = (dataset, condition, class_index)
@@ -551,18 +549,15 @@ def _run_confirmatory_tests(
 def _classwise_descriptive(class_deltas: pd.DataFrame) -> pd.DataFrame:
     if class_deltas.empty:
         return pd.DataFrame()
-    return (
-        class_deltas.groupby(
-            ["family", "classifier", "condition", "class_index"], as_index=False
-        )
-        .agg(
-            n_pairs=("delta", "size"),
-            mean_delta=("delta", "mean"),
-            median_delta=("delta", "median"),
-            wins=("delta", lambda values: int((values > 1e-12).sum())),
-            ties=("delta", lambda values: int((values.abs() <= 1e-12).sum())),
-            losses=("delta", lambda values: int((values < -1e-12).sum())),
-        )
+    return class_deltas.groupby(
+        ["family", "classifier", "condition", "class_index"], as_index=False
+    ).agg(
+        n_pairs=("delta", "size"),
+        mean_delta=("delta", "mean"),
+        median_delta=("delta", "median"),
+        wins=("delta", lambda values: int((values > 1e-12).sum())),
+        ties=("delta", lambda values: int((values.abs() <= 1e-12).sum())),
+        losses=("delta", lambda values: int((values < -1e-12).sum())),
     )
 
 
@@ -644,14 +639,15 @@ def _generate_figures(
         plt.close(axis.figure)
         generated.append({"name": path.name, "status": "generated"})
 
-    summary = (
-        cell_means.groupby(["feature_type", "classifier", "condition"], as_index=False)["macro_f1"]
-        .mean()
-    )
+    summary = cell_means.groupby(["feature_type", "classifier", "condition"], as_index=False)[
+        "macro_f1"
+    ].mean()
     pivot = summary.pivot_table(
         index=["feature_type", "condition"], columns="classifier", values="macro_f1"
     )
-    axis = pivot.plot(kind="bar", figsize=(14, 6), ylim=(0, 1), title="Complete-cell macro-F1 means")
+    axis = pivot.plot(
+        kind="bar", figsize=(14, 6), ylim=(0, 1), title="Complete-cell macro-F1 means"
+    )
     axis.set_xlabel("Feature type and condition")
     axis.set_ylabel("Mean macro-F1")
     axis.figure.tight_layout()
@@ -664,8 +660,12 @@ def _generate_figures(
         index=["feature_type", "classifier"], columns="condition", values="macro_f1"
     )
     figure, axis = plt.subplots(figsize=(14, 5))
-    image = axis.imshow(heatmap.to_numpy(dtype=float), aspect="auto", vmin=0, vmax=1, cmap="viridis")
-    axis.set_xticks(range(len(heatmap.columns)), labels=list(heatmap.columns), rotation=45, ha="right")
+    image = axis.imshow(
+        heatmap.to_numpy(dtype=float), aspect="auto", vmin=0, vmax=1, cmap="viridis"
+    )
+    axis.set_xticks(
+        range(len(heatmap.columns)), labels=list(heatmap.columns), rotation=45, ha="right"
+    )
     axis.set_yticks(
         range(len(heatmap.index)),
         labels=[f"{feature}/{classifier}" for feature, classifier in heatmap.index],
@@ -706,7 +706,10 @@ def _generate_figures(
             import scikit_posthocs as sp
         except ImportError:
             generated.append(
-                {"name": "critical_difference", "status": "skipped: scikit-posthocs is not installed"}
+                {
+                    "name": "critical_difference",
+                    "status": "skipped: scikit-posthocs is not installed",
+                }
             )
         else:
             for _, test in significant.iterrows():
@@ -820,9 +823,7 @@ def run_analysis(
         output_dir / "moderators.csv",
         output_dir / "efficiency_means.csv",
     ]
-    artifact_refs = {
-        _relative_path(path, root): _reference(path, root) for path in artifact_paths
-    }
+    artifact_refs = {_relative_path(path, root): _reference(path, root) for path in artifact_paths}
     for figure in figures:
         if figure["status"] == "generated":
             path = output_dir / "figures" / figure["name"]

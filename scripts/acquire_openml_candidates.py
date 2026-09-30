@@ -67,7 +67,9 @@ def acquire(output_dir: Path, selected: set[str] | None = None) -> list[dict[str
                 f"{candidate.dataset_id}: expected target {candidate.expected_target!r}, "
                 f"received {target!r}"
             )
-        present_drop_columns = [column for column in candidate.drop_columns if column in frame.columns]
+        present_drop_columns = [
+            column for column in candidate.drop_columns if column in frame.columns
+        ]
         frame = frame.drop(columns=present_drop_columns)
         output_path = output_dir / candidate.filename
         frame.to_csv(output_path, index=False)
@@ -93,7 +95,11 @@ def main() -> None:
     parser.add_argument("--dataset-id", action="append", dest="dataset_ids")
     args = parser.parse_args()
     selected = set(args.dataset_ids) if args.dataset_ids else None
-    unknown = selected.difference({candidate.dataset_id for candidate in CANDIDATES}) if selected else set()
+    unknown = (
+        selected.difference({candidate.dataset_id for candidate in CANDIDATES})
+        if selected
+        else set()
+    )
     if unknown:
         parser.error(f"unknown dataset id(s): {', '.join(sorted(unknown))}")
     print(json.dumps(acquire(args.output_dir, selected), indent=2, sort_keys=True))

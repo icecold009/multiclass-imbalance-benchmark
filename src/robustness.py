@@ -46,9 +46,7 @@ PROCEDURES = {
     "rank_biserial": "paired signed ranks after removing zero differences",
     "bootstrap": "paired percentile over complete dataset blocks",
 }
-PER_CLASS_NOTE = (
-    "descriptive class-wise summaries; inferential matrices skipped because class labels are dataset-specific"
-)
+PER_CLASS_NOTE = "descriptive class-wise summaries; inferential matrices skipped because class labels are dataset-specific"
 
 
 def _utc_now() -> str:
@@ -112,7 +110,9 @@ def _validate_family_rows(frame: pd.DataFrame, label: str) -> None:
 def _key_set(frame: pd.DataFrame, columns: tuple[str, ...], label: str) -> set[tuple[str, ...]]:
     if any(column not in frame.columns for column in columns):
         raise RuntimeError(f"{label} is missing a required key column")
-    return {tuple(str(value) for value in row) for row in frame[list(columns)].itertuples(index=False)}
+    return {
+        tuple(str(value) for value in row) for row in frame[list(columns)].itertuples(index=False)
+    }
 
 
 def _validate_tables(
@@ -145,9 +145,13 @@ def _validate_tables(
         raise RuntimeError("efficiency_means row count does not match the analysis manifest")
     if set(efficiency["complete_records"].astype(int)) != {15}:
         raise RuntimeError("efficiency_means contains a non-15-record cell")
-    if _key_set(efficiency, cell_keys, "efficiency_means") != _key_set(cells, cell_keys, "cell_means"):
+    if _key_set(efficiency, cell_keys, "efficiency_means") != _key_set(
+        cells, cell_keys, "cell_means"
+    ):
         raise RuntimeError("efficiency_means keys do not match complete cells")
-    efficiency_columns = tuple(f"{metric}_{statistic}" for metric in EFFICIENCY_METRICS for statistic in ("mean", "median"))
+    efficiency_columns = tuple(
+        f"{metric}_{statistic}" for metric in EFFICIENCY_METRICS for statistic in ("mean", "median")
+    )
     _finite_columns(efficiency, efficiency_columns, "efficiency_means")
 
     deltas = tables["baseline_deltas.csv"]
@@ -160,7 +164,9 @@ def _validate_tables(
 
     class_deltas = tables["baseline_deltas_per_class.csv"]
     if len(class_deltas) != int(manifest["per_class_delta_count"]):
-        raise RuntimeError("baseline_deltas_per_class row count does not match the analysis manifest")
+        raise RuntimeError(
+            "baseline_deltas_per_class row count does not match the analysis manifest"
+        )
     _finite_columns(
         class_deltas,
         ("class_index", "raw_recall", "alternative_recall", "delta"),
@@ -187,7 +193,9 @@ def _validate_tables(
         if family not in FAMILY_DEFINITIONS:
             raise RuntimeError(f"Friedman output contains an unknown family: {family}")
         if classifier not in _family_classifiers(family):
-            raise RuntimeError(f"Friedman output contains a classifier outside its family: {classifier}")
+            raise RuntimeError(
+                f"Friedman output contains a classifier outside its family: {classifier}"
+            )
         if metric not in SCALAR_METRICS:
             raise RuntimeError(f"Friedman output contains an unknown metric: {metric}")
         status = str(row["status"])
@@ -208,7 +216,9 @@ def _validate_tables(
     for _, row in friedman.iterrows():
         if str(row["status"]) == "computed" and float(row["friedman_p_value"]) < 0.05:
             family = str(row["family"])
-            significant[(family, str(row["classifier"]), str(row["metric"]))] = FAMILY_DEFINITIONS[family][1]
+            significant[(family, str(row["classifier"]), str(row["metric"]))] = FAMILY_DEFINITIONS[
+                family
+            ][1]
     nemenyi = tables["nemenyi_pvalues.csv"]
     if len(nemenyi) != int(manifest["nemenyi_pair_count"]):
         raise RuntimeError("nemenyi_pvalues row count does not match the analysis manifest")
@@ -336,8 +346,14 @@ def verify_gate_e(
         "selection_rule",
     ):
         _assert_equal(analysis_gate.get(field), fresh_gate.get(field), f"Gate D {field}")
-    _assert_equal(manifest.get("input_run_manifest"), fresh_gate.get("benchmark_manifest"), "input run manifest")
-    _assert_equal(manifest.get("per_class_recall_inference"), PER_CLASS_NOTE, "per-class inference boundary")
+    _assert_equal(
+        manifest.get("input_run_manifest"),
+        fresh_gate.get("benchmark_manifest"),
+        "input run manifest",
+    )
+    _assert_equal(
+        manifest.get("per_class_recall_inference"), PER_CLASS_NOTE, "per-class inference boundary"
+    )
     _assert_equal(manifest.get("procedures"), PROCEDURES, "analysis procedures")
     expected_families = {
         family: {
@@ -355,8 +371,12 @@ def verify_gate_e(
     required = {"gate-d-review.json", *ANALYSIS_TABLES}
     actual = set(manifest.get("artifacts", {}))
     expected_prefix = "results/analysis/"
-    if {name.removeprefix(expected_prefix) for name in actual if name.startswith(expected_prefix)} != required | {
-        f"figures/{figure['name']}" for figure in manifest.get("figures", []) if figure["status"] == "generated"
+    if {
+        name.removeprefix(expected_prefix) for name in actual if name.startswith(expected_prefix)
+    } != required | {
+        f"figures/{figure['name']}"
+        for figure in manifest.get("figures", [])
+        if figure["status"] == "generated"
     }:
         raise RuntimeError("analysis manifest artifact set is incomplete or unexpected")
     counts = _validate_tables(analysis_dir, manifest, list(fresh_gate["dataset_ids"]))
@@ -393,7 +413,9 @@ def main() -> None:
     args = parser.parse_args()
     root = Path(__file__).resolve().parents[1]
     run_dir = args.run_dir if args.run_dir.is_absolute() else root / args.run_dir
-    analysis_dir = args.analysis_dir if args.analysis_dir.is_absolute() else root / args.analysis_dir
+    analysis_dir = (
+        args.analysis_dir if args.analysis_dir.is_absolute() else root / args.analysis_dir
+    )
     output_dir = args.output_dir if args.output_dir.is_absolute() else root / args.output_dir
     payload = verify_gate_e(root, run_dir, analysis_dir, output_dir / "gate-e-review.json")
     print(payload["status"])
