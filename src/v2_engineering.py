@@ -149,9 +149,7 @@ def fold_local_neighbours(y: Iterable[Any], condition: str) -> NeighbourSpec:
         raise NotApplicableError("no non-majority class is available for synthesis")
     minority_support = int(targeted.min())
     if minority_support < 2:
-        raise NotApplicableError(
-            "fewer than two training examples in the smallest targeted class"
-        )
+        raise NotApplicableError("fewer than two training examples in the smallest targeted class")
     k_neighbors = min(5, minority_support - 1)
     m_neighbors: int | None = None
     if condition == "borderline_smote":
@@ -256,9 +254,7 @@ def categorical_path(model: str, layout: FeatureLayout, condition: str) -> str:
         return "native_categorical"
     if model in NATIVE_CATEGORICAL_MODELS and condition in {"smotenc", "smoteenn", "smotetomek"}:
         return "fold_local_ordinal_sampler_then_native_recast"
-    raise NotApplicableError(
-        f"{model} has no declared categorical path for condition {condition}"
-    )
+    raise NotApplicableError(f"{model} has no declared categorical path for condition {condition}")
 
 
 def _one_hot() -> OneHotEncoder:
@@ -285,7 +281,9 @@ def preprocessing_for(
         # Native models consume a DataFrame with categorical dtypes.  The
         # caller must apply fold-local missing-value handling and recast after
         # any sampler; no one-hot or global encoder is permitted here.
-        raise NotApplicableError("native categorical paths are DataFrame adapters, not transformers")
+        raise NotApplicableError(
+            "native categorical paths are DataFrame adapters, not transformers"
+        )
     numeric_steps: list[tuple[str, Any]] = [("impute", SimpleImputer(strategy="median"))]
     if model == "logistic_regression":
         numeric_steps.append(("scale", StandardScaler()))
@@ -324,14 +322,34 @@ def prepare_native_categorical_frame(
     for column in layout.numeric:
         median = result[column].median()
         result[column] = result[column].fillna(median)
-    category_map = fitted_categories or {}
+
+    if fitted_categories is None:
+        category_map: dict[str, list[Any]] = {}
+    else:
+        category_map = {column: list(values) for column, values in fitted_categories.items()}
+        missing_columns = [column for column in layout.categorical if column not in category_map]
+        if missing_columns:
+            missing = ", ".join(missing_columns)
+            raise ValueError(f"fitted_categories is missing categorical feature(s): {missing}")
+
     for column in layout.categorical:
-        if column not in category_map:
-            values = result[column].dropna().drop_duplicates().tolist()
-            category_map[column] = values
-        dtype = pd.api.types.CategoricalDtype(categories=category_map[column])
-        result[column] = result[column].astype(dtype)
-        result[column] = result[column].cat.add_categories(["__MISSING__"]).fillna("__MISSING__")
+        if fitted_categories is None:
+            category_map[column] = result[column].dropna().drop_duplicates().tolist()
+
+        training_categories = category_map[column]
+        if any(pd.isna(value) for value in training_categories):
+            raise ValueError(f"fitted_categories for {column!r} must not contain null values")
+
+        missing_category = "__MISSING__"
+        suffix = 1
+        while missing_category in training_categories:
+            missing_category = f"__MISSING__{suffix}"
+            suffix += 1
+
+        values = result[column].astype(object)
+        normalized = values.where(values.isin(training_categories), missing_category)
+        dtype = pd.api.types.CategoricalDtype(categories=[*training_categories, missing_category])
+        result[column] = normalized.astype(dtype)
     return result, category_map
 
 
@@ -345,7 +363,10 @@ def splitters() -> tuple[StratifiedKFold, StratifiedKFold]:
 
 
 def assert_nested_split_independence(
-    outer_train: Iterable[int], outer_test: Iterable[int], inner_train: Iterable[int], inner_test: Iterable[int]
+    outer_train: Iterable[int],
+    outer_test: Iterable[int],
+    inner_train: Iterable[int],
+    inner_test: Iterable[int],
 ) -> None:
     """Check that inner indices are relative to the outer training partition."""
 
@@ -405,7 +426,13 @@ def fit_threshold_offsets(
         def objective(free_offsets: np.ndarray) -> float:
             offsets = np.concatenate(([0.0], np.asarray(free_offsets, dtype=float)))
             predicted = apply_threshold_offsets(proba, offsets)
-            score = f1_score(y_array, predicted, labels=list(range(len(labels))), average="macro", zero_division=0)
+            score = f1_score(
+                y_array,
+                predicted,
+                labels=list(range(len(labels))),
+                average="macro",
+                zero_division=0,
+            )
             # The tiny deterministic term implements the frozen tie rule
             # without changing any practically distinct macro-F1 score.
             tie_term = 1e-12 * float(np.dot(np.asarray(free_offsets), np.arange(1, len(labels))))
@@ -449,7 +476,9 @@ def macro_average_precision(
     return float(np.mean(per_class)), per_class
 
 
-def multiclass_brier_score(y_true: Iterable[Any], probabilities: np.ndarray, class_labels: Iterable[Any]) -> float:
+def multiclass_brier_score(
+    y_true: Iterable[Any], probabilities: np.ndarray, class_labels: Iterable[Any]
+) -> float:
     """Return the frozen mean-over-rows-and-classes multiclass Brier score."""
 
     labels = list(class_labels)
@@ -484,7 +513,9 @@ def evaluate_probabilities(
         "macro_average_precision": macro_ap,
         "per_class_average_precision": json.dumps(per_class_ap),
         "macro_f1_argmax": float(f1_score(y_array, argmax, average="macro", zero_division=0)),
-        "macro_f1_calibrated": float(f1_score(y_array, calibrated, average="macro", zero_division=0)),
+        "macro_f1_calibrated": float(
+            f1_score(y_array, calibrated, average="macro", zero_division=0)
+        ),
         "g_mean_argmax": float(np.prod(per_class_recall) ** (1 / len(per_class_recall))),
         "mcc_argmax": float(matthews_corrcoef(y_array, argmax)),
         "balanced_accuracy_argmax": float(balanced_accuracy_score(y_array, argmax)),
