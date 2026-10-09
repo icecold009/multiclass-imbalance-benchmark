@@ -9,27 +9,20 @@ import pandas as pd
 METRICS = ("macro_f1", "g_mean", "mcc", "balanced_accuracy")
 
 
-def write_rankings(
-    results: pd.DataFrame, output_dir: Path, prefix: str = "pilot"
-) -> pd.DataFrame:
+def write_rankings(results: pd.DataFrame, output_dir: Path, prefix: str = "pilot") -> pd.DataFrame:
     """Write per-dataset/classifier ranks without treating folds as blocks."""
 
-    grouped = (
-        results.groupby(["dataset", "feature_type", "classifier", "condition"], as_index=False)[
-            list(METRICS)
-        ]
-        .mean()
-    )
+    grouped = results.groupby(
+        ["dataset", "feature_type", "classifier", "condition"], as_index=False
+    )[list(METRICS)].mean()
     rows: list[pd.DataFrame] = []
     for metric in METRICS:
-        ranked = grouped[
-            ["dataset", "feature_type", "classifier", "condition", metric]
-        ].copy()
+        ranked = grouped[["dataset", "feature_type", "classifier", "condition", metric]].copy()
         ranked["metric"] = metric
         ranked["score"] = ranked[metric]
-        ranked["rank"] = ranked.groupby(
-            ["dataset", "feature_type", "classifier"]
-        )[metric].rank(ascending=False, method="average")
+        ranked["rank"] = ranked.groupby(["dataset", "feature_type", "classifier"])[metric].rank(
+            ascending=False, method="average"
+        )
         rows.append(
             ranked[
                 [
@@ -53,7 +46,7 @@ def write_friedman_summary(
 ) -> pd.DataFrame:
     """Run Friedman only on complete, multi-dataset blocks.
 
-    This is a feasibility diagnostic. It does not replace the preregistered
+    This is a feasibility diagnostic. It does not replace the internally frozen
     final analysis, and it deliberately reports why a comparison was skipped.
     """
 
@@ -61,8 +54,7 @@ def write_friedman_summary(
     for feature_type in results["feature_type"].dropna().unique():
         for classifier in results["classifier"].dropna().unique():
             subset = results[
-                (results["feature_type"] == feature_type)
-                & (results["classifier"] == classifier)
+                (results["feature_type"] == feature_type) & (results["classifier"] == classifier)
             ]
             for metric in METRICS:
                 means = subset.groupby(["dataset", "condition"])[metric].mean().unstack()
@@ -102,9 +94,7 @@ def write_friedman_summary(
     return summary
 
 
-def analyse_results(
-    results_path: Path, output_dir: Path, prefix: str = "pilot"
-) -> None:
+def analyse_results(results_path: Path, output_dir: Path, prefix: str = "pilot") -> None:
     output_dir.mkdir(parents=True, exist_ok=True)
     results = pd.read_csv(results_path)
     if results.empty:

@@ -28,6 +28,9 @@ artifacts/test-tmp/*
 artifacts/test-cache/*
 artifacts/environment/*
 !artifacts/environment/.gitkeep
+!artifacts/environment/
+!artifacts/environment/v2/
+!artifacts/environment/v2/*
 
 # Local notebooks and logs
 .ipynb_checkpoints/

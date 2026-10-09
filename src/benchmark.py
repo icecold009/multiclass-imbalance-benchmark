@@ -21,9 +21,7 @@ from src.stage0 import sha256_file
 
 LOCKED_SEEDS = (0, 1, 2)
 LOCKED_FOLDS = 5
-EXPECTED_CELLS_PER_DATASET = (
-    len(LOCKED_SEEDS) * LOCKED_FOLDS * len(CLASSIFIERS) * len(CONDITIONS)
-)
+EXPECTED_CELLS_PER_DATASET = len(LOCKED_SEEDS) * LOCKED_FOLDS * len(CLASSIFIERS) * len(CONDITIONS)
 KEY_COLUMNS = ("dataset", "seed", "fold", "classifier", "condition")
 RESULT_COLUMNS = (
     *KEY_COLUMNS,
@@ -148,9 +146,15 @@ def _load_context(root: Path, paths: dict[str, Path]) -> ExecutionContext:
     locked_ids = tuple(sorted(str(value) for value in scope_lock.get("dataset_ids", [])))
     if not locked_ids or scope_lock.get("dataset_count") != len(locked_ids):
         raise RuntimeError("scope lock has an invalid dataset list")
-    if scope_lock.get("registry_sha256", "").lower() != references[PROTOCOL_HASH_PATHS[0]]["sha256"]:
+    if (
+        scope_lock.get("registry_sha256", "").lower()
+        != references[PROTOCOL_HASH_PATHS[0]]["sha256"]
+    ):
         raise RuntimeError("scope lock registry hash is stale")
-    if scope_lock.get("acquisition_manifest_sha256", "").lower() != references[PROTOCOL_HASH_PATHS[1]]["sha256"]:
+    if (
+        scope_lock.get("acquisition_manifest_sha256", "").lower()
+        != references[PROTOCOL_HASH_PATHS[1]]["sha256"]
+    ):
         raise RuntimeError("scope lock acquisition-manifest hash is stale")
     references["docs/protocol.md"] = _reference(paths["protocol"], root)
     references["artifacts/runs/scope-lock.json"] = _reference(paths["scope_lock"], root)
@@ -161,9 +165,7 @@ def _load_context(root: Path, paths: dict[str, Path]) -> ExecutionContext:
     if registry["dataset_id"].duplicated().any() or manifest["dataset_id"].duplicated().any():
         raise RuntimeError("registry and acquisition manifest dataset IDs must be unique")
     eligible_ids = {
-        str(row.dataset_id)
-        for row in registry.itertuples(index=False)
-        if _truthy(row.eligible)
+        str(row.dataset_id) for row in registry.itertuples(index=False) if _truthy(row.eligible)
     }
     if eligible_ids != set(locked_ids):
         raise RuntimeError(
@@ -175,9 +177,7 @@ def _load_context(root: Path, paths: dict[str, Path]) -> ExecutionContext:
     manifest_by_id = manifest.set_index("dataset_id")
     override_map = {
         str(row.dataset_id): tuple(
-            value.strip()
-            for value in str(row.categorical_columns).split(";")
-            if value.strip()
+            value.strip() for value in str(row.categorical_columns).split(";") if value.strip()
         )
         for row in overrides.itertuples(index=False)
     }
@@ -271,15 +271,16 @@ def validate_output_frames(
     if observed != expected:
         missing = sorted(expected - observed, key=str)
         extra = sorted(observed - expected, key=str)
-        raise RuntimeError(f"{dataset_id} cell accounting mismatch: missing={missing[:3]}, extra={extra[:3]}")
+        raise RuntimeError(
+            f"{dataset_id} cell accounting mismatch: missing={missing[:3]}, extra={extra[:3]}"
+        )
     for value in results["per_class_recall"].tolist():
         try:
             recalls = json.loads(value)
         except (TypeError, json.JSONDecodeError) as error:
             raise RuntimeError(f"{dataset_id} has invalid per-class recall JSON") from error
         if not isinstance(recalls, list) or any(
-            not isinstance(item, (int, float)) or not math.isfinite(float(item))
-            for item in recalls
+            not isinstance(item, (int, float)) or not math.isfinite(float(item)) for item in recalls
         ):
             raise RuntimeError(f"{dataset_id} has invalid per-class recall values")
     return {
@@ -350,9 +351,7 @@ def _write_dataset_marker(
         "folds": LOCKED_FOLDS,
         "elapsed_seconds": round(elapsed_seconds, 6),
         "counts": counts,
-        "artifacts": {
-            name: _reference(path, root) for name, path in artifacts.items()
-        },
+        "artifacts": {name: _reference(path, root) for name, path in artifacts.items()},
         "completed_at_utc": _utc_now(),
     }
     _write_json_atomic(marker_path, marker)
@@ -384,9 +383,7 @@ def _manifest_template(context: ExecutionContext, output_dir: Path) -> dict[str,
     }
 
 
-def _load_or_create_manifest(
-    context: ExecutionContext, output_dir: Path
-) -> dict[str, Any]:
+def _load_or_create_manifest(context: ExecutionContext, output_dir: Path) -> dict[str, Any]:
     path = output_dir / "benchmark_manifest.json"
     expected = _manifest_template(context, output_dir)
     if not path.exists():
@@ -415,7 +412,11 @@ def _load_or_create_manifest(
 
 
 def _record_dataset_run(
-    manifest: dict[str, Any], spec: DatasetSpec, marker_path: Path, counts: dict[str, int], root: Path
+    manifest: dict[str, Any],
+    spec: DatasetSpec,
+    marker_path: Path,
+    counts: dict[str, int],
+    root: Path,
 ) -> None:
     manifest.setdefault("dataset_runs", {})[spec.dataset_id] = {
         "status": "complete",
@@ -443,7 +444,10 @@ def _aggregate_complete_run(
         "valid_cells": len(all_results),
         "failure_cells": len(all_failures),
     }
-    if total_counts["valid_cells"] + total_counts["failure_cells"] != total_counts["expected_cells"]:
+    if (
+        total_counts["valid_cells"] + total_counts["failure_cells"]
+        != total_counts["expected_cells"]
+    ):
         raise RuntimeError("aggregate benchmark outputs do not cover the locked cell matrix")
     all_results.to_csv(output_dir / "benchmark_results.csv", index=False)
     all_failures.to_csv(output_dir / "benchmark_failures.csv", index=False)
@@ -465,11 +469,15 @@ def run_benchmark(
     known_ids = {spec.dataset_id for spec in context.datasets}
     unknown = sorted(set(selected) - known_ids)
     if unknown:
-        raise RuntimeError(f"requested dataset(s) are outside the locked scope: {', '.join(unknown)}")
+        raise RuntimeError(
+            f"requested dataset(s) are outside the locked scope: {', '.join(unknown)}"
+        )
     specs = tuple(spec for spec in context.datasets if spec.dataset_id in selected)
     if dry_run:
         for spec in specs:
-            print(f"{spec.dataset_id}: target={spec.target_column}, categorical={list(spec.categorical_columns)}")
+            print(
+                f"{spec.dataset_id}: target={spec.target_column}, categorical={list(spec.categorical_columns)}"
+            )
         print(
             f"planned datasets={len(specs)}, cells={len(specs) * EXPECTED_CELLS_PER_DATASET}, "
             f"seeds={list(LOCKED_SEEDS)}, folds={LOCKED_FOLDS}"
@@ -513,7 +521,9 @@ def run_benchmark(
         )
         _record_dataset_run(manifest, spec, marker_path, counts, context.root)
         _write_json_atomic(output_dir / "benchmark_manifest.json", manifest)
-        print(f"{spec.dataset_id}: complete; valid={counts['valid_cells']}, failed={counts['failure_cells']}")
+        print(
+            f"{spec.dataset_id}: complete; valid={counts['valid_cells']}, failed={counts['failure_cells']}"
+        )
 
     all_complete = all(
         (output_dir / spec.dataset_id / "benchmark_complete.json").exists()
@@ -564,8 +574,7 @@ def main() -> None:
         "environment": args.environment,
     }
     paths = {
-        key: value if value.is_absolute() else root / value
-        for key, value in raw_paths.items()
+        key: value if value.is_absolute() else root / value for key, value in raw_paths.items()
     }
     context = _load_context(root, paths)
     output_dir = args.output_dir if args.output_dir.is_absolute() else root / args.output_dir

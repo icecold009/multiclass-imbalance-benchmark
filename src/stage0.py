@@ -70,9 +70,7 @@ def audit_csv(path: Path, target: str) -> dict[str, Any]:
         "n_rows": n_rows,
         "n_classes": n_classes,
         "class_counts": ordered_counts,
-        "ir_majority_minority": (
-            max_count / min_count if min_count else None
-        ),
+        "ir_majority_minority": (max_count / min_count if min_count else None),
         "n_min_class": min_count,
         "d_raw": frame.shape[1] - 1,
         "feature_type": _feature_type(frame, target),
@@ -275,8 +273,12 @@ def _validate_registry_and_manifest(
     blockers: list[str] = []
     registry = _read_csv(registry_path, "dataset registry", blockers)
     manifest = _read_csv(manifest_path, "acquisition manifest", blockers)
-    registry_missing = _missing_columns(registry, REGISTRY_REQUIRED_COLUMNS, "dataset registry", blockers)
-    manifest_missing = _missing_columns(manifest, MANIFEST_REQUIRED_COLUMNS, "acquisition manifest", blockers)
+    registry_missing = _missing_columns(
+        registry, REGISTRY_REQUIRED_COLUMNS, "dataset registry", blockers
+    )
+    manifest_missing = _missing_columns(
+        manifest, MANIFEST_REQUIRED_COLUMNS, "acquisition manifest", blockers
+    )
     if registry_missing or manifest_missing:
         return {"registry": blockers, "pilot": []}, registry, manifest, {}
 
@@ -298,7 +300,9 @@ def _validate_registry_and_manifest(
     manifest_paths = manifest["local_path"].map(_canonical_path)
     duplicate_paths = sorted(manifest_paths[manifest_paths.duplicated(keep=False)].unique())
     if duplicate_paths:
-        blockers.append(f"acquisition manifest.local_path contains duplicate path(s): {', '.join(duplicate_paths)}")
+        blockers.append(
+            f"acquisition manifest.local_path contains duplicate path(s): {', '.join(duplicate_paths)}"
+        )
 
     root = _project_root(registry_path)
     manifest_by_id = manifest.set_index("dataset_id", drop=False)
@@ -325,11 +329,15 @@ def _validate_registry_and_manifest(
             versions_match = field == "source_version" and (
                 manifest_value in registry_value or registry_value in manifest_value
             )
-            hashes_match = field == "raw_sha256" and registry_value.lower() == manifest_value.lower()
+            hashes_match = (
+                field == "raw_sha256" and registry_value.lower() == manifest_value.lower()
+            )
             if registry_value != manifest_value and not versions_match and not hashes_match:
                 blockers.append(f"{dataset_id}: registry/manifest {field} mismatch")
         for field in ("local_path", "file_size_bytes"):
-            if field in registry.columns and _text(registry_row[field]) != _text(manifest_row[field]):
+            if field in registry.columns and _text(registry_row[field]) != _text(
+                manifest_row[field]
+            ):
                 blockers.append(f"{dataset_id}: registry/manifest {field} mismatch")
 
         raw_hash = _text(manifest_row["raw_sha256"]).lower()
@@ -350,9 +358,13 @@ def _validate_registry_and_manifest(
         else:
             actual_size = local_path.stat().st_size
             if expected_size is not None and actual_size != expected_size:
-                blockers.append(f"{dataset_id}: raw file byte size does not match acquisition manifest")
+                blockers.append(
+                    f"{dataset_id}: raw file byte size does not match acquisition manifest"
+                )
             if _valid_hash(raw_hash) and sha256_file(local_path) != raw_hash:
-                blockers.append(f"{dataset_id}: raw file SHA-256 does not match acquisition manifest")
+                blockers.append(
+                    f"{dataset_id}: raw file SHA-256 does not match acquisition manifest"
+                )
 
         eligible = _parse_bool(registry_row["eligible"])
         if eligible is None:
@@ -388,9 +400,13 @@ def _validate_registry_and_manifest(
             feature_type = _text(registry_row["feature_type"])
             if feature_type == "categorical":
                 feature_type = "categorical-only"
-            feature_types = [value for value in conditions if value in {"numeric", "mixed", "categorical-only"}]
+            feature_types = [
+                value for value in conditions if value in {"numeric", "mixed", "categorical-only"}
+            ]
             if feature_types != [feature_type]:
-                blockers.append(f"{dataset_id}: applicability feature type does not match feature_type")
+                blockers.append(
+                    f"{dataset_id}: applicability feature type does not match feature_type"
+                )
             applicability[dataset_id] = conditions
 
         for field in (
@@ -409,10 +425,15 @@ def _validate_registry_and_manifest(
         for _, row in registry.iterrows()
         if _parse_bool(row["eligible"]) is True and _text(row["dataset_id"])
     )
-    return {"registry": blockers, "pilot": []}, registry, manifest, {
-        "eligible_ids": eligible_ids,
-        "applicability": applicability,
-    }
+    return (
+        {"registry": blockers, "pilot": []},
+        registry,
+        manifest,
+        {
+            "eligible_ids": eligible_ids,
+            "applicability": applicability,
+        },
+    )
 
 
 def _parse_timestamp(value: object) -> dt.datetime | None:
@@ -470,7 +491,9 @@ def _validate_pilot_outputs(
     else:
         artifact_paths = set()
         for index, artifact in enumerate(artifacts):
-            path = _verify_file_reference(artifact, f"{dataset_id} artifact {index}", root, blockers)
+            path = _verify_file_reference(
+                artifact, f"{dataset_id} artifact {index}", root, blockers
+            )
             if path is not None:
                 artifact_paths.add(_canonical_path(path))
 
@@ -484,7 +507,9 @@ def _validate_pilot_outputs(
     present_names = {Path(path).name for path in artifact_paths}
     missing_names = sorted(required_names - present_names)
     if missing_names:
-        blockers.append(f"{dataset_id}: pilot output artifact(s) missing: {', '.join(missing_names)}")
+        blockers.append(
+            f"{dataset_id}: pilot output artifact(s) missing: {', '.join(missing_names)}"
+        )
 
     runtime = run.get("runtime_evidence")
     memory = run.get("memory_evidence")
@@ -515,9 +540,7 @@ def _validate_pilot_outputs(
             blockers,
         )
         replay_seconds = _as_finite_number(
-            replay_runtime.get("wall_clock_seconds")
-            if isinstance(replay_runtime, dict)
-            else None
+            replay_runtime.get("wall_clock_seconds") if isinstance(replay_runtime, dict) else None
         )
         replay_budget = _as_finite_number(
             replay_runtime.get("runtime_budget_seconds")
@@ -546,7 +569,11 @@ def _validate_pilot_outputs(
     valid = run.get("valid_cells")
     failures = run.get("failure_cells")
     integer_values: list[int] = []
-    for field, value in (("expected_cells", expected), ("valid_cells", valid), ("failure_cells", failures)):
+    for field, value in (
+        ("expected_cells", expected),
+        ("valid_cells", valid),
+        ("failure_cells", failures),
+    ):
         if isinstance(value, bool) or not isinstance(value, int) or value < 0:
             blockers.append(f"{dataset_id}: {field} must be a non-negative integer")
         else:
@@ -641,9 +668,13 @@ def _validate_pilot_evidence(
     missing_runs = sorted(set(eligible_ids) - set(runs_by_id))
     extra_runs = sorted(set(runs_by_id) - set(eligible_ids))
     if missing_runs:
-        blockers.append(f"pilot review evidence is missing eligible dataset(s): {', '.join(missing_runs)}")
+        blockers.append(
+            f"pilot review evidence is missing eligible dataset(s): {', '.join(missing_runs)}"
+        )
     if extra_runs:
-        blockers.append(f"pilot review evidence has non-eligible dataset(s): {', '.join(extra_runs)}")
+        blockers.append(
+            f"pilot review evidence has non-eligible dataset(s): {', '.join(extra_runs)}"
+        )
     for dataset_id in sorted(set(eligible_ids) & set(runs_by_id)):
         _validate_pilot_outputs(runs_by_id[dataset_id], dataset_id, root, blockers)
     return blockers
@@ -668,7 +699,9 @@ def build_scope_lock(
         raise ValueError("pilot_status must be either 'pending' or 'passed'")
     manifest_path = manifest_path or registry_path.parent / "acquisition_manifest.csv"
     root = _project_root(registry_path)
-    pilot_evidence_path = pilot_evidence_path or root / "artifacts" / "runs" / "stage0-pilot-review.json"
+    pilot_evidence_path = (
+        pilot_evidence_path or root / "artifacts" / "runs" / "stage0-pilot-review.json"
+    )
     registry_sha256 = sha256_file(registry_path) if registry_path.is_file() else ""
     manifest_sha256 = sha256_file(manifest_path) if manifest_path.is_file() else ""
     validation, _registry, _manifest, candidates = _validate_registry_and_manifest(
@@ -691,7 +724,9 @@ def build_scope_lock(
         blockers.append("no eligible registry rows have complete provenance")
     blockers = sorted(set(blockers))
     dataset_ids = sorted(eligible_ids)
-    applicable_families = sorted({condition for values in applicability.values() for condition in values})
+    applicable_families = sorted(
+        {condition for values in applicability.values() for condition in values}
+    )
     payload: dict[str, Any] = {
         "schema_version": "stage0-scope-lock-v2",
         "registry_path": str(registry_path),
@@ -704,7 +739,11 @@ def build_scope_lock(
         "dataset_ids": dataset_ids,
         "dataset_count": len(dataset_ids),
         "applicable_families": applicable_families,
-        "applicability_matrix": {dataset_id: applicability[dataset_id] for dataset_id in dataset_ids if dataset_id in applicability},
+        "applicability_matrix": {
+            dataset_id: applicability[dataset_id]
+            for dataset_id in dataset_ids
+            if dataset_id in applicability
+        },
         "blockers": blockers,
         "selection_rule": "registry eligibility and provenance only; pilot scores are not used",
     }

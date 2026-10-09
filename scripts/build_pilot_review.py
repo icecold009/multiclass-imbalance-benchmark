@@ -46,13 +46,29 @@ def file_reference(path: Path) -> dict[str, str]:
 
 def _replay_matches(first: Path, replay: Path) -> bool:
     result_columns = [
-        "dataset", "seed", "fold", "classifier", "condition", "feature_type",
-        "macro_f1", "g_mean", "mcc", "balanced_accuracy",
-        "train_rows_before_sampling", "train_rows_after_sampling",
+        "dataset",
+        "seed",
+        "fold",
+        "classifier",
+        "condition",
+        "feature_type",
+        "macro_f1",
+        "g_mean",
+        "mcc",
+        "balanced_accuracy",
+        "train_rows_before_sampling",
+        "train_rows_after_sampling",
     ]
     failure_columns = [
-        "dataset", "seed", "fold", "classifier", "condition", "feature_type",
-        "stage", "error_type", "error",
+        "dataset",
+        "seed",
+        "fold",
+        "classifier",
+        "condition",
+        "feature_type",
+        "stage",
+        "error_type",
+        "error",
     ]
     first_results = pd.read_csv(first / "pilot_results.csv")
     replay_results = pd.read_csv(replay / "pilot_results.csv")
@@ -133,7 +149,11 @@ def build_run(
         "valid_cells": len(results),
         "failure_cells": len(failures),
     }
-    if replay_results_path is not None and replay_results_path.is_file() and replay_runtime is not None:
+    if (
+        replay_results_path is not None
+        and replay_results_path.is_file()
+        and replay_runtime is not None
+    ):
         replay_reference = file_reference(replay_results_path)
         run["replay_runtime_evidence"] = {
             **replay_reference,
@@ -158,7 +178,10 @@ def build(
             raise FileNotFoundError(path)
     payload = {
         "schema_version": "stage0-pilot-review-v1",
-        "reviewed_at_utc": dt.datetime.now(dt.UTC).replace(microsecond=0).isoformat().replace("+00:00", "Z"),
+        "reviewed_at_utc": dt.datetime.now(dt.UTC)
+        .replace(microsecond=0)
+        .isoformat()
+        .replace("+00:00", "Z"),
         "registry_sha256": sha256_file(ROOT / "data" / "dataset_registry.csv"),
         "manifest_sha256": sha256_file(ROOT / "data" / "acquisition_manifest.csv"),
         "environment": file_reference(environment_path),
@@ -179,9 +202,13 @@ def build(
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--output", type=Path, default=ROOT / "artifacts" / "runs" / "stage0-pilot-review.json")
+    parser.add_argument(
+        "--output", type=Path, default=ROOT / "artifacts" / "runs" / "stage0-pilot-review.json"
+    )
     parser.add_argument("--run-root", type=Path, default=ROOT / "artifacts" / "runs")
-    parser.add_argument("--replay-root", type=Path, help="Root containing pilot-<dataset>-replay outputs")
+    parser.add_argument(
+        "--replay-root", type=Path, help="Root containing pilot-<dataset>-replay outputs"
+    )
     parser.add_argument(
         "--failure-review",
         choices=("pending", "passed"),
@@ -192,8 +219,18 @@ def main() -> None:
         "--datasets",
         nargs="+",
         default=[
-            "yeast", "cmc", "glass", "balance_scale", "mfeat_factors", "optdigits",
-            "dermatology", "iris", "wine", "cnae_9", "seeds", "wine_quality_red",
+            "yeast",
+            "cmc",
+            "glass",
+            "balance_scale",
+            "mfeat_factors",
+            "optdigits",
+            "dermatology",
+            "iris",
+            "wine",
+            "cnae_9",
+            "seeds",
+            "wine_quality_red",
         ],
     )
     args = parser.parse_args()

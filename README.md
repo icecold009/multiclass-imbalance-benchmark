@@ -3,11 +3,11 @@ Benchmark of resampling strategies for multi-class imbalanced tabular classifica
 
 ## Current phase
 
-V1 Gates A-G are complete, and the de-anonymized local TMLR paper release
-candidate is tracked under `paper/`. The locked full benchmark raw run and the
-pre-registered analysis are recorded under the ignored `results/full-run/` and
-`results/analysis/` directories; the Gate G technical release snapshot
-preserves the exact local evidence boundary.
+The V1 full benchmark raw run is frozen. Its analysis and manuscript are under
+revision on a feature branch; release gates must be rerun against the final
+clean revision before an external release. Raw-run evidence and regenerated
+analysis outputs are recorded under the ignored `results/full-run/` and
+`results/analysis/` directories.
 
 The staged work plan is documented in
 [`docs/timeline.md`](docs/timeline.md).
@@ -39,8 +39,10 @@ statistical analysis. See [`docs/stage-0-runbook.md`](docs/stage-0-runbook.md)
 for staged execution and review boundaries.
 
 Before acquiring research data, follow [`docs/environment.md`](docs/environment.md)
-and [`docs/data-acquisition.md`](docs/data-acquisition.md). The pre-registered
-protocol template is [`docs/protocol.md`](docs/protocol.md).
+and [`docs/data-acquisition.md`](docs/data-acquisition.md). The internally
+frozen V1 protocol is [`docs/protocol.md`](docs/protocol.md); its historical
+use of “pre-registered” is clarified in
+[`docs/protocol-status.md`](docs/protocol-status.md).
 
 ## Gate F clean-checkout reproducibility
 

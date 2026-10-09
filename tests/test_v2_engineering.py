@@ -1,3 +1,5 @@
+import warnings
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -76,6 +78,96 @@ def test_model_specific_paths_are_explicit_and_unknown_categories_are_safe() -> 
     assert "__MISSING__" in native_unseen["category"].cat.categories
 
 
+def test_native_categories_normalize_unseen_values_without_implicit_cast_warning(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    warning_type = getattr(
+        pd.errors,
+        "Pandas4Warning",
+        type("Pandas4Warning", (FutureWarning,), {}),
+    )
+    original_astype = pd.Series.astype
+
+    def warn_for_implicit_oov_cast(self: pd.Series, dtype: object, *args: object, **kwargs: object):
+        if isinstance(dtype, pd.CategoricalDtype):
+            categories = list(dtype.categories)
+            values = original_astype(self, object).tolist()
+            if any(pd.notna(value) and value not in categories for value in values):
+                warnings.warn("implicit out-of-vocabulary categorical coercion", warning_type)
+        return original_astype(self, dtype, *args, **kwargs)
+
+    monkeypatch.setattr(pd.Series, "astype", warn_for_implicit_oov_cast)
+    layout = FeatureLayout(numeric=(), categorical=("category",))
+    train = pd.DataFrame({"category": ["b", "a", "b"]})
+    validation = pd.DataFrame({"category": ["a", None, "new-one", "new-two"]})
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", warning_type)
+        native_train, fitted_categories = prepare_native_categorical_frame(train, layout)
+        original_mapping = fitted_categories
+        original_vocabulary = fitted_categories["category"]
+        original_values = list(original_vocabulary)
+        native_validation, returned_categories = prepare_native_categorical_frame(
+            validation, layout, fitted_categories
+        )
+
+    sentinel = "__MISSING__"
+    assert fitted_categories == {"category": ["b", "a"]}
+    assert fitted_categories is original_mapping
+    assert fitted_categories["category"] is original_vocabulary
+    assert fitted_categories["category"] == original_values
+    assert returned_categories == fitted_categories
+    assert returned_categories is not original_mapping
+    assert returned_categories["category"] is not original_vocabulary
+    assert native_train["category"].cat.categories.tolist() == [
+        "b",
+        "a",
+        sentinel,
+    ]
+    assert native_validation["category"].cat.categories.equals(
+        native_train["category"].cat.categories
+    )
+    assert native_validation["category"].astype(object).tolist() == [
+        "a",
+        sentinel,
+        sentinel,
+        sentinel,
+    ]
+    assert sentinel not in returned_categories["category"]
+    assert "new-one" not in returned_categories["category"]
+    assert "new-two" not in returned_categories["category"]
+
+
+def test_native_category_sentinel_avoids_training_label_collisions() -> None:
+    layout = FeatureLayout(numeric=(), categorical=("category",))
+    train = pd.DataFrame({"category": ["__MISSING__", "a", "__MISSING__1"]})
+
+    native_train, fitted_categories = prepare_native_categorical_frame(train, layout)
+    native_validation, _ = prepare_native_categorical_frame(
+        pd.DataFrame({"category": ["__MISSING__", "unseen"]}), layout, fitted_categories
+    )
+
+    assert fitted_categories["category"] == ["__MISSING__", "a", "__MISSING__1"]
+    assert native_train["category"].cat.categories.tolist() == [
+        "__MISSING__",
+        "a",
+        "__MISSING__1",
+        "__MISSING__2",
+    ]
+    assert native_validation["category"].astype(object).tolist() == [
+        "__MISSING__",
+        "__MISSING__2",
+    ]
+
+
+def test_native_category_transform_requires_complete_fitted_vocabulary() -> None:
+    layout = FeatureLayout(numeric=(), categorical=("category",))
+    frame = pd.DataFrame({"category": ["validation-only"]})
+
+    with pytest.raises(ValueError, match="missing categorical feature"):
+        prepare_native_categorical_frame(frame, layout, {})
+
+
 def test_nested_splitters_have_independent_seeds_and_no_cross_fold_leakage() -> None:
     X = np.zeros((30, 1))
     y = np.repeat([0, 1, 2], 10)
@@ -108,7 +200,9 @@ def test_thresholds_use_validation_probabilities_and_are_deterministic() -> None
     second = fit_threshold_offsets(y, probabilities, [0, 1, 2])
     assert first.status == STATUS_VALID
     assert first.offsets == second.offsets
-    assert np.array_equal(apply_threshold_offsets(probabilities, first.offsets), np.argmax(probabilities, axis=1))
+    assert np.array_equal(
+        apply_threshold_offsets(probabilities, first.offsets), np.argmax(probabilities, axis=1)
+    )
 
 
 def test_threshold_fallback_is_explicit_for_invalid_validation_support() -> None:

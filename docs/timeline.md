@@ -11,7 +11,15 @@ to preserve the target date.
 
 ## Live progress
 
-Last updated: 2026-09-11
+Last updated: 2026-10-09
+
+The status table below records the earlier V1 milestone. A correction pass on
+2026-10-09 updated the analysis, manuscript, and release tooling; Gate E
+replayed successfully in fresh processes, and the named and anonymous PDFs
+were recompiled and visually checked. The local packages are uncommitted
+previews. Exact-clean-commit Gate F/G checks remain pending, and the author
+must review the current PDFs. Historical `[x]` labels below do not imply that
+those release gates have passed for the corrected revision.
 
 The critical-path table below is the forecast. The task-status table is the
 current execution source of truth and must be updated whenever a task is
@@ -32,7 +40,7 @@ Status markers: `[x]` complete, `[>]` current, `[!]` blocked, `[ ]` pending.
 | TEST-01 | Pass leakage, fold-boundary, categorical, and weight-routing tests. | [x] Complete | Gate B tests are covered by the focused `tests/test_pilot.py` suite: training-only preprocessing, untouched test folds, target exclusion, mixed categorical ordering, and XGBoost training-weight routing. |
 | REPLAY-01 | Confirm the locked replay is reproducible and feasible within the recorded resource budget. | [x] Complete | `scripts/verify_gate_c.py` independently revalidated the eleven retained datasets, 495 cells per dataset, exact replay result/failure rows, reviewed failures, and replay runtimes below 900 seconds. The payload was emitted to the system temp directory because `artifacts/runs` is read-only in this checkout. |
 | RUN-01 | Execute the locked benchmark with resumability, provenance, failure logs, and resource logging. | [x] Complete | `results/full-run/benchmark_manifest.json` records the frozen hashes, all 11 datasets, 5,445 expected cells, 4,191 valid cells, and 1,254 explicit failure cells; aggregate result and failure hashes are recorded in the ignored manifest. |
-| ANALYSIS-01 | Aggregate results, run pre-specified statistics/effect sizes, and generate figures. | [x] Complete | `results/analysis/analysis_manifest.json` records Gate D status, complete-cell aggregates and efficiency means, frozen scalar tests/effects, descriptive per-class summaries, moderator data, and the planned figures. |
+| ANALYSIS-01 | Aggregate results, run pre-specified statistics/effect sizes, and generate figures. | [x] Complete | `results/analysis/analysis_manifest.json` records Gate D status, complete-cell aggregates and efficiency means, family-wide Friedman/Nemenyi results, raw-baseline pairwise-complete effects/tests later identified as a departure from the frozen rule (see `docs/analysis-implementation-note.md`), descriptive per-class summaries, moderators, and figures. |
 | ROBUST-01 | Review analysis outputs for protocol, scope, failure, and locked-sensitivity consistency. | [x] Complete | `results/analysis/gate-e-review.json` passed the frozen-reference, table-invariant, skipped-test, artifact-hash, and deterministic replay checks. |
 | PAPER-01 | Write and review the paper against generated evidence. | [x] Complete | De-anonymized TMLR-formatted V1 release candidate in `paper/main.tex`, references, official style assets, and `paper/review-checklist.md`; all reported results are tied to the frozen analysis package. |
 | REPRO-01 | Reproduce the locked workflow from a clean checkout and archive manifests. | [x] Complete | `scripts/verify_gate_f.py` archives the exact tracked source, runs the full checks in that temporary checkout, and revalidates the frozen Gate E evidence; the ignored payload is `results/analysis/gate-f-review.json`. |

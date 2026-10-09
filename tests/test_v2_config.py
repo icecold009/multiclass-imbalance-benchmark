@@ -14,16 +14,17 @@ def test_v2_configuration_freezes_protocol_and_analysis_contract() -> None:
     config = _config()
 
     assert config["protocol_version"] == "expanded-v2"
-    assert config["status"] == "gate-1-freeze"
+    assert config["status"] == "gate-6-analysis-ready"
+    assert config["readiness_blocker"] == "compute_instance_approval"
     assert config["scope"]["minimum_classes"] == 3
     assert config["scope"]["minimum_minority_support"] == 10
-    assert config["hyperparameter_search"]["trials_per_dataset_outer_fold_classifier_condition"] == 20
+    assert (
+        config["hyperparameter_search"]["trials_per_dataset_outer_fold_classifier_condition"] == 20
+    )
     assert config["hyperparameter_search"]["sampler_parameters_tuned"] is False
     assert config["cross_validation"]["outer"]["n_splits"] == 5
     assert config["cross_validation"]["inner"]["n_splits"] == 3
-    assert config["sampling"]["dynamic_neighbour_formula"] == (
-        "k = min(5, N_minority_target - 1)"
-    )
+    assert config["sampling"]["dynamic_neighbour_formula"] == ("k = min(5, N_minority_target - 1)")
     assert config["bayesian_analysis"]["model"] == (
         "exchangeable_fold_correlated_hierarchical_normal"
     )

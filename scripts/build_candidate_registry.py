@@ -248,22 +248,57 @@ AUDIT_DECISIONS: dict[str, dict[str, object]] = {
 
 
 REGISTRY_COLUMNS = [
-    "dataset_id", "display_name", "source", "source_id", "source_url", "license_or_terms",
-    "source_version", "raw_sha256", "task_type", "target_column", "n_rows", "n_classes",
-    "class_counts", "ir_majority_minority", "n_min_class", "d_raw", "d_encoded", "feature_type",
-    "has_missing", "has_groups", "has_time_order", "has_duplicates", "leakage_status", "eligible",
-    "exclusion_reason", "applicable_families", "notes",
+    "dataset_id",
+    "display_name",
+    "source",
+    "source_id",
+    "source_url",
+    "license_or_terms",
+    "source_version",
+    "raw_sha256",
+    "task_type",
+    "target_column",
+    "n_rows",
+    "n_classes",
+    "class_counts",
+    "ir_majority_minority",
+    "n_min_class",
+    "d_raw",
+    "d_encoded",
+    "feature_type",
+    "has_missing",
+    "has_groups",
+    "has_time_order",
+    "has_duplicates",
+    "leakage_status",
+    "eligible",
+    "exclusion_reason",
+    "applicable_families",
+    "notes",
 ]
 MANIFEST_COLUMNS = [
-    "dataset_id", "source", "source_id", "source_url", "source_version", "accessed_at_utc",
-    "license_or_terms", "download_method", "source_file_name", "local_path", "raw_sha256",
-    "file_size_bytes", "download_status", "notes",
+    "dataset_id",
+    "source",
+    "source_id",
+    "source_url",
+    "source_version",
+    "accessed_at_utc",
+    "license_or_terms",
+    "download_method",
+    "source_file_name",
+    "local_path",
+    "raw_sha256",
+    "file_size_bytes",
+    "download_status",
+    "notes",
 ]
 
 
 def _class_counts(series: pd.Series) -> str:
     counts = Counter(series.dropna().tolist())
-    return "|".join(f"{label}:{counts[label]}" for label in sorted(counts, key=lambda value: str(value)))
+    return "|".join(
+        f"{label}:{counts[label]}" for label in sorted(counts, key=lambda value: str(value))
+    )
 
 
 def sha256_file(path: Path, chunk_size: int = 1024 * 1024) -> str:
@@ -383,8 +418,8 @@ def build(registry_path: Path, manifest_path: Path, raw_dir: Path, base_ref: str
             }
         )
 
-    new_registry_rows = registry_rows[len(existing_registry):]
-    new_manifest_rows = manifest_rows[len(existing_manifest):]
+    new_registry_rows = registry_rows[len(existing_registry) :]
+    new_manifest_rows = manifest_rows[len(existing_manifest) :]
     registry_path.write_text(
         _append_rows(base_registry_text, new_registry_rows, REGISTRY_COLUMNS),
         encoding="utf-8",
