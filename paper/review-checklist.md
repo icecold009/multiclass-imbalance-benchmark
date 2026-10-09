@@ -17,34 +17,49 @@
       placeholders when ignored result artifacts are unavailable.
 - [x] V1/V2 boundary recorded; no V2 execution result is used in this paper.
 
-## Required before an external submission
+## Previously verified technical snapshot
 
-- [ ] Compile the final de-anonymized and anonymous PDFs from the exact clean
-      release commit; run BibTeX and two final LaTeX passes for each. A local
-      compile of the current working copy is a review preview only.
-- [ ] Inspect the final anonymous PDF for layout, overfull boxes, citation
-      order, page readability, and author metadata after rebuilding it.
-- [ ] Rebuild and pass the Gate E/F analysis evidence twice in fresh processes
-      and the Gate G snapshot twice after the source and artifacts are final.
+The corrected percentage sentence and the four-artifact Gate G snapshot were
+verified on clean commit `9bfed74` before the ethics/broader-impact revision
+below. Those checks are historical evidence for that commit; they do not cover
+the current manuscript edits and must be repeated for the final submission
+candidate.
+
+- [x] The de-anonymized and anonymous PDFs were freshly compiled from commit
+      `9bfed74` with BibTeX and two final LaTeX passes for each.
+- [x] Gates E and F passed twice, and Gate G passed twice, on the clean release
+      candidate before this revision.
+- [x] Gate G validated the current-commit de-anonymized PDF and source ZIP,
+      plus the anonymous PDF and supplement ZIP; it checked package hashes,
+      anonymization, unchanged TMLR style files, and the 100 MB supplement cap.
 - [x] Add the author name, contact detail, and acknowledgments to this
       de-anonymized local draft.
-- [ ] Rebuild the anonymized supplementary ZIP rather than linking an external
-      repository; include the current supporting source, tables, figures,
-      provenance, and per-file integrity manifest.
-- [ ] Confirm the rebuilt anonymous PDF and supplementary ZIP contain no
-      author, contact, repository, or document metadata that could identify the
-      author; keep the ZIP under TMLR's 100 MB limit.
-- [ ] Authors must complete active OpenReview profiles with accurate
-      affiliation, conflicts, and publication history, and supply appropriate
-      action-editor suggestions, human-subjects/IRB reporting, funding,
-      competing interests, and any conflicts not covered by institutional
-      history. See the [TMLR Author Guidelines](https://www.jmlr.org/tmlr/author-guide.html);
-      authors must confirm actual values rather than infer or invent them.
+- [ ] Recompile both manuscript variants after the current ethics revision;
+      inspect the corrected PDFs and approve the final anonymous PDF.
+- [ ] Rebuild the anonymized supplement with the final PDF, supporting source,
+      tables, figures, provenance, and per-file integrity manifest.
+- [ ] Repeat Gates E/F/G on the final clean commit and verify the final hashes.
+- [ ] Recheck anonymous PDF and supplement metadata/content after rebuilding;
+      keep the supplement under TMLR's 100 MB limit.
+- [ ] Complete an active OpenReview profile with accurate affiliation,
+      conflicts, and publication history. Confirm sole authorship and complete
+      funding, competing-interest, and human-subjects/IRB disclosures from
+      actual records; do not infer or invent values. See the
+      [TMLR Author Guidelines](https://www.jmlr.org/tmlr/author-guide.html).
+- [ ] Verify the source documentation and applicable oversight for the CMC and
+      Dermatology records; the new ethics discussion does not assert consent,
+      IRB approval, or exemption.
+- [ ] Confirm the ethics/broader-impact discussion is accurate and adequate for
+      the actual data use and likely downstream risks.
 - [ ] Obtain an independent human technical and claim review. Jev's AI review
       is advisory and does not satisfy this human review item.
-- [ ] Authors confirm that all authorship declarations, funding/conflict
-      statements, and TMLR's CC BY 4.0 submission terms are accurate and
-      acceptable before submission.
+- [ ] Confirm acceptance of TMLR's CC BY 4.0 submission terms before
+      submission; authors retain copyright, while the license permits reuse
+      with attribution.
+- [ ] After submission, respond to TMLR's request for appropriate,
+      non-conflicted action-editor suggestions.
+- [ ] Submit only the anonymous PDF and anonymous supplement to TMLR. Keep the
+      named PDF and public source release private until the TMLR decision.
 
 No external submission, upload, DOI release, or public source release has been
 performed by preparing this checklist or the local package.
