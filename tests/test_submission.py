@@ -18,11 +18,41 @@ from src.release_artifacts import (
     anonymize_tmlr_source,
     author_identifiers,
     build_release_artifacts,
+    expected_source_release_entries,
     validate_package_zip,
     validate_pdf,
     write_package_zip,
 )
 from src.submission import REQUIRED_RELEASE_FILES, _tracked_digest, _validate_publication_artifacts
+
+
+@pytest.mark.parametrize("matching_commit", [True, False])
+def test_expected_source_release_entries_bind_gate_f_to_current_commit(
+    tmp_path, monkeypatch, matching_commit
+) -> None:
+    commit = "a" * 40
+    (tmp_path / "paper").mkdir()
+    (tmp_path / "paper/main.pdf").write_bytes(_pdf_bytes())
+    (tmp_path / "README.md").write_bytes(b"Source snapshot\n")
+    analysis_dir = tmp_path / "results/analysis"
+    analysis_dir.mkdir(parents=True)
+    (analysis_dir / "gate-f-review.json").write_text(
+        json.dumps({"status": "passed", "git_head": commit if matching_commit else "b" * 40}),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(
+        "src.release_artifacts._source_tree_state",
+        lambda _root, allow_dirty: (commit, True, ["README.md", "paper/main.pdf"]),
+    )
+
+    entries = expected_source_release_entries(tmp_path)
+
+    assert entries["README.md"] == b"Source snapshot\n"
+    assert entries["paper/main.pdf"] == (tmp_path / "paper/main.pdf").read_bytes()
+    evidence = json.loads(entries["results/analysis/gate-f-review.json"])
+    assert evidence["status"] == ("passed" if matching_commit else "not_run")
+    if matching_commit:
+        assert evidence["git_head"] == commit
 
 
 def _official_tmlr_styles() -> dict[str, bytes]:

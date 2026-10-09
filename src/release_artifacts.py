@@ -837,8 +837,8 @@ def _source_release_entries(
 def expected_source_release_entries(root: Path) -> dict[str, bytes]:
     """Rebuild the exact current public source release package inputs."""
 
-    _, _, source_files = _source_tree_state(root, allow_dirty=False)
-    return _source_release_entries(root, source_files)
+    source_commit, source_tree_clean, source_files = _source_tree_state(root, allow_dirty=False)
+    return _source_release_entries(root, source_files, source_commit, source_tree_clean)
 
 
 def build_release_artifacts(
