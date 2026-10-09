@@ -19,20 +19,21 @@
 
 ## Required before an external submission
 
-- [x] Compile the current de-anonymized and anonymous PDFs from the source at
-      the exact release commit; run BibTeX and two final LaTeX passes for each.
-- [x] Inspect the current anonymous PDF for layout, overfull boxes, citation
-      order, page readability, and author metadata.
-- [x] Rebuild the Gate E/F analysis evidence twice in fresh processes and the
-      Gate G snapshot twice after the source and artifacts are final.
+- [ ] Compile the final de-anonymized and anonymous PDFs from the exact clean
+      release commit; run BibTeX and two final LaTeX passes for each. A local
+      compile of the current working copy is a review preview only.
+- [ ] Inspect the final anonymous PDF for layout, overfull boxes, citation
+      order, page readability, and author metadata after rebuilding it.
+- [ ] Rebuild and pass the Gate E/F analysis evidence twice in fresh processes
+      and the Gate G snapshot twice after the source and artifacts are final.
 - [x] Add the author name, contact detail, and acknowledgments to this
       de-anonymized local draft.
-- [x] Choose an anonymized supplementary ZIP rather than an external
-      repository link, and include the directly supporting source, tables,
-      figures, provenance, and a per-file integrity manifest.
-- [x] Confirm the anonymous PDF and supplementary ZIP contain no author,
-      contact, repository, or document metadata that could identify the authors;
-      keep the ZIP under TMLR's 100 MB limit.
+- [ ] Rebuild the anonymized supplementary ZIP rather than linking an external
+      repository; include the current supporting source, tables, figures,
+      provenance, and per-file integrity manifest.
+- [ ] Confirm the rebuilt anonymous PDF and supplementary ZIP contain no
+      author, contact, repository, or document metadata that could identify the
+      author; keep the ZIP under TMLR's 100 MB limit.
 - [ ] Authors must complete active OpenReview profiles with accurate
       affiliation, conflicts, and publication history, and supply appropriate
       action-editor suggestions, human-subjects/IRB reporting, funding,

@@ -1,4 +1,4 @@
-"""Command-line entry point for Gate D and the preregistered analysis."""
+"""Command-line entry point for Gate D and the internally frozen analysis."""
 
 import sys
 from pathlib import Path

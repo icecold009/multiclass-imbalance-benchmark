@@ -11,7 +11,14 @@ to preserve the target date.
 
 ## Live progress
 
-Last updated: 2026-09-11
+Last updated: 2026-10-09
+
+The status table below records the earlier V1 milestone. A correction pass on
+2026-10-09 updated the analysis, manuscript, and release tooling; Gate E
+replayed successfully twice from fresh processes. The exact-clean-commit Gate F
+and Gate G checks, regenerated release artifacts, and author review of the
+freshly compiled PDF remain pending. Historical `[x]` labels below do not imply
+that those release gates have passed for the corrected revision.
 
 The critical-path table below is the forecast. The task-status table is the
 current execution source of truth and must be updated whenever a task is

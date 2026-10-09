@@ -9,6 +9,9 @@ xgboost==3.2.0
 psutil>=6,<8
 scipy>=1.13,<2
 scikit-posthocs==0.14.0
+# scikit-posthocs 0.14.0 imports multipletests from statsmodels' sandbox;
+# statsmodels 0.15 moved that public helper and breaks package import.
+statsmodels>=0.14,<0.15
 pyyaml>=6,<7
 pytest>=8,<9
 ruff>=0.8,<1

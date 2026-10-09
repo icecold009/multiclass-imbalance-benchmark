@@ -46,7 +46,7 @@ def write_friedman_summary(
 ) -> pd.DataFrame:
     """Run Friedman only on complete, multi-dataset blocks.
 
-    This is a feasibility diagnostic. It does not replace the preregistered
+    This is a feasibility diagnostic. It does not replace the internally frozen
     final analysis, and it deliberately reports why a comparison was skipped.
     """
 

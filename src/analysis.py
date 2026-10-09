@@ -1,10 +1,12 @@
-"""Gate D validation and preregistered analysis for the locked benchmark."""
+"""Gate D validation and internally frozen analysis for the locked benchmark."""
 
 from __future__ import annotations
 
 import argparse
 import datetime as dt
+import importlib.metadata
 import json
+import platform
 from pathlib import Path
 from typing import Any
 
@@ -22,6 +24,7 @@ from src.benchmark import (
     _write_json_atomic,
     sha256_file,
 )
+from src.sensitivity import exact_sign_flip_sensitivity, friedman_permutation_sensitivity
 
 SCALAR_METRICS = ("macro_f1", "g_mean", "mcc", "balanced_accuracy")
 CLASSIFIERS = ("logistic_regression", "random_forest", "xgboost")
@@ -63,6 +66,47 @@ FAMILY_DEFINITIONS: dict[str, tuple[str, tuple[str, ...]]] = {
     "balanced_rf_numeric": ("numeric", ("raw", "class_weighted", "balanced_random_forest")),
     "balanced_rf_mixed": ("mixed", ("raw", "class_weighted", "balanced_random_forest")),
 }
+ANALYSIS_DISTRIBUTIONS = (
+    "numpy",
+    "pandas",
+    "scikit-learn",
+    "imbalanced-learn",
+    "xgboost",
+    "scipy",
+    "scikit-posthocs",
+    "statsmodels",
+    "matplotlib",
+)
+
+
+def _analysis_runtime() -> dict[str, Any]:
+    """Record versions that can affect the regenerated analysis and figures."""
+
+    return {
+        "python": platform.python_version(),
+        "packages": {name: importlib.metadata.version(name) for name in ANALYSIS_DISTRIBUTIONS},
+    }
+
+
+UNSUPPORTED_ERROR_MESSAGES = {
+    ("numeric", "smotenc"): "SMOTENC is only applicable to mixed datasets",
+    ("mixed", "smote"): "smote is not valid for mixed data in Stage 0",
+    ("mixed", "adasyn"): "adasyn is not valid for mixed data in Stage 0",
+    ("mixed", "borderline_smote"): "borderline_smote is not valid for mixed data in Stage 0",
+}
+SAMPLER_CONDITIONS = frozenset(
+    {
+        "random_over",
+        "random_under",
+        "smote",
+        "adasyn",
+        "borderline_smote",
+        "smotenc",
+        "smoteenn",
+        "smotetomek",
+    }
+)
+NO_SAMPLES_ERROR = "No samples will be generated with the provided ratio settings."
 
 
 def _family_classifiers(family: str) -> tuple[str, ...]:
@@ -196,6 +240,195 @@ def _parse_recall(value: object) -> np.ndarray:
     if values.ndim != 1 or not np.isfinite(values).all():
         raise RuntimeError("per_class_recall contains invalid numeric values")
     return values
+
+
+def _failure_category(row: pd.Series) -> str:
+    """Classify one logged failure using frozen applicability plus its error."""
+
+    feature_type = str(row["feature_type"])
+    classifier = str(row["classifier"])
+    condition = str(row["condition"])
+    error = str(row["error"])
+    unsupported_message = UNSUPPORTED_ERROR_MESSAGES.get((feature_type, condition))
+    if condition == "balanced_random_forest" and classifier != "random_forest":
+        unsupported_message = "Balanced Random Forest is an RF-only comparator"
+    if unsupported_message is not None:
+        if error != unsupported_message:
+            raise RuntimeError(
+                "unsupported record does not match the frozen applicability error: "
+                f"{feature_type}/{classifier}/{condition}: {error}"
+            )
+        return "unsupported"
+    if condition in SAMPLER_CONDITIONS and (
+        error == NO_SAMPLES_ERROR or "ADASYN is not suited for this specific dataset" in error
+    ):
+        return "sampler_specific_failure"
+    return "other_applicable_failure"
+
+
+def _failure_accounting(
+    results: pd.DataFrame,
+    failures: pd.DataFrame,
+    expected_records: int,
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Separate the enumerated universe, unsupported rows, and evaluation outcomes."""
+
+    key_columns = ("dataset", "seed", "fold", "classifier", "condition", "feature_type")
+    for label, frame in (("valid results", results), ("failure log", failures)):
+        missing = set(key_columns).difference(frame.columns)
+        if missing:
+            raise RuntimeError(f"{label} is missing accounting keys: {sorted(missing)}")
+    valid = results[list(key_columns)].copy()
+    valid["record_category"] = "valid"
+    failed = failures.copy()
+    failed["record_category"] = failed.apply(_failure_category, axis=1)
+    records = pd.concat(
+        [valid, failed[list(key_columns) + ["record_category"]]],
+        ignore_index=True,
+    )
+    if records[list(key_columns)].duplicated().any():
+        raise RuntimeError("raw valid and failure records contain duplicate evaluation keys")
+    if len(records) != expected_records:
+        raise RuntimeError(
+            f"analysis universe has {len(records)} rows but Gate D enumerated "
+            f"{expected_records} records"
+        )
+
+    categories = ("valid", "unsupported", "sampler_specific_failure", "other_applicable_failure")
+
+    def summarize(group: pd.DataFrame, level: str, feature: str, classifier: str, condition: str):
+        counts = group["record_category"].value_counts()
+        values = {category: int(counts.get(category, 0)) for category in categories}
+        enumerated = len(group)
+        applicable = enumerated - values["unsupported"]
+        attempted = (
+            values["valid"]
+            + values["sampler_specific_failure"]
+            + values["other_applicable_failure"]
+        )
+        if applicable != attempted:
+            raise RuntimeError(
+                "applicable universe does not equal observed evaluation attempts for "
+                f"{feature}/{classifier}/{condition}"
+            )
+        return {
+            "aggregation_level": level,
+            "feature_type": feature,
+            "classifier": classifier,
+            "condition": condition,
+            "enumerated_records": enumerated,
+            "unsupported_records": values["unsupported"],
+            "applicable_records": applicable,
+            "attempted_evaluations": attempted,
+            "valid_records": values["valid"],
+            "sampler_specific_failures": values["sampler_specific_failure"],
+            "other_applicable_failures": values["other_applicable_failure"],
+            "sampler_failure_rate": (
+                values["sampler_specific_failure"] / applicable if applicable else None
+            ),
+        }
+
+    summary_rows = [
+        summarize(records, "overall", "all", "all", "all"),
+    ]
+    for key, group in records.groupby(
+        ["feature_type", "classifier", "condition"], sort=True, dropna=False
+    ):
+        summary_rows.append(
+            summarize(group, "feature_classifier_condition", *(str(value) for value in key))
+        )
+    summary = pd.DataFrame(summary_rows)
+    failed["record_category"] = failed["record_category"].astype(str)
+    reason_counts = (
+        failed.groupby(
+            [
+                "feature_type",
+                "classifier",
+                "condition",
+                "record_category",
+                "error_type",
+                "error",
+            ],
+            dropna=False,
+            sort=True,
+        )
+        .size()
+        .rename("records")
+        .reset_index()
+        .sort_values(
+            [
+                "feature_type",
+                "classifier",
+                "condition",
+                "record_category",
+                "error_type",
+                "error",
+            ],
+            kind="stable",
+        )
+        .reset_index(drop=True)
+    )
+    return summary, reason_counts
+
+
+def _macro_f1_figure_coverage(cell_means: pd.DataFrame) -> pd.DataFrame:
+    """Return one mean and complete-dataset count for every plotted heatmap tile."""
+
+    keys = ["feature_type", "classifier", "condition"]
+    observed = cell_means.groupby(keys, as_index=False, sort=True).agg(
+        mean_macro_f1=("macro_f1", "mean"),
+        n_datasets=("dataset", "nunique"),
+    )
+    axes = pd.MultiIndex.from_product(
+        [
+            sorted(cell_means["feature_type"].astype(str).unique()),
+            sorted(cell_means["classifier"].astype(str).unique()),
+            sorted(cell_means["condition"].astype(str).unique()),
+        ],
+        names=keys,
+    )
+    return (
+        axes.to_frame(index=False)
+        .merge(observed, on=keys, how="left", validate="one_to_one")
+        .assign(n_datasets=lambda frame: frame["n_datasets"].fillna(0).astype(int))
+        .sort_values(keys, kind="stable")
+        .reset_index(drop=True)
+    )
+
+
+def _primary_sensitivity(
+    cell_means: pd.DataFrame,
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Add post hoc small-block sensitivities for the sole primary outcome."""
+
+    family = "numeric_core"
+    classifier = "xgboost"
+    metric = "macro_f1"
+    matrix, available = _family_matrix(cell_means, family, classifier, metric)
+    conditions = FAMILY_DEFINITIONS[family][1]
+    if tuple(available) != tuple(conditions):
+        raise RuntimeError("primary sensitivity matrix does not contain the frozen conditions")
+    matrix = matrix[list(conditions)].dropna()
+    omnibus = friedman_permutation_sensitivity(matrix, n_resamples=200_000, seed=0)
+    omnibus_frame = pd.DataFrame(
+        [
+            {
+                "family": family,
+                "classifier": classifier,
+                "metric": metric,
+                "analysis_type": "post_hoc_permutation_sensitivity",
+                **omnibus,
+            }
+        ]
+    )
+    pairwise = exact_sign_flip_sensitivity(matrix)
+    pairwise["family"] = family
+    pairwise["classifier"] = classifier
+    pairwise["metric"] = metric
+    pairwise["analysis_type"] = "post_hoc_exact_sign_flip_sensitivity"
+    pairwise["holm_family_size"] = len(pairwise)
+    pairwise["holm_p_value"] = _holm_adjust(pairwise["exact_p_value"].astype(float).tolist())
+    return omnibus_frame, pairwise
 
 
 def load_cell_means(
@@ -434,13 +667,36 @@ def _comparison_summary(
         "rank_biserial": paired_rank_biserial(differences) if len(differences) else None,
         "bootstrap_low": None,
         "bootstrap_high": None,
+        "bootstrap_interpretation": (
+            "not_available"
+            if not len(differences)
+            else (
+                "descriptive_only_below_minimum_three_blocks"
+                if len(differences) < 3
+                else "paired_dataset_block_percentile_interval"
+            )
+        ),
         "wilcoxon_statistic": None,
         "wilcoxon_p_value": None,
-        "status": "skipped" if not len(differences) else "computed",
-        "reason": "no complete paired blocks" if not len(differences) else None,
+        "status": (
+            "skipped"
+            if not len(differences)
+            else ("descriptive" if len(differences) < 3 else "computed")
+        ),
+        "reason": (
+            "no complete paired blocks"
+            if not len(differences)
+            else (
+                "fewer than three complete dataset blocks; inferential test skipped per frozen rule"
+                if len(differences) < 3
+                else None
+            )
+        ),
     }
     if len(differences):
         row["bootstrap_low"], row["bootstrap_high"] = paired_bootstrap_ci(differences)
+        if len(differences) < 3:
+            return row
         from scipy.stats import wilcoxon
 
         if np.all(differences == 0):
@@ -538,9 +794,11 @@ def _run_confirmatory_tests(
     comparisons = pd.DataFrame(comparison_rows)
     if not comparisons.empty:
         comparisons["holm_p_value"] = np.nan
+        comparisons["holm_family_size"] = 0
         for index in comparisons.groupby(["family", "classifier", "metric"]).groups.values():
             valid = comparisons.loc[index, "wilcoxon_p_value"].notna()
             values = comparisons.loc[index[valid], "wilcoxon_p_value"].astype(float).tolist()
+            comparisons.loc[index, "holm_family_size"] = len(values)
             adjusted = _holm_adjust(values)
             comparisons.loc[index[valid], "holm_p_value"] = adjusted
     return pd.DataFrame(friedman_rows), pd.DataFrame(nemenyi_rows), comparisons
@@ -605,6 +863,7 @@ def _generate_figures(
     comparisons: pd.DataFrame,
     friedman: pd.DataFrame,
     nemenyi: pd.DataFrame,
+    figure_coverage: pd.DataFrame,
     figures_dir: Path,
 ) -> list[dict[str, str]]:
     try:
@@ -656,12 +915,20 @@ def _generate_figures(
     plt.close(axis.figure)
     generated.append({"name": path.name, "status": "generated"})
 
-    heatmap = summary.pivot_table(
-        index=["feature_type", "classifier"], columns="condition", values="macro_f1"
+    heatmap = figure_coverage.pivot(
+        index=["feature_type", "classifier"],
+        columns="condition",
+        values="mean_macro_f1",
     )
     figure, axis = plt.subplots(figsize=(14, 5))
+    color_map = plt.get_cmap("viridis").copy()
+    color_map.set_bad("white")
     image = axis.imshow(
-        heatmap.to_numpy(dtype=float), aspect="auto", vmin=0, vmax=1, cmap="viridis"
+        np.ma.masked_invalid(heatmap.to_numpy(dtype=float)),
+        aspect="auto",
+        vmin=0,
+        vmax=1,
+        cmap=color_map,
     )
     axis.set_xticks(
         range(len(heatmap.columns)), labels=list(heatmap.columns), rotation=45, ha="right"
@@ -670,12 +937,12 @@ def _generate_figures(
         range(len(heatmap.index)),
         labels=[f"{feature}/{classifier}" for feature, classifier in heatmap.index],
     )
-    axis.set_title("Complete-cell macro-F1 ranking heatmap")
+    axis.set_title("Mean macro-F1 across complete dataset cells")
     axis.set_xlabel("Condition")
     axis.set_ylabel("Feature type / classifier")
     figure.colorbar(image, ax=axis, label="Mean macro-F1")
     figure.tight_layout()
-    path = figures_dir / "macro_f1_ranking_heatmap.png"
+    path = figures_dir / "macro_f1_complete_cell_heatmap.png"
     figure.savefig(path, dpi=160)
     plt.close(figure)
     generated.append({"name": path.name, "status": "generated"})
@@ -786,12 +1053,24 @@ def run_analysis(
     gate_d_path = output_dir / "gate-d-review.json"
     gate_d = verify_gate_d(root, run_dir, gate_d_path)
     results = pd.read_csv(run_dir / "benchmark_results.csv")
+    failures = pd.read_csv(run_dir / "benchmark_failures.csv")
+    if len(results) != int(gate_d["counts"]["valid_cells"]):
+        raise RuntimeError("raw valid records disagree with the Gate D manifest")
+    if len(failures) != int(gate_d["counts"]["failure_cells"]):
+        raise RuntimeError("raw failure records disagree with the Gate D manifest")
+    failure_accounting, failure_reasons = _failure_accounting(
+        results,
+        failures,
+        int(gate_d["counts"]["expected_cells"]),
+    )
     cell_means, class_means = load_cell_means(results)
     efficiency = load_efficiency_means(results)
     deltas, class_deltas = build_baseline_deltas(cell_means, class_means)
     friedman, nemenyi, comparisons = _run_confirmatory_tests(cell_means)
     moderators = _moderators(root, gate_d["dataset_ids"])
     class_summary = _classwise_descriptive(class_deltas)
+    figure_coverage = _macro_f1_figure_coverage(cell_means)
+    permutation_sensitivity, sign_flip_sensitivity = _primary_sensitivity(cell_means)
     cell_means.to_csv(output_dir / "cell_means.csv", index=False)
     class_means.to_csv(output_dir / "class_means.csv", index=False)
     deltas.to_csv(output_dir / "baseline_deltas.csv", index=False)
@@ -802,12 +1081,18 @@ def run_analysis(
     comparisons.to_csv(output_dir / "wilcoxon_effects.csv", index=False)
     moderators.to_csv(output_dir / "moderators.csv", index=False)
     efficiency.to_csv(output_dir / "efficiency_means.csv", index=False)
+    failure_accounting.to_csv(output_dir / "failure_accounting.csv", index=False)
+    failure_reasons.to_csv(output_dir / "failure_reason_counts.csv", index=False)
+    figure_coverage.to_csv(output_dir / "macro_f1_figure_coverage.csv", index=False)
+    permutation_sensitivity.to_csv(output_dir / "friedman_permutation_sensitivity.csv", index=False)
+    sign_flip_sensitivity.to_csv(output_dir / "exact_sign_flip_sensitivity.csv", index=False)
     figures = _generate_figures(
         root,
         cell_means,
         comparisons,
         friedman,
         nemenyi,
+        figure_coverage,
         output_dir / "figures",
     )
     artifact_paths = [
@@ -822,16 +1107,33 @@ def run_analysis(
         output_dir / "wilcoxon_effects.csv",
         output_dir / "moderators.csv",
         output_dir / "efficiency_means.csv",
+        output_dir / "failure_accounting.csv",
+        output_dir / "failure_reason_counts.csv",
+        output_dir / "macro_f1_figure_coverage.csv",
+        output_dir / "friedman_permutation_sensitivity.csv",
+        output_dir / "exact_sign_flip_sensitivity.csv",
     ]
     artifact_refs = {_relative_path(path, root): _reference(path, root) for path in artifact_paths}
     for figure in figures:
         if figure["status"] == "generated":
             path = output_dir / "figures" / figure["name"]
             artifact_refs[_relative_path(path, root)] = _reference(path, root)
+    overall_failure = failure_accounting.iloc[0]
+    failure_counts = {
+        "enumerated_records": int(overall_failure["enumerated_records"]),
+        "unsupported_records": int(overall_failure["unsupported_records"]),
+        "applicable_records": int(overall_failure["applicable_records"]),
+        "attempted_evaluations": int(overall_failure["attempted_evaluations"]),
+        "valid_records": int(overall_failure["valid_records"]),
+        "sampler_specific_failures": int(overall_failure["sampler_specific_failures"]),
+        "other_applicable_failures": int(overall_failure["other_applicable_failures"]),
+        "sampler_failure_rate": float(overall_failure["sampler_failure_rate"]),
+    }
     manifest = {
         "schema_version": "analysis-run-v1",
         "status": "complete",
         "completed_at_utc": _utc_now(),
+        "analysis_runtime": _analysis_runtime(),
         "gate_d": gate_d,
         "input_run_manifest": _reference(run_dir / "benchmark_manifest.json", root),
         "dataset_ids": gate_d["dataset_ids"],
@@ -843,6 +1145,15 @@ def run_analysis(
         "friedman_test_count": len(friedman),
         "nemenyi_pair_count": len(nemenyi),
         "wilcoxon_comparison_count": len(comparisons),
+        "wilcoxon_test_count": int(comparisons["wilcoxon_p_value"].notna().sum()),
+        "wilcoxon_descriptive_count": int((comparisons["status"] == "descriptive").sum()),
+        "wilcoxon_skipped_count": int((comparisons["status"] == "skipped").sum()),
+        "failure_accounting_row_count": len(failure_accounting),
+        "failure_reason_row_count": len(failure_reasons),
+        "figure_coverage_row_count": len(figure_coverage),
+        "primary_permutation_sensitivity_count": len(permutation_sensitivity),
+        "primary_exact_pairwise_count": len(sign_flip_sensitivity),
+        "failure_accounting_counts": failure_counts,
         "bootstrap_resamples": 10_000,
         "bootstrap_seed": 0,
         "alpha": 0.05,
@@ -855,7 +1166,10 @@ def run_analysis(
             for family, (feature_type, conditions) in FAMILY_DEFINITIONS.items()
         },
         "procedures": {
-            "friedman": "complete dataset blocks, at least three conditions and three blocks",
+            "friedman": (
+                "complete dataset blocks, at least three conditions and three blocks; "
+                "asymptotic chi-square p-values retained as planned"
+            ),
             "nemenyi": "all pairs after a significant Friedman test, alpha 0.05",
             "wilcoxon": {
                 "comparison": "raw versus every alternative in the same family",
@@ -864,9 +1178,40 @@ def run_analysis(
                 "correction": False,
                 "method": "auto",
             },
-            "holm": "within family, classifier, and metric across Wilcoxon p-values",
+            "holm": (
+                "within family, classifier, and metric across Wilcoxon p-values for "
+                "comparisons with at least three complete dataset blocks"
+            ),
             "rank_biserial": "paired signed ranks after removing zero differences",
-            "bootstrap": "paired percentile over complete dataset blocks",
+            "bootstrap": (
+                "paired dataset-block percentile interval: 10,000 resamples, seed 0; "
+                "intervals with fewer than three blocks are descriptive and not calibrated "
+                "confidence intervals"
+            ),
+            "failure_accounting": (
+                "classify unsupported records from frozen feature/classifier/condition "
+                "applicability; count valid and applicable failures as attempted evaluations"
+            ),
+            "macro_f1_figure": (
+                "feature type/classifier by condition; tile mean over complete dataset cells; "
+                "coverage counts and empty tiles are recorded separately"
+            ),
+            "primary_small_sample_sensitivity": {
+                "outcome": "macro_f1",
+                "family": "numeric_core",
+                "classifier": "xgboost",
+                "post_hoc": True,
+                "friedman_permutation": (
+                    "200,000 seeded within-block condition-label rank permutations, seed 0, "
+                    "plus-one Monte Carlo p-value; assumes condition-label exchangeability"
+                ),
+                "exact_pairwise": (
+                    "two-sided exact sign flips across all 36 condition pairs; assumes "
+                    "independent sign exchangeability of dataset-level paired differences; "
+                    "Holm-adjusted within the 36-pair sensitivity family"
+                ),
+                "status": "sensitivity only; planned asymptotic Friedman/Nemenyi results retained",
+            },
         },
         "per_class_recall_inference": "descriptive class-wise summaries; inferential matrices skipped because class labels are dataset-specific",
         "figures": figures,

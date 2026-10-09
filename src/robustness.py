@@ -15,6 +15,7 @@ from src.analysis import (
     FAMILY_DEFINITIONS,
     SCALAR_METRICS,
     _family_classifiers,
+    _holm_adjust,
     run_analysis,
     verify_gate_d,
 )
@@ -31,9 +32,17 @@ ANALYSIS_TABLES = (
     "nemenyi_pvalues.csv",
     "wilcoxon_effects.csv",
     "moderators.csv",
+    "failure_accounting.csv",
+    "failure_reason_counts.csv",
+    "macro_f1_figure_coverage.csv",
+    "friedman_permutation_sensitivity.csv",
+    "exact_sign_flip_sensitivity.csv",
 )
 PROCEDURES = {
-    "friedman": "complete dataset blocks, at least three conditions and three blocks",
+    "friedman": (
+        "complete dataset blocks, at least three conditions and three blocks; "
+        "asymptotic chi-square p-values retained as planned"
+    ),
     "nemenyi": "all pairs after a significant Friedman test, alpha 0.05",
     "wilcoxon": {
         "comparison": "raw versus every alternative in the same family",
@@ -42,9 +51,40 @@ PROCEDURES = {
         "correction": False,
         "method": "auto",
     },
-    "holm": "within family, classifier, and metric across Wilcoxon p-values",
+    "holm": (
+        "within family, classifier, and metric across Wilcoxon p-values for "
+        "comparisons with at least three complete dataset blocks"
+    ),
     "rank_biserial": "paired signed ranks after removing zero differences",
-    "bootstrap": "paired percentile over complete dataset blocks",
+    "bootstrap": (
+        "paired dataset-block percentile interval: 10,000 resamples, seed 0; "
+        "intervals with fewer than three blocks are descriptive and not calibrated "
+        "confidence intervals"
+    ),
+    "failure_accounting": (
+        "classify unsupported records from frozen feature/classifier/condition "
+        "applicability; count valid and applicable failures as attempted evaluations"
+    ),
+    "macro_f1_figure": (
+        "feature type/classifier by condition; tile mean over complete dataset cells; "
+        "coverage counts and empty tiles are recorded separately"
+    ),
+    "primary_small_sample_sensitivity": {
+        "outcome": "macro_f1",
+        "family": "numeric_core",
+        "classifier": "xgboost",
+        "post_hoc": True,
+        "friedman_permutation": (
+            "200,000 seeded within-block condition-label rank permutations, seed 0, "
+            "plus-one Monte Carlo p-value; assumes condition-label exchangeability"
+        ),
+        "exact_pairwise": (
+            "two-sided exact sign flips across all 36 condition pairs; assumes "
+            "independent sign exchangeability of dataset-level paired differences; "
+            "Holm-adjusted within the 36-pair sensitivity family"
+        ),
+        "status": "sensitivity only; planned asymptotic Friedman/Nemenyi results retained",
+    },
 }
 PER_CLASS_NOTE = "descriptive class-wise summaries; inferential matrices skipped because class labels are dataset-specific"
 
@@ -252,6 +292,8 @@ def _validate_tables(
     for _, row in wilcoxon.iterrows():
         status = str(row["status"])
         if status == "computed":
+            if int(row["n_pairs"]) < 3:
+                raise RuntimeError("computed Wilcoxon test has fewer than three dataset blocks")
             for column in ("wilcoxon_p_value", "holm_p_value", "bootstrap_low", "bootstrap_high"):
                 value = float(row[column])
                 if not np.isfinite(value):
@@ -260,8 +302,228 @@ def _validate_tables(
                     raise RuntimeError(f"Wilcoxon output has an invalid {column}")
             if float(row["bootstrap_low"]) > float(row["bootstrap_high"]):
                 raise RuntimeError("Wilcoxon bootstrap interval is reversed")
-        elif status != "skipped" or not str(row["reason"]):
-            raise RuntimeError("Wilcoxon output has an invalid skipped status")
+            if str(row["bootstrap_interpretation"]) != "paired_dataset_block_percentile_interval":
+                raise RuntimeError("computed Wilcoxon row has an invalid bootstrap interpretation")
+        elif status == "descriptive":
+            if int(row["n_pairs"]) not in {1, 2}:
+                raise RuntimeError("descriptive Wilcoxon row does not have one or two blocks")
+            for column in ("wilcoxon_statistic", "wilcoxon_p_value", "holm_p_value"):
+                if pd.notna(row[column]):
+                    raise RuntimeError(f"descriptive comparison contains inferential {column}")
+            for column in ("bootstrap_low", "bootstrap_high"):
+                if not np.isfinite(float(row[column])):
+                    raise RuntimeError("descriptive comparison is missing its descriptive interval")
+            if str(
+                row["bootstrap_interpretation"]
+            ) != "descriptive_only_below_minimum_three_blocks" or not str(row["reason"]):
+                raise RuntimeError("descriptive comparison has an invalid reason or interval note")
+        elif status == "skipped":
+            if int(row["n_pairs"]) != 0 or not str(row["reason"]):
+                raise RuntimeError("skipped Wilcoxon row has an invalid count or reason")
+            for column in (
+                "wilcoxon_statistic",
+                "wilcoxon_p_value",
+                "holm_p_value",
+                "bootstrap_low",
+                "bootstrap_high",
+            ):
+                if pd.notna(row[column]):
+                    raise RuntimeError(f"skipped comparison contains {column}")
+            if str(row["bootstrap_interpretation"]) != "not_available":
+                raise RuntimeError("skipped comparison has an invalid bootstrap interpretation")
+        else:
+            raise RuntimeError(f"Wilcoxon output has an invalid status: {status}")
+    if int((wilcoxon["status"] == "computed").sum()) != int(manifest["wilcoxon_test_count"]):
+        raise RuntimeError("Wilcoxon inferential-test count does not match the manifest")
+    if int((wilcoxon["status"] == "descriptive").sum()) != int(
+        manifest["wilcoxon_descriptive_count"]
+    ):
+        raise RuntimeError("Wilcoxon descriptive-row count does not match the manifest")
+    if int((wilcoxon["status"] == "skipped").sum()) != int(manifest["wilcoxon_skipped_count"]):
+        raise RuntimeError("Wilcoxon skipped-row count does not match the manifest")
+    for _, group in wilcoxon.groupby(["family", "classifier", "metric"], sort=True):
+        expected_family_size = int(group["wilcoxon_p_value"].notna().sum())
+        if set(group["holm_family_size"].astype(int)) != {expected_family_size}:
+            raise RuntimeError("Wilcoxon Holm-family size is inconsistent with tested rows")
+        tested = group["wilcoxon_p_value"].notna()
+        if not np.all(
+            group.loc[tested, "holm_p_value"].to_numpy(dtype=float)
+            >= group.loc[tested, "wilcoxon_p_value"].to_numpy(dtype=float) - 1e-12
+        ):
+            raise RuntimeError("Holm-adjusted p-value is smaller than its raw p-value")
+    if len(wilcoxon) != 184 or int(wilcoxon["status"].eq("computed").sum()) != 104:
+        raise RuntimeError("Wilcoxon reporting does not apply the frozen three-block rule")
+    if int(wilcoxon["holm_p_value"].lt(0.05).sum()) != 1:
+        raise RuntimeError("the frozen Wilcoxon/Holm result no longer has one significant row")
+
+    failure_accounting = tables["failure_accounting.csv"]
+    required_failure_columns = {
+        "aggregation_level",
+        "feature_type",
+        "classifier",
+        "condition",
+        "enumerated_records",
+        "unsupported_records",
+        "applicable_records",
+        "attempted_evaluations",
+        "valid_records",
+        "sampler_specific_failures",
+        "other_applicable_failures",
+        "sampler_failure_rate",
+    }
+    if required_failure_columns - set(failure_accounting.columns):
+        raise RuntimeError("failure_accounting is missing required fields")
+    overall = failure_accounting[failure_accounting["aggregation_level"] == "overall"]
+    if len(overall) != 1:
+        raise RuntimeError("failure_accounting must contain one overall row")
+    overall = overall.iloc[0]
+    accounting_counts = manifest["failure_accounting_counts"]
+    for column in (
+        "enumerated_records",
+        "unsupported_records",
+        "applicable_records",
+        "attempted_evaluations",
+        "valid_records",
+        "sampler_specific_failures",
+        "other_applicable_failures",
+    ):
+        value = int(overall[column])
+        if value != int(accounting_counts[column]):
+            raise RuntimeError(f"failure accounting differs from manifest for {column}")
+    gate_counts = manifest["gate_d"]["counts"]
+    if (
+        int(overall["enumerated_records"]) != int(gate_counts["expected_cells"])
+        or int(overall["valid_records"]) != int(gate_counts["valid_cells"])
+        or int(overall["sampler_specific_failures"])
+        + int(overall["other_applicable_failures"])
+        + int(overall["unsupported_records"])
+        != int(gate_counts["failure_cells"])
+    ):
+        raise RuntimeError("failure accounting does not reconcile with Gate D counts")
+    if (
+        int(overall["enumerated_records"]) != 5445
+        or int(overall["unsupported_records"]) != 1005
+        or int(overall["applicable_records"]) != 4440
+        or int(overall["valid_records"]) != 4191
+        or int(overall["sampler_specific_failures"]) != 249
+        or int(overall["other_applicable_failures"]) != 0
+    ):
+        raise RuntimeError("failure categories differ from the verified frozen-run totals")
+    grouped_accounting = failure_accounting[
+        failure_accounting["aggregation_level"] == "feature_classifier_condition"
+    ]
+    for column in (
+        "enumerated_records",
+        "unsupported_records",
+        "applicable_records",
+        "attempted_evaluations",
+        "valid_records",
+        "sampler_specific_failures",
+        "other_applicable_failures",
+    ):
+        if int(grouped_accounting[column].sum()) != int(overall[column]):
+            raise RuntimeError(f"grouped failure accounting does not sum for {column}")
+    if not np.isclose(
+        float(overall["sampler_failure_rate"]),
+        int(overall["sampler_specific_failures"]) / int(overall["applicable_records"]),
+    ):
+        raise RuntimeError("overall sampler failure rate has the wrong applicable denominator")
+    reason_counts = tables["failure_reason_counts.csv"]
+    if int(reason_counts["records"].sum()) != int(gate_counts["failure_cells"]):
+        raise RuntimeError("failure reason counts do not cover the raw failure log")
+    if set(reason_counts["record_category"]) - {
+        "unsupported",
+        "sampler_specific_failure",
+        "other_applicable_failure",
+    }:
+        raise RuntimeError("failure reason counts contain an unknown record category")
+    if len(failure_accounting) != int(manifest["failure_accounting_row_count"]):
+        raise RuntimeError("failure_accounting row count does not match the manifest")
+    if len(reason_counts) != int(manifest["failure_reason_row_count"]):
+        raise RuntimeError("failure_reason_counts row count does not match the manifest")
+
+    figure_coverage = tables["macro_f1_figure_coverage.csv"]
+    coverage_keys = ["feature_type", "classifier", "condition"]
+    if figure_coverage[coverage_keys].duplicated().any():
+        raise RuntimeError("macro-F1 figure coverage contains duplicate tiles")
+    expected_coverage = cells.groupby(coverage_keys, as_index=False, sort=True).agg(
+        expected_mean=("macro_f1", "mean"),
+        expected_n=("dataset", "nunique"),
+    )
+    coverage_joined = figure_coverage.merge(
+        expected_coverage,
+        on=coverage_keys,
+        how="left",
+        validate="one_to_one",
+    )
+    expected_n = coverage_joined["expected_n"].fillna(0).astype(int).to_numpy()
+    if not np.array_equal(figure_coverage["n_datasets"].to_numpy(dtype=int), expected_n):
+        raise RuntimeError("macro-F1 figure dataset counts differ from complete cells")
+    nonempty = expected_n > 0
+    actual_means = pd.to_numeric(
+        coverage_joined.loc[nonempty, "mean_macro_f1"], errors="coerce"
+    ).to_numpy(dtype=float)
+    expected_means = coverage_joined.loc[nonempty, "expected_mean"].to_numpy(dtype=float)
+    if not np.allclose(actual_means, expected_means, rtol=0, atol=1e-12):
+        raise RuntimeError("macro-F1 figure means differ from complete-cell means")
+    if figure_coverage.loc[~nonempty, "mean_macro_f1"].notna().any():
+        raise RuntimeError("empty macro-F1 figure tile contains a mean")
+    if len(figure_coverage) != int(manifest["figure_coverage_row_count"]):
+        raise RuntimeError("macro-F1 figure coverage count does not match the manifest")
+
+    permutation = tables["friedman_permutation_sensitivity.csv"]
+    if len(permutation) != 1:
+        raise RuntimeError("primary Friedman permutation sensitivity must have one row")
+    permutation_row = permutation.iloc[0]
+    if (
+        str(permutation_row["family"]) != "numeric_core"
+        or str(permutation_row["classifier"]) != "xgboost"
+        or str(permutation_row["metric"]) != "macro_f1"
+        or int(permutation_row["n_blocks"]) != 3
+        or int(permutation_row["n_conditions"]) != 9
+        or int(permutation_row["permutation_resamples"]) != 200_000
+        or int(permutation_row["permutation_seed"]) != 0
+    ):
+        raise RuntimeError("primary Friedman permutation sensitivity has unexpected scope")
+    for column in (
+        "friedman_statistic",
+        "asymptotic_p_value",
+        "tie_correction",
+        "permutation_p_value",
+        "permutation_monte_carlo_se",
+    ):
+        value = float(permutation_row[column])
+        if not np.isfinite(value):
+            raise RuntimeError(f"permutation sensitivity has non-finite {column}")
+    if not 0 <= float(permutation_row["permutation_p_value"]) <= 1:
+        raise RuntimeError("permutation sensitivity p-value is outside [0, 1]")
+    if len(permutation) != int(manifest["primary_permutation_sensitivity_count"]):
+        raise RuntimeError("permutation sensitivity count does not match the manifest")
+    exact = tables["exact_sign_flip_sensitivity.csv"]
+    if (
+        len(exact) != 36
+        or len(exact) != int(manifest["primary_exact_pairwise_count"])
+        or exact[["condition_a", "condition_b"]].duplicated().any()
+        or set(exact["n_blocks"].astype(int)) != {3}
+        or set(exact["sign_patterns"].astype(int)) != {8}
+        or set(exact["holm_family_size"].astype(int)) != {36}
+    ):
+        raise RuntimeError("exact sign-flip sensitivity does not contain 36 three-block pairs")
+    for column in ("exact_p_value", "holm_p_value", "mean_delta_a_minus_b"):
+        _finite_columns(exact, (column,), "exact_sign_flip_sensitivity")
+    if (
+        (exact["exact_p_value"] < 0).any()
+        or (exact["exact_p_value"] > 1).any()
+        or (exact["holm_p_value"] < exact["exact_p_value"] - 1e-12).any()
+    ):
+        raise RuntimeError("exact sign-flip p-values are invalid")
+    if not np.allclose(
+        exact["holm_p_value"].to_numpy(dtype=float),
+        np.asarray(_holm_adjust(exact["exact_p_value"].astype(float).tolist())),
+        rtol=0,
+        atol=1e-12,
+    ):
+        raise RuntimeError("exact sign-flip Holm adjustment is incorrect")
 
     moderators = tables["moderators.csv"]
     if set(moderators["dataset_id"].astype(str)) != set(dataset_ids):
@@ -280,6 +542,7 @@ def _replay_check(
         replay_manifest = run_analysis(root, run_dir, replay_dir)
         for field in (
             "status",
+            "analysis_runtime",
             "dataset_ids",
             "cell_mean_count",
             "class_mean_count",
@@ -289,6 +552,15 @@ def _replay_check(
             "friedman_test_count",
             "nemenyi_pair_count",
             "wilcoxon_comparison_count",
+            "wilcoxon_test_count",
+            "wilcoxon_descriptive_count",
+            "wilcoxon_skipped_count",
+            "failure_accounting_row_count",
+            "failure_reason_row_count",
+            "figure_coverage_row_count",
+            "primary_permutation_sensitivity_count",
+            "primary_exact_pairwise_count",
+            "failure_accounting_counts",
             "bootstrap_resamples",
             "bootstrap_seed",
             "alpha",

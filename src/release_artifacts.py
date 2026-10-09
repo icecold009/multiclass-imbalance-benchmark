@@ -20,6 +20,8 @@ PACKAGE_MANIFEST = "package-manifest.json"
 TMLR_MAX_SUPPLEMENT_BYTES = 100 * 1024 * 1024
 MAX_PUBLIC_PACKAGE_UNCOMPRESSED_BYTES = 512 * 1024 * 1024
 EMAIL_PATTERN = re.compile(rb"[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}")
+REVISION_PATTERN = re.compile(rb"(?i)\b[0-9a-f]{40}\b")
+REVISION_TEXT_PATTERN = re.compile(r"(?i)\b[0-9a-f]{40}\b")
 
 LOCAL_USER_PATH_PATTERN = re.compile(
     rb"(?i)(?:[A-Z]:[\\/]+Us"
@@ -33,8 +35,11 @@ TMLR_SOURCE_FILES = (
     "data/dataset_feature_overrides.csv",
     "data/dataset_registry.csv",
     "docs/data-acquisition.md",
+    "docs/analysis-implementation-note.md",
     "docs/environment.md",
+    "docs/protocol-status.md",
     "docs/protocol.md",
+    "docs/reproducibility.md",
     "docs/stage-0-feasibility.md",
     "docs/stage-0-runbook.md",
     "requirements.txt",
@@ -51,6 +56,7 @@ TMLR_SOURCE_FILES = (
     "src/release_artifacts.py",
     "src/reproducibility.py",
     "src/robustness.py",
+    "src/sensitivity.py",
     "src/stage0.py",
     "src/stats.py",
     "src/submission.py",
@@ -114,6 +120,16 @@ def anonymize_tmlr_source(source: str) -> str:
     if author_count != 1:
         raise RuntimeError("paper source no longer has the expected author block")
 
+    availability = re.compile(
+        r"(?ms)^% BEGIN DE-ANONYMIZED AVAILABILITY\s*\r?\n"
+        r".*?^% END DE-ANONYMIZED AVAILABILITY\s*\r?\n?"
+    )
+    anonymous, availability_count = availability.subn("", anonymous, count=1)
+    if availability_count != 1:
+        raise RuntimeError(
+            "paper source no longer has the expected de-anonymized availability block"
+        )
+
     acknowledgments = re.compile(r"(?ms)^\\section\*\{Acknowledgments\}\s+.*?(?=^\\bibliography\{)")
     anonymous, acknowledgment_count = acknowledgments.subn("", anonymous, count=1)
     if acknowledgment_count != 1:
@@ -122,7 +138,7 @@ def anonymize_tmlr_source(source: str) -> str:
     metadata = r"\hypersetup{hidelinks}"
     anonymous_metadata = (
         r"\hypersetup{hidelinks,pdfauthor={Anonymous},pdfcreator={},"
-        r"pdftitle={A Reproducible Benchmark of Imbalance Handling for Multiclass Tabular Classification}}"
+        r"pdftitle={An Auditable Benchmark of Imbalance Handling for Multiclass Tabular Classification}}"
     )
     if anonymous.count(metadata) != 1:
         raise RuntimeError("paper source no longer has the expected PDF metadata declaration")
@@ -134,6 +150,8 @@ def anonymize_tmlr_source(source: str) -> str:
         raise RuntimeError("anonymous paper source still contains acknowledgments")
     if EMAIL_PATTERN.search(anonymous.encode("utf-8")):
         raise RuntimeError("anonymous paper source still contains an email address")
+    if "DE-ANONYMIZED AVAILABILITY" in anonymous:
+        raise RuntimeError("anonymous paper source still contains de-anonymized markers")
     if "\\@acceptedtrue" in anonymous or "[preprint]" in anonymous:
         raise RuntimeError("anonymous paper source is not using TMLR double-blind review mode")
     return anonymous
@@ -536,11 +554,14 @@ def _anonymous_readme() -> bytes:
         b"and figures that directly support the manuscript. The raw datasets are not "
         b"redistributed; their public source identifiers and acquisition instructions are "
         b"provided in `data/acquisition_manifest.csv` and `docs/data-acquisition.md`.\n\n"
-        b"Install the packages in `requirements.txt`, obtain the listed public datasets, "
-        b"then follow `docs/stage-0-runbook.md` to reproduce the analysis. The TMLR style "
+        b"Install the packages in `requirements.txt`, then follow `docs/reproducibility.md` "
+        b"to regenerate the analysis from the supplied frozen result records; this does not "
+        b"rerun model training. A fresh benchmark run requires separately obtaining the listed "
+        b"public datasets and following `docs/stage-0-runbook.md`. The TMLR style "
         b"files in `paper/` are supplied unchanged. Install `requirements-release.txt` "
-        b"as well when running the Gate G PDF validators. Git revision and source-tree "
-        b"fingerprints are withheld from the Gate F report for double-blind review.\n"
+        b"as well when running the PDF validators. Source revision fields are redacted from "
+        b"the anonymous evidence manifests; their hashes are updated to match the packaged "
+        b"bytes. Per-file hashes in the ZIP manifest identify the exact review archive.\n"
     )
 
 
@@ -567,7 +588,10 @@ def anonymize_gate_f_review_payload(payload: dict[str, Any]) -> dict[str, Any]:
             check["command"] = [
                 email_pattern.sub(
                     "<email>",
-                    path_pattern.sub("<local-path>", argument),
+                    REVISION_TEXT_PATTERN.sub(
+                        "<revision>",
+                        path_pattern.sub("<local-path>", argument),
+                    ),
                 )
                 if isinstance(argument, str)
                 else argument
@@ -578,7 +602,10 @@ def anonymize_gate_f_review_payload(payload: dict[str, Any]) -> dict[str, Any]:
             if isinstance(value, str):
                 check[key] = email_pattern.sub(
                     "<email>",
-                    path_pattern.sub("<local-path>", value),
+                    REVISION_TEXT_PATTERN.sub(
+                        "<revision>",
+                        path_pattern.sub("<local-path>", value),
+                    ),
                 )
     payload["double_blind_redactions"] = [
         "git_head",
@@ -586,6 +613,7 @@ def anonymize_gate_f_review_payload(payload: dict[str, Any]) -> dict[str, Any]:
         "source_snapshot.tracked_file_set_sha256",
         "local_user_paths",
         "email_addresses",
+        "revision_hashes_in_gate_f_logs",
     ]
     return payload
 
@@ -593,6 +621,42 @@ def anonymize_gate_f_review_payload(payload: dict[str, Any]) -> dict[str, Any]:
 def _anonymous_gate_f_review(root: Path) -> bytes:
     relative = "results/analysis/gate-f-review.json"
     payload = anonymize_gate_f_review_payload(json.loads(_read_required(root, relative)))
+    return (json.dumps(payload, indent=2, sort_keys=True) + "\n").encode("utf-8")
+
+
+def _redact_git_revision_fields(value: Any) -> Any:
+    if isinstance(value, dict):
+        for key, item in list(value.items()):
+            if str(key).casefold() in {
+                "git_head",
+                "git_commit",
+                "git_branch",
+                "source_commit",
+                "source_branch",
+            }:
+                value[key] = None
+            else:
+                value[key] = _redact_git_revision_fields(item)
+    elif isinstance(value, list):
+        for index, item in enumerate(value):
+            value[index] = _redact_git_revision_fields(item)
+    return value
+
+
+def _replace_hash_references(value: Any, replacements: Mapping[str, str]) -> Any:
+    if isinstance(value, dict):
+        path = value.get("path")
+        if isinstance(path, str) and path in replacements and "sha256" in value:
+            value["sha256"] = replacements[path]
+        for item in value.values():
+            _replace_hash_references(item, replacements)
+    elif isinstance(value, list):
+        for item in value:
+            _replace_hash_references(item, replacements)
+    return value
+
+
+def _json_bytes(payload: dict[str, Any]) -> bytes:
     return (json.dumps(payload, indent=2, sort_keys=True) + "\n").encode("utf-8")
 
 
@@ -612,18 +676,48 @@ def _supplement_entries(
         entries[relative] = _read_required(root, relative)
     _validate_tmlr_styles(entries)
 
+    run_manifest_name = "results/full-run/benchmark_manifest.json"
+    run_manifest_payload = _redact_git_revision_fields(
+        json.loads(_read_required(root, run_manifest_name))
+    )
+    run_manifest_bytes = _json_bytes(run_manifest_payload)
+    entries[run_manifest_name] = run_manifest_bytes
+    hash_replacements = {run_manifest_name: _sha256(run_manifest_bytes)}
+
     for path in sorted((root / "results/full-run").glob("*")):
-        if path.is_file() and path.suffix in {".csv", ".json"}:
-            entries[path.relative_to(root).as_posix()] = path.read_bytes()
+        relative = path.relative_to(root).as_posix()
+        if path.is_file() and path.suffix in {".csv", ".json"} and relative != run_manifest_name:
+            entries[relative] = path.read_bytes()
+
     analysis_dir = root / "results/analysis"
     for path in sorted(analysis_dir.glob("*.csv")):
         entries[path.relative_to(root).as_posix()] = path.read_bytes()
-    for name in ("analysis_manifest.json", "gate-d-review.json", "gate-e-review.json"):
-        path = analysis_dir / name
-        entries[path.relative_to(root).as_posix()] = _read_required(
-            root, path.relative_to(root).as_posix()
-        )
-    entries["results/analysis/gate-f-review.json"] = _anonymous_gate_f_review(root)
+
+    gate_d_name = "results/analysis/gate-d-review.json"
+    gate_d_payload = _redact_git_revision_fields(json.loads(_read_required(root, gate_d_name)))
+    _replace_hash_references(gate_d_payload, hash_replacements)
+    gate_d_bytes = _json_bytes(gate_d_payload)
+    entries[gate_d_name] = gate_d_bytes
+    hash_replacements[gate_d_name] = _sha256(gate_d_bytes)
+
+    analysis_manifest_name = "results/analysis/analysis_manifest.json"
+    analysis_payload = _redact_git_revision_fields(
+        json.loads(_read_required(root, analysis_manifest_name))
+    )
+    _replace_hash_references(analysis_payload, hash_replacements)
+    analysis_bytes = _json_bytes(analysis_payload)
+    entries[analysis_manifest_name] = analysis_bytes
+    hash_replacements[analysis_manifest_name] = _sha256(analysis_bytes)
+
+    gate_e_name = "results/analysis/gate-e-review.json"
+    gate_e_payload = _redact_git_revision_fields(json.loads(_read_required(root, gate_e_name)))
+    _replace_hash_references(gate_e_payload, hash_replacements)
+    entries[gate_e_name] = _json_bytes(gate_e_payload)
+
+    gate_f_name = "results/analysis/gate-f-review.json"
+    gate_f_payload = _redact_git_revision_fields(json.loads(_anonymous_gate_f_review(root)))
+    _replace_hash_references(gate_f_payload, hash_replacements)
+    entries[gate_f_name] = _json_bytes(gate_f_payload)
     for path in sorted((analysis_dir / "figures").glob("*.png")):
         entries[path.relative_to(root).as_posix()] = path.read_bytes()
 
@@ -634,6 +728,7 @@ def _supplement_entries(
         if (
             EMAIL_PATTERN.search(identity_content)
             or LOCAL_USER_PATH_PATTERN.search(identity_content)
+            or REVISION_PATTERN.search(identity_content)
             or any(_contains_identifier(identity_content, term) for term in forbidden_terms)
         ):
             raise RuntimeError(f"anonymous TMLR package contains identifying data in {name}")

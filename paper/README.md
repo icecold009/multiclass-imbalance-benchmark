@@ -61,3 +61,8 @@ completion checks, evidence boundary, and remaining venue-preparation items.
 Before submission, complete the author-only OpenReview metadata and obtain an
 independent human technical and claim review. The checklist records these
 items separately from the anonymous PDF/package checks.
+
+See [`../docs/reproducibility.md`](../docs/reproducibility.md) for the frozen
+run hashes, the distinction between analysis replay and model rerun, and the
+current immutable-source boundary. The local working draft is not yet a
+DOI-backed release.

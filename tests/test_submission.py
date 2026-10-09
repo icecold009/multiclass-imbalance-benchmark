@@ -11,6 +11,8 @@ from pypdf.generic import DecodedStreamObject, DictionaryObject, EncodedStreamOb
 
 from src.release_artifacts import (
     TMLR_SOURCE_FILES,
+    _redact_git_revision_fields,
+    _replace_hash_references,
     anonymize_gate_f_review_payload,
     anonymize_tmlr_source,
     author_identifiers,
@@ -76,6 +78,9 @@ def test_tracked_digest_is_order_sensitive_and_null_delimited() -> None:
 
 def test_gate_g_source_module_is_in_the_repository() -> None:
     assert Path("src/submission.py").is_file()
+    assert "src/sensitivity.py" in TMLR_SOURCE_FILES
+    assert "docs/reproducibility.md" in TMLR_SOURCE_FILES
+    assert "docs/analysis-implementation-note.md" in TMLR_SOURCE_FILES
     assert "requirements-release.txt" in REQUIRED_RELEASE_FILES
     assert "requirements-release.txt" in TMLR_SOURCE_FILES
 
@@ -90,6 +95,30 @@ def test_anonymous_tmlr_source_uses_double_blind_style_mode() -> None:
     assert r"\author{" not in anonymous
     assert "Acknowledgments" not in anonymous
     assert "pdfauthor={Anonymous}" in anonymous
+    assert (
+        "pdftitle={An Auditable Benchmark of Imbalance Handling for Multiclass Tabular Classification}"
+        in anonymous
+    )
+    assert "DE-ANONYMIZED AVAILABILITY" not in anonymous
+    assert "github.com/icecold009" not in anonymous
+
+
+def test_anonymous_evidence_redacts_revision_and_rebinds_manifest_hashes() -> None:
+    payload = {
+        "git_head": "a" * 40,
+        "input": {"path": "results/full-run/benchmark_manifest.json", "sha256": "old"},
+        "nested": {"source_commit": "b" * 40},
+    }
+
+    _redact_git_revision_fields(payload)
+    _replace_hash_references(
+        payload,
+        {"results/full-run/benchmark_manifest.json": "c" * 64},
+    )
+
+    assert payload["git_head"] is None
+    assert payload["nested"]["source_commit"] is None
+    assert payload["input"]["sha256"] == "c" * 64
 
 
 def test_anonymous_package_manifest_withholds_commit_and_checks_identity(tmp_path) -> None:
@@ -188,7 +217,7 @@ def test_gate_f_blind_copy_removes_git_and_machine_identifiers() -> None:
                     ],
                     "exit_code": 0,
                     "stderr": "",
-                    "stdout": "Contact " + "researcher@" + "example.org",
+                    "stdout": ("Contact " + "researcher@" + "example.org; revision " + "d" * 40),
                 }
             ],
             "workflow": {"pytest": "passed"},
@@ -208,6 +237,7 @@ def test_gate_f_blind_copy_removes_git_and_machine_identifiers() -> None:
     assert "a" * 40 not in encoded
     assert "b" * 64 not in encoded
     assert "c" * 64 not in encoded
+    assert "d" * 40 not in encoded
 
 
 def test_anonymous_package_rejects_modified_tmlr_style_bytes(tmp_path) -> None:
