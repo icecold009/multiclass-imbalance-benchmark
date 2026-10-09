@@ -50,13 +50,37 @@ package includes the failure-accounting tables, figure coverage table,
 200,000-resample primary permutation sensitivity, exact sign-flip sensitivity,
 manifests, and generated figures.
 
+Publication review found that those baseline rows use pair-specific complete
+cases, whereas the frozen protocol states a family-wide complete-case rule.
+The 104 computed Wilcoxon/Holm results therefore remain exploratory and are
+not planned confirmatory evidence. The family-wide complete-case rule is used
+for the planned Friedman/Nemenyi analyses.
+
+The current analysis adds a separately labelled post hoc macro-F1 sensitivity
+that omits ADASYN and compares the other eight numeric conditions on the nine
+datasets complete for every classifier. It uses 200,000 seeded within-block
+rank permutations for each classifier and exact signed-rank sign flips for
+the seven raw-baseline contrasts, with Holm correction within each
+classifier's seven-test family. The dataset coverage changes from the
+original three-block XGBoost omnibus to nine blocks in this sensitivity, so
+it does not isolate a causal explanation. The three generated tables are
+`adasyn_excluded_friedman.csv`, `adasyn_excluded_pairwise.csv`, and
+`adasyn_excluded_imbalance_descriptive.csv`; the IR-stratified rows are
+descriptive only.
+
+Gate E denotes local validation and independent replay of analysis tables
+and figures from frozen records. Its replay now writes temporary files under
+the repository's writable `output/tmp` directory. Passing Gate E does not
+establish an exact clean-commit reproduction (Gate F) or a release snapshot
+(Gate G); those checks remain separate and require their stated source state.
+
 ## What this evidence does and does not establish
 
 The frozen result commit identifies the code used for the original model run.
 It is not the immutable revision for the revised manuscript and analysis in
-this working branch. Those revisions must be committed, rebuilt, and archived
-before a DOI-backed public release can identify them. No DOI-backed archive
-is cited in this draft.
+this working branch. A DOI-backed public release must identify the immutable
+manuscript and analysis revision recorded in the rebuilt release manifest.
+No DOI-backed archive is cited in this draft.
 
 Validating the stored records and regenerating the analysis is not an
 independent reproduction of model training. No claim of independent

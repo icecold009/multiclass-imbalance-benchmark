@@ -53,6 +53,7 @@ TMLR_SOURCE_FILES = (
     "src/analysis.py",
     "src/benchmark.py",
     "src/pilot.py",
+    "src/posthoc_sensitivity.py",
     "src/release_artifacts.py",
     "src/reproducibility.py",
     "src/robustness.py",
@@ -63,6 +64,7 @@ TMLR_SOURCE_FILES = (
     "tests/test_analysis.py",
     "tests/test_benchmark.py",
     "tests/test_pilot.py",
+    "tests/test_posthoc_sensitivity.py",
     "tests/test_reproducibility.py",
     "tests/test_robustness.py",
     "tests/test_stage0.py",
@@ -554,10 +556,24 @@ def _anonymous_readme() -> bytes:
         b"and figures that directly support the manuscript. The raw datasets are not "
         b"redistributed; their public source identifiers and acquisition instructions are "
         b"provided in `data/acquisition_manifest.csv` and `docs/data-acquisition.md`.\n\n"
+        b"For source and scope details, see `data/dataset_registry.csv` and "
+        b"`data/acquisition_manifest.csv`. In `results/analysis/`, `cell_means.csv` and "
+        b"`macro_f1_figure_coverage.csv` locate complete-cell values and coverage; "
+        b"`class_means.csv`, `per_class_recall_summary.csv`, and "
+        b"`baseline_deltas_per_class.csv` contain class-wise summaries; "
+        b"`failure_accounting.csv` and `failure_reason_counts.csv` separate unsupported "
+        b"conditions from applicable failures. `adasyn_excluded_friedman.csv`, "
+        b"`adasyn_excluded_pairwise.csv`, and "
+        b"`adasyn_excluded_imbalance_descriptive.csv` report the post hoc macro-F1 "
+        b"sensitivity, exact follow-ups, and descriptive imbalance strata.\n\n"
         b"Install the packages in `requirements.txt`, then follow `docs/reproducibility.md` "
         b"to regenerate the analysis from the supplied frozen result records; this does not "
         b"rerun model training. A fresh benchmark run requires separately obtaining the listed "
-        b"public datasets and following `docs/stage-0-runbook.md`. The TMLR style "
+        b"public datasets and following `docs/stage-0-runbook.md`. In repository records, "
+        b"Stage 0 means the pre-run feasibility and scope audit; Gate D accounts for raw "
+        b"records, Gate E replays and validates the analysis, Gate F checks reproduction "
+        b"from a clean checkout, and Gate G validates a release snapshot. These are internal "
+        b"workflow labels, not venue certifications. The TMLR style "
         b"files in `paper/` are supplied unchanged. Install `requirements-release.txt` "
         b"as well when running the PDF validators. Source revision fields are redacted from "
         b"the anonymous evidence manifests; their hashes are updated to match the packaged "
@@ -618,10 +634,40 @@ def anonymize_gate_f_review_payload(payload: dict[str, Any]) -> dict[str, Any]:
     return payload
 
 
-def _anonymous_gate_f_review(root: Path) -> bytes:
-    relative = "results/analysis/gate-f-review.json"
-    payload = anonymize_gate_f_review_payload(json.loads(_read_required(root, relative)))
-    return (json.dumps(payload, indent=2, sort_keys=True) + "\n").encode("utf-8")
+def _gate_f_review_for_source(
+    root: Path,
+    source_commit: str,
+    source_tree_clean: bool,
+) -> dict[str, Any]:
+    """Return only Gate F evidence that matches this exact clean source tree."""
+
+    review = json.loads(_read_required(root, "results/analysis/gate-f-review.json"))
+    if (
+        source_tree_clean
+        and review.get("status") == "passed"
+        and review.get("git_head") == source_commit
+    ):
+        return review
+    return {
+        "schema_version": review.get("schema_version", "gate-f-review-v1"),
+        "status": "not_run",
+        "source_tree_clean": source_tree_clean,
+        "boundary": (
+            "No Gate F clean-checkout result is claimed for this package because its working "
+            "tree is dirty or the stored Gate F result describes a different source commit."
+        ),
+    }
+
+
+def _anonymous_gate_f_review(
+    root: Path,
+    source_commit: str,
+    source_tree_clean: bool,
+) -> bytes:
+    payload = _gate_f_review_for_source(root, source_commit, source_tree_clean)
+    if payload["status"] == "passed":
+        payload = anonymize_gate_f_review_payload(payload)
+    return _json_bytes(payload)
 
 
 def _redact_git_revision_fields(value: Any) -> Any:
@@ -665,6 +711,8 @@ def _supplement_entries(
     anonymous_source: str,
     forbidden_terms: tuple[str, ...],
     anonymous_pdf: bytes,
+    source_commit: str,
+    source_tree_clean: bool,
 ) -> dict[str, bytes]:
     entries: dict[str, bytes] = {
         "README.md": _anonymous_readme(),
@@ -715,7 +763,9 @@ def _supplement_entries(
     entries[gate_e_name] = _json_bytes(gate_e_payload)
 
     gate_f_name = "results/analysis/gate-f-review.json"
-    gate_f_payload = _redact_git_revision_fields(json.loads(_anonymous_gate_f_review(root)))
+    gate_f_payload = _redact_git_revision_fields(
+        json.loads(_anonymous_gate_f_review(root, source_commit, source_tree_clean))
+    )
     _replace_hash_references(gate_f_payload, hash_replacements)
     entries[gate_f_name] = _json_bytes(gate_f_payload)
     for path in sorted((analysis_dir / "figures").glob("*.png")):
@@ -741,16 +791,29 @@ def expected_tmlr_supplement_entries(root: Path, anonymous_pdf: bytes) -> dict[s
     source_text = _read_required(root, "paper/main.tex").decode("utf-8")
     anonymous_source = anonymize_tmlr_source(source_text)
     identifiers = author_identifiers(source_text) + repository_identifiers(root)
+    source_commit, source_tree_clean, _ = _source_tree_state(root, allow_dirty=True)
     _validate_pdf_bytes(
         anonymous_pdf,
         "anonymous TMLR submission",
         anonymous=True,
         forbidden_terms=identifiers,
     )
-    return _supplement_entries(root, anonymous_source, identifiers, anonymous_pdf)
+    return _supplement_entries(
+        root,
+        anonymous_source,
+        identifiers,
+        anonymous_pdf,
+        source_commit,
+        source_tree_clean,
+    )
 
 
-def _source_release_entries(root: Path, source_files: list[str]) -> dict[str, bytes]:
+def _source_release_entries(
+    root: Path,
+    source_files: list[str],
+    source_commit: str,
+    source_tree_clean: bool,
+) -> dict[str, bytes]:
     entries: dict[str, bytes] = {}
     for relative in source_files:
         path = root / relative
@@ -765,6 +828,9 @@ def _source_release_entries(root: Path, source_files: list[str]) -> dict[str, by
             if path.is_file() and path.name != "gate-g-review.json":
                 entries[path.relative_to(root).as_posix()] = path.read_bytes()
     entries["paper/main.pdf"] = _read_required(root, "paper/main.pdf")
+    entries["results/analysis/gate-f-review.json"] = _json_bytes(
+        _gate_f_review_for_source(root, source_commit, source_tree_clean)
+    )
     return entries
 
 
@@ -845,7 +911,7 @@ def build_release_artifacts(
         anonymous=True,
     )
 
-    release_entries = _source_release_entries(root, source_files)
+    release_entries = _source_release_entries(root, source_files, commit, clean)
     release = paths["source_release_zip"]
     release = output_root / "release" / release.name
     release_ref = write_package_zip(

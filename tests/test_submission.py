@@ -11,6 +11,7 @@ from pypdf.generic import DecodedStreamObject, DictionaryObject, EncodedStreamOb
 
 from src.release_artifacts import (
     TMLR_SOURCE_FILES,
+    _gate_f_review_for_source,
     _redact_git_revision_fields,
     _replace_hash_references,
     anonymize_gate_f_review_payload,
@@ -238,6 +239,22 @@ def test_gate_f_blind_copy_removes_git_and_machine_identifiers() -> None:
     assert "b" * 64 not in encoded
     assert "c" * 64 not in encoded
     assert "d" * 40 not in encoded
+
+
+def test_dirty_preview_does_not_copy_a_historical_gate_f_pass(tmp_path) -> None:
+    review_path = tmp_path / "results/analysis/gate-f-review.json"
+    review_path.parent.mkdir(parents=True)
+    review_path.write_text(
+        json.dumps({"schema_version": "gate-f-review-v1", "status": "passed", "git_head": "a" * 40}),
+        encoding="utf-8",
+    )
+
+    preview_review = _gate_f_review_for_source(tmp_path, "a" * 40, source_tree_clean=False)
+
+    assert preview_review["status"] == "not_run"
+    assert preview_review["source_tree_clean"] is False
+    assert "dirty" in preview_review["boundary"]
+    assert "git_head" not in preview_review
 
 
 def test_anonymous_package_rejects_modified_tmlr_style_bytes(tmp_path) -> None:

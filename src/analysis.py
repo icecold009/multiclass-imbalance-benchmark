@@ -24,6 +24,10 @@ from src.benchmark import (
     _write_json_atomic,
     sha256_file,
 )
+from src.posthoc_sensitivity import (
+    POSTHOC_PROCEDURE,
+    build_adasyn_excluded_sensitivity,
+)
 from src.sensitivity import exact_sign_flip_sensitivity, friedman_permutation_sensitivity
 
 SCALAR_METRICS = ("macro_f1", "g_mean", "mcc", "balanced_accuracy")
@@ -650,6 +654,7 @@ def _comparison_summary(
 ) -> dict[str, Any]:
     pair = matrix[["raw", condition]].dropna()
     differences = pair[condition].to_numpy(dtype=float) - pair["raw"].to_numpy(dtype=float)
+    nonzero_differences = differences[differences != 0.0]
     wins = int((differences > 1e-12).sum())
     losses = int((differences < -1e-12).sum())
     ties = int(len(differences) - wins - losses)
@@ -678,6 +683,9 @@ def _comparison_summary(
         ),
         "wilcoxon_statistic": None,
         "wilcoxon_p_value": None,
+        "wilcoxon_effective_n": len(nonzero_differences),
+        "wilcoxon_min_attainable_p": None,
+        "wilcoxon_calibration": "not_run_below_three_pairs" if len(differences) < 3 else None,
         "status": (
             "skipped"
             if not len(differences)
@@ -702,7 +710,22 @@ def _comparison_summary(
         if np.all(differences == 0):
             row["wilcoxon_statistic"] = 0.0
             row["wilcoxon_p_value"] = 1.0
+            row["wilcoxon_min_attainable_p"] = 1.0
+            row["wilcoxon_calibration"] = "degenerate_all_zero_p_one"
         else:
+            absolute_values = np.abs(nonzero_differences)
+            tied_absolute_values = len(np.unique(absolute_values)) < len(absolute_values)
+            if len(differences) <= 50 and not tied_absolute_values and len(nonzero_differences) == len(
+                differences
+            ):
+                calibration = "exact_no_ties_or_zeros"
+            elif len(differences) <= 13:
+                calibration = "exhaustive_sign_permutation"
+            else:
+                calibration = "asymptotic"
+            row["wilcoxon_calibration"] = calibration
+            if calibration != "asymptotic":
+                row["wilcoxon_min_attainable_p"] = float(2 / (2 ** len(nonzero_differences)))
             statistic, p_value = wilcoxon(
                 pair["raw"].to_numpy(dtype=float),
                 pair[condition].to_numpy(dtype=float),
@@ -1071,6 +1094,11 @@ def run_analysis(
     class_summary = _classwise_descriptive(class_deltas)
     figure_coverage = _macro_f1_figure_coverage(cell_means)
     permutation_sensitivity, sign_flip_sensitivity = _primary_sensitivity(cell_means)
+    registry = pd.read_csv(root / "data" / "dataset_registry.csv", dtype=str, keep_default_na=False)
+    posthoc_omnibus, posthoc_pairwise, posthoc_stratified = build_adasyn_excluded_sensitivity(
+        cell_means,
+        registry,
+    )
     cell_means.to_csv(output_dir / "cell_means.csv", index=False)
     class_means.to_csv(output_dir / "class_means.csv", index=False)
     deltas.to_csv(output_dir / "baseline_deltas.csv", index=False)
@@ -1086,6 +1114,9 @@ def run_analysis(
     figure_coverage.to_csv(output_dir / "macro_f1_figure_coverage.csv", index=False)
     permutation_sensitivity.to_csv(output_dir / "friedman_permutation_sensitivity.csv", index=False)
     sign_flip_sensitivity.to_csv(output_dir / "exact_sign_flip_sensitivity.csv", index=False)
+    posthoc_omnibus.to_csv(output_dir / "adasyn_excluded_friedman.csv", index=False)
+    posthoc_pairwise.to_csv(output_dir / "adasyn_excluded_pairwise.csv", index=False)
+    posthoc_stratified.to_csv(output_dir / "adasyn_excluded_imbalance_descriptive.csv", index=False)
     figures = _generate_figures(
         root,
         cell_means,
@@ -1112,6 +1143,9 @@ def run_analysis(
         output_dir / "macro_f1_figure_coverage.csv",
         output_dir / "friedman_permutation_sensitivity.csv",
         output_dir / "exact_sign_flip_sensitivity.csv",
+        output_dir / "adasyn_excluded_friedman.csv",
+        output_dir / "adasyn_excluded_pairwise.csv",
+        output_dir / "adasyn_excluded_imbalance_descriptive.csv",
     ]
     artifact_refs = {_relative_path(path, root): _reference(path, root) for path in artifact_paths}
     for figure in figures:
@@ -1153,6 +1187,9 @@ def run_analysis(
         "figure_coverage_row_count": len(figure_coverage),
         "primary_permutation_sensitivity_count": len(permutation_sensitivity),
         "primary_exact_pairwise_count": len(sign_flip_sensitivity),
+        "adasyn_excluded_omnibus_count": len(posthoc_omnibus),
+        "adasyn_excluded_pairwise_count": len(posthoc_pairwise),
+        "adasyn_excluded_stratified_count": len(posthoc_stratified),
         "failure_accounting_counts": failure_counts,
         "bootstrap_resamples": 10_000,
         "bootstrap_seed": 0,
@@ -1212,6 +1249,7 @@ def run_analysis(
                 ),
                 "status": "sensitivity only; planned asymptotic Friedman/Nemenyi results retained",
             },
+            "adasyn_excluded_sensitivity": POSTHOC_PROCEDURE,
         },
         "per_class_recall_inference": "descriptive class-wise summaries; inferential matrices skipped because class labels are dataset-specific",
         "figures": figures,

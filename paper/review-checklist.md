@@ -63,3 +63,31 @@ candidate.
 
 No external submission, upload, DOI release, or public source release has been
 performed by preparing this checklist or the local package.
+
+## Current local revision (2026-10-09)
+
+- [x] Added the post hoc ADASYN-excluded macro-F1 analysis from frozen
+      dataset-level records, with deterministic rank permutations, exact
+      signed-rank follow-ups, classifier-specific Holm families, and a
+      descriptive-only imbalance summary.
+- [x] Reconciled the balanced XGBoost omnibus interpretation, ADASYN complete
+      versus incomplete records, small-sample resolution, bootstrap/Holm
+      distinction, all-zero comparisons, and the mixed XGBoost near-zero
+      SMOTENC example with the generated tables.
+- [x] Gate E passed twice in fresh processes after the analysis changes; the
+      replay compared the new sensitivity tables and generated figures.
+- [x] Focused analysis, robustness, sensitivity, and package tests passed;
+      Ruff and Python compilation passed.
+- [x] Named and anonymous manuscripts compiled with BibTeX and two final
+      LaTeX passes and were visually checked page by page. Both are 12 pages;
+      unresolved citation and cross-reference warnings were absent.
+- [x] Rebuilt and validated local named source/evidence and anonymous
+      supplementary packages against their exact input entries, PDF metadata,
+      anonymization, style hashes, and per-file SHA-256 manifests. The check
+      report is `output/review-preview-20261009-final/review/artifact-validation.json`.
+- [ ] Author review of these freshly rebuilt PDFs remains pending.
+The preview above identifies itself as dirty and its Gate F entry says
+`not_run`. Final clean-commit validation is recorded separately in
+`results/analysis/gate-f-review.json` and `results/analysis/gate-g-review.json`;
+their recorded source commit must match the release manifest before the
+package can be treated as an exact clean-commit snapshot.

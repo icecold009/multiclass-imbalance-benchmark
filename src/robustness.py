@@ -20,6 +20,13 @@ from src.analysis import (
     verify_gate_d,
 )
 from src.benchmark import _read_json, _write_json_atomic, sha256_file
+from src.posthoc_sensitivity import (
+    POSTHOC_CLASSIFIERS,
+    POSTHOC_CONDITIONS,
+    POSTHOC_PROCEDURE,
+    POSTHOC_RESAMPLES,
+    POSTHOC_SEED,
+)
 
 ANALYSIS_TABLES = (
     "cell_means.csv",
@@ -37,6 +44,9 @@ ANALYSIS_TABLES = (
     "macro_f1_figure_coverage.csv",
     "friedman_permutation_sensitivity.csv",
     "exact_sign_flip_sensitivity.csv",
+    "adasyn_excluded_friedman.csv",
+    "adasyn_excluded_pairwise.csv",
+    "adasyn_excluded_imbalance_descriptive.csv",
 )
 PROCEDURES = {
     "friedman": (
@@ -85,6 +95,7 @@ PROCEDURES = {
         ),
         "status": "sensitivity only; planned asymptotic Friedman/Nemenyi results retained",
     },
+    "adasyn_excluded_sensitivity": POSTHOC_PROCEDURE,
 }
 PER_CLASS_NOTE = "descriptive class-wise summaries; inferential matrices skipped because class labels are dataset-specific"
 
@@ -201,6 +212,30 @@ def _validate_tables(
         raise RuntimeError("baseline_deltas contains a raw self-comparison")
     _validate_family_rows(deltas, "baseline_deltas")
     _finite_columns(deltas, ("raw_mean", "alternative_mean", "delta"), "baseline_deltas")
+    comparisons = tables["wilcoxon_effects.csv"]
+    _finite_columns(comparisons, ("wilcoxon_effective_n",), "wilcoxon_effects")
+    if (comparisons["wilcoxon_effective_n"] < 0).any() or (
+        comparisons["wilcoxon_effective_n"] > comparisons["n_pairs"]
+    ).any():
+        raise RuntimeError("Wilcoxon effective nonzero counts are invalid")
+    exact_calibrations = {
+        "exact_no_ties_or_zeros",
+        "exhaustive_sign_permutation",
+        "degenerate_all_zero_p_one",
+    }
+    exact_rows = comparisons["wilcoxon_calibration"].isin(exact_calibrations)
+    _finite_columns(
+        comparisons.loc[exact_rows],
+        ("wilcoxon_min_attainable_p",),
+        "exact Wilcoxon minimum p-values",
+    )
+    if (
+        comparisons.loc[exact_rows, "wilcoxon_min_attainable_p"].le(0).any()
+        or comparisons.loc[exact_rows, "wilcoxon_min_attainable_p"].gt(1).any()
+    ):
+        raise RuntimeError("Wilcoxon minimum attainable p-values are outside (0, 1]")
+    if comparisons.loc[~exact_rows, "wilcoxon_min_attainable_p"].notna().any():
+        raise RuntimeError("a minimum p-value is reported where the test is not exactly calibrated")
 
     class_deltas = tables["baseline_deltas_per_class.csv"]
     if len(class_deltas) != int(manifest["per_class_delta_count"]):
@@ -525,6 +560,89 @@ def _validate_tables(
     ):
         raise RuntimeError("exact sign-flip Holm adjustment is incorrect")
 
+    posthoc_omnibus = tables["adasyn_excluded_friedman.csv"]
+    if (
+        len(posthoc_omnibus) != 3
+        or len(posthoc_omnibus) != int(manifest["adasyn_excluded_omnibus_count"])
+        or set(posthoc_omnibus["classifier"].astype(str)) != set(POSTHOC_CLASSIFIERS)
+        or set(posthoc_omnibus["n_blocks"].astype(int)) != {9}
+        or set(posthoc_omnibus["n_conditions"].astype(int)) != {8}
+        or set(posthoc_omnibus["permutation_resamples"].astype(int)) != {POSTHOC_RESAMPLES}
+        or set(posthoc_omnibus["permutation_seed"].astype(int)) != {POSTHOC_SEED}
+    ):
+        raise RuntimeError("ADASYN-excluded omnibus sensitivity has unexpected scope")
+    _finite_columns(
+        posthoc_omnibus,
+        ("friedman_statistic", "asymptotic_p_value", "permutation_p_value"),
+        "adasyn_excluded_friedman",
+    )
+    if posthoc_omnibus["permutation_p_value"].lt(0).any() or posthoc_omnibus[
+        "permutation_p_value"
+    ].gt(1).any():
+        raise RuntimeError("ADASYN-excluded permutation p-values are invalid")
+
+    posthoc_pairs = tables["adasyn_excluded_pairwise.csv"]
+    if (
+        len(posthoc_pairs) != 21
+        or len(posthoc_pairs) != int(manifest["adasyn_excluded_pairwise_count"])
+        or posthoc_pairs[["classifier", "condition"]].duplicated().any()
+        or set(posthoc_pairs["classifier"].astype(str)) != set(POSTHOC_CLASSIFIERS)
+        or set(posthoc_pairs["condition"].astype(str)) != set(POSTHOC_CONDITIONS[1:])
+        or set(posthoc_pairs["n_pairs"].astype(int)) != {9}
+        or set(posthoc_pairs["holm_family_size"].astype(int)) != {7}
+    ):
+        raise RuntimeError("ADASYN-excluded exact follow-ups have unexpected scope")
+    _finite_columns(
+        posthoc_pairs,
+        (
+            "mean_delta",
+            "median_delta",
+            "n_nonzero_pairs",
+            "sign_patterns",
+            "wilcoxon_statistic",
+            "exact_p_value",
+            "minimum_attainable_p",
+            "holm_p_value",
+        ),
+        "adasyn_excluded_pairwise",
+    )
+    if (
+        posthoc_pairs["n_nonzero_pairs"].lt(0).any()
+        or posthoc_pairs["n_nonzero_pairs"].gt(9).any()
+        or posthoc_pairs["exact_p_value"].lt(0).any()
+        or posthoc_pairs["exact_p_value"].gt(1).any()
+        or posthoc_pairs["holm_p_value"].lt(posthoc_pairs["exact_p_value"] - 1e-12).any()
+        or posthoc_pairs["minimum_attainable_p"].lt(0).any()
+        or posthoc_pairs["minimum_attainable_p"].gt(1).any()
+    ):
+        raise RuntimeError("ADASYN-excluded exact follow-up values are invalid")
+    for classifier, family in posthoc_pairs.groupby("classifier", sort=True):
+        expected_adjustment = _holm_adjust(family["exact_p_value"].astype(float).tolist())
+        if not np.allclose(
+            family["holm_p_value"].to_numpy(dtype=float),
+            np.asarray(expected_adjustment),
+            rtol=0,
+            atol=1e-12,
+        ):
+            raise RuntimeError(f"ADASYN-excluded Holm adjustment is incorrect for {classifier}")
+
+    stratified = tables["adasyn_excluded_imbalance_descriptive.csv"]
+    if (
+        len(stratified) != 42
+        or len(stratified) != int(manifest["adasyn_excluded_stratified_count"])
+        or stratified[["classifier", "condition", "stratum"]].duplicated().any()
+        or set(stratified["classifier"].astype(str)) != set(POSTHOC_CLASSIFIERS)
+        or set(stratified["condition"].astype(str)) != set(POSTHOC_CONDITIONS[1:])
+        or set(stratified["n_datasets"].astype(int)) != {3, 6}
+        or set(stratified["inferential_status"].astype(str)) != {"descriptive_only_no_tests"}
+    ):
+        raise RuntimeError("post hoc imbalance-stratified summaries have unexpected scope")
+    _finite_columns(
+        stratified,
+        ("mean_paired_delta", "median_paired_delta", "wins", "ties", "losses"),
+        "adasyn_excluded_imbalance_descriptive",
+    )
+
     moderators = tables["moderators.csv"]
     if set(moderators["dataset_id"].astype(str)) != set(dataset_ids):
         raise RuntimeError("moderators do not cover exactly the locked datasets")
@@ -537,7 +655,12 @@ def _replay_check(
     analysis_dir: Path,
     manifest: dict[str, Any],
 ) -> dict[str, Any]:
-    with tempfile.TemporaryDirectory(prefix="stage0-gate-e-") as temporary:
+    temporary_root = root / "output" / "tmp"
+    temporary_root.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(
+        prefix="stage0-gate-e-",
+        dir=temporary_root,
+    ) as temporary:
         replay_dir = Path(temporary) / "analysis"
         replay_manifest = run_analysis(root, run_dir, replay_dir)
         for field in (
@@ -560,6 +683,9 @@ def _replay_check(
             "figure_coverage_row_count",
             "primary_permutation_sensitivity_count",
             "primary_exact_pairwise_count",
+            "adasyn_excluded_omnibus_count",
+            "adasyn_excluded_pairwise_count",
+            "adasyn_excluded_stratified_count",
             "failure_accounting_counts",
             "bootstrap_resamples",
             "bootstrap_seed",
