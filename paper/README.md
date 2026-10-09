@@ -4,6 +4,23 @@ This directory contains the de-anonymized, TMLR-formatted V1 manuscript source
 for the locked multiclass imbalance benchmark. `main.tex` is a local release
 candidate; do not submit it to TMLR because it contains author information.
 
+## Latest manuscript PDF
+
+The current supplied manuscript for reading is [`main4.pdf`](main4.pdf),
+received from the author on 9 October 2026. It contains 12 pages and is stored
+unchanged from the supplied file (639,321 bytes).
+
+SHA-256:
+
+```text
+8c037e667283692191112b9bec3942b5a82b3aca787ea80b3330edc79d681573
+```
+
+This is an author-supplied PDF snapshot. The build commands below produce
+`main.pdf` from the repository's `main.tex`; the supplied snapshot was not
+rebuilt or used to revalidate the release packages. It contains author
+information, so the anonymous TMLR packaging workflow still applies.
+
 The manuscript contains only the frozen V1 benchmark evidence. The expanded V2
 study is a separate follow-up and must not be used to amend these results.
 
@@ -24,8 +41,8 @@ pdflatex main.tex
 The manuscript references generated figures under
 `../results/analysis/figures/`. A clean checkout must first reproduce the
 ignored full-run and analysis artifacts, or the source will show a clear
-placeholder box in place of a missing figure. Generated PDFs and auxiliary
-files are intentionally not tracked.
+placeholder box in place of a missing figure. Local build PDFs and auxiliary
+files remain ignored; `main4.pdf` is the explicitly tracked manuscript snapshot.
 
 ## Anonymous TMLR package
 

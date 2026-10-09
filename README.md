@@ -75,6 +75,10 @@ deployment, or publication.
 
 ## Paper draft
 
+Read the [latest supplied manuscript PDF](paper/main4.pdf), received on
+9 October 2026. This 12-page snapshot is stored unchanged from the author's
+`main4.pdf`; its checksum is recorded in [the paper README](paper/README.md).
+
 The de-anonymized local TMLR-formatted V1 source is
 [`paper/main.tex`](paper/main.tex). It reports only the frozen full-run and
 analysis evidence, including explicit failures, skipped tests, uncertainty,

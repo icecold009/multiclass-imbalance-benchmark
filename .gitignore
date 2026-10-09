@@ -44,6 +44,7 @@ paper/*.fdb_latexmk
 paper/*.fls
 paper/*.out
 paper/*.pdf
+!paper/main4.pdf
 paper/*.synctex.gz
 paper/*.toc
 
