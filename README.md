@@ -1,89 +1,129 @@
-# multiclass-imbalance-benchmark
-Benchmark of resampling strategies for multi-class imbalanced tabular classification
+# Multiclass Imbalance Benchmark
 
-## Current phase
+A benchmark of imbalance-handling methods for multiclass tabular classification,
+with explicit accounting for applicability, sampler failures, and the dataset
+coverage behind statistical comparisons.
 
-The V1 full benchmark raw run is frozen. Its analysis and manuscript are under
-revision on a feature branch; release gates must be rerun against the final
-clean revision before an external release. Raw-run evidence and regenerated
-analysis outputs are recorded under the ignored `results/full-run/` and
-`results/analysis/` directories.
+**[Read the latest paper](paper/main4.pdf)** ·
+[Manuscript source](paper/main.tex) ·
+[Reproducibility guide](docs/reproducibility.md)
 
-The staged work plan is documented in
-[`docs/timeline.md`](docs/timeline.md).
+## The study
 
-The operational Stage 0 sequence is documented in
-[`docs/stage-0-runbook.md`](docs/stage-0-runbook.md).
+The V1 study compares fixed imbalance-handling conditions across **11 public
+multiclass datasets**: nine numeric and two mixed-type. It evaluates logistic
+regression, random forest, and XGBoost using fold-local preprocessing,
+stratified five-fold evaluation under three seeds, and macro-F1 as the sole
+primary metric. Statistical comparisons use complete dataset-level blocks;
+their coverage can be smaller than the full dataset collection.
 
-The registry schema is in [`data/dataset_registry.csv`](data/dataset_registry.csv).
-Retrieval provenance is tracked separately in
-[`data/acquisition_manifest.csv`](data/acquisition_manifest.csv).
-Candidate CSVs can be audited with:
+The frozen run accounts for all 5,445 enumerated records:
+
+| Outcome | Records | Meaning |
+| --- | ---: | --- |
+| Unsupported combination | 1,005 | Excluded by the applicability rules; no model run was attempted. |
+| Valid result | 4,191 | An applicable attempt produced a valid result. |
+| Sampler failure | 249 | An applicable attempt failed in the sampler. |
+
+The 4,440 applicable attempts comprise the valid results and sampler failures.
+The paper reports statistical coverage, uncertainty, exploratory analyses,
+runtime, and resampled row counts alongside predictive performance. The
+[evidence guide](docs/reproducibility.md) explains which analyses are planned
+and which are exploratory.
+
+V1's protocol was frozen internally before the full run; it was not publicly
+preregistered. The original protocol remains unchanged for provenance, with
+its terminology clarified in [the protocol status note](docs/protocol-status.md).
+
+## Paper and project status
+
+The current manuscript snapshot is [`paper/main4.pdf`](paper/main4.pdf),
+received from the author on **9 October 2026**. Its 12 pages are stored unchanged
+from the supplied file; the [paper guide](paper/README.md) records its SHA-256
+and provides compilation and anonymous-package instructions.
+
+The V1 model-run records are frozen. Revised analysis and manuscript sources
+are included in this repository, while raw data and generated results remain
+local. Analysis replay from stored records and a fresh model-training rerun
+are separate procedures. This repository does not establish an independent
+replication or a DOI-backed manuscript release.
+
+The **V2 expanded study** has a separate protocol, registry, and implementation.
+Its full execution remains subject to the locked compute and remote-preflight
+gates. Start with [the V2 protocol](docs/protocol-v2.md) and
+[remote execution guide](docs/v2-free-remote-sharding.md). V2 does not amend the
+frozen V1 results.
+
+## Repository guide
+
+| Location | Contents |
+| --- | --- |
+| [`paper/`](paper/) | Latest supplied PDF, LaTeX source, style files, and paper review guide. |
+| [`src/`](src/) | Benchmark, preprocessing, statistical analysis, and validation components. |
+| [`scripts/`](scripts/) | Acquisition, execution, analysis, reproducibility, and packaging commands. |
+| [`tests/`](tests/) | Tests for analysis, sampling, execution, and evidence boundaries. |
+| [`data/`](data/) | Dataset registries, acquisition provenance, and feature overrides. |
+| [`docs/`](docs/) | Protocols, environment setup, runbooks, and release requirements. |
+
+The [V1 registry](data/dataset_registry.csv) defines the dataset collection;
+the [acquisition manifest](data/acquisition_manifest.csv) records retrieval
+provenance and terms. Raw datasets are not redistributed in this checkout.
+
+## Set up locally
+
+Use **Python 3.12**, the recorded benchmark runtime. These commands assume
+Windows PowerShell with Python 3.12 available through the `py` launcher and
+are run from the repository root:
 
 ```powershell
-python -m src.stage0 path\to\candidate.csv --target target_column
+py -3.12 -m venv .venv
+.venv\Scripts\python.exe -m pip install -r requirements.txt -r requirements-release.txt
+.venv\Scripts\python.exe -m src.stage0 --help
+.venv\Scripts\python.exe -m src.pilot --help
 ```
 
-The pilot is evidence-gathering only; its scores must not be used to select
-datasets or methods.
+The [environment guide](docs/environment.md) describes the Windows bootstrap
+alternative and environment recording. Setup installs dependencies; it does
+not acquire datasets or generate benchmark results. V2 uses its own declared
+environment in [`requirements-v2.txt`](requirements-v2.txt), with an exact
+record in [`requirements-v2.lock`](requirements-v2.lock).
 
-The locked benchmark executor is:
+### Validate the checkout
+
+Run the source-boundary and statistical helper tests as a setup check:
 
 ```powershell
-.venv\Scripts\python.exe scripts\run_benchmark.py
+.venv\Scripts\python.exe -m pytest tests/test_source_snapshot.py tests/test_stats.py
+.venv\Scripts\python.exe -m ruff check src tests
 ```
 
-It validates the frozen protocol and scope lock, resumes only from hashed
-dataset markers, and writes raw result and failure tables without running the
-statistical analysis. See [`docs/stage-0-runbook.md`](docs/stage-0-runbook.md)
-for staged execution and review boundaries.
+[GitHub Actions](https://github.com/icecold009/multiclass-imbalance-benchmark/actions/workflows/ci.yml)
+runs the V1 suite on Python 3.11 and 3.12 and the combined suite in a separate
+Python 3.12 environment with V2, analysis, and PDF dependencies. Follow
+[the workflow](.github/workflows/ci.yml) for the full suite selections;
+the V1 setup above does not install the optional V2 dependencies.
 
-Before acquiring research data, follow [`docs/environment.md`](docs/environment.md)
-and [`docs/data-acquisition.md`](docs/data-acquisition.md). The internally
-frozen V1 protocol is [`docs/protocol.md`](docs/protocol.md); its historical
-use of “pre-registered” is clarified in
-[`docs/protocol-status.md`](docs/protocol-status.md).
+## Reproduce or extend the work
 
-## Gate F clean-checkout reproducibility
+| Task | Starting point |
+| --- | --- |
+| Replay V1 analysis from frozen result records | [Reproducibility guide](docs/reproducibility.md) |
+| Acquire datasets and run the locked V1 benchmark | [Acquisition guide](docs/data-acquisition.md) and [V1 runbook](docs/stage-0-runbook.md) |
+| Prepare the expanded V2 study for remote execution | [V2 protocol](docs/protocol-v2.md) and [sharding runbook](docs/v2-free-remote-sharding.md) |
+| Compile the paper or stage anonymous review materials | [Paper guide](paper/README.md) and [review checklist](paper/review-checklist.md) |
+| Validate a clean source revision and release snapshot | [Release requirements](docs/release.md) |
 
-After the analysis freeze, run:
+Analysis replay requires the frozen records under `results/full-run/`, which
+are ignored by Git. It regenerates tables and figures without retraining
+models. A fresh benchmark run also requires the acquired datasets and their
+verified hashes. Pilot scores are for feasibility checks and must not be used
+to select datasets or methods.
 
-```powershell
-.venv\Scripts\python.exe scripts\verify_gate_f.py
-```
+Before an external release, rerun Gates F and G against the exact final source
+revision. They validate clean-checkout reproducibility and the technical
+release snapshot; venue submission and publication remain separate steps.
 
-This creates a temporary `git archive` checkout, runs the full tests, Ruff, and
-module smoke checks there, and revalidates the frozen Gate E evidence. The
-ignored `results\analysis\gate-f-review.json` payload records the source
-snapshot and manifest hashes. It does not rerun the benchmark, expand the
-dataset scope, amend the protocol, or authorize paper claims.
+## License
 
-## Gate G technical release snapshot
-
-After the exact release-candidate commit is created, run:
-
-```powershell
-.venv\Scripts\python.exe scripts/verify_gate_g.py
-```
-
-This validates the dedicated feature branch, clean working tree, passed Gate F
-review, frozen environment/results manifests, and the exact `git archive`
-source snapshot. It writes the ignored `results\analysis\gate-g-review.json`.
-See [`docs/release.md`](docs/release.md) for the archive boundary and explicit
-non-goals. Gate G does not claim a paper submission, venue acceptance,
-deployment, or publication.
-
-## Paper draft
-
-Read the [latest supplied manuscript PDF](paper/main4.pdf), received on
-9 October 2026. This 12-page snapshot is stored unchanged from the author's
-`main4.pdf`; its checksum is recorded in [the paper README](paper/README.md).
-
-The de-anonymized local TMLR-formatted V1 source is
-[`paper/main.tex`](paper/main.tex). It reports only the frozen full-run and
-analysis evidence, including explicit failures, skipped tests, uncertainty,
-and efficiency outcomes. See [`paper/README.md`](paper/README.md) for local
-compilation instructions and
-[`paper/review-checklist.md`](paper/review-checklist.md) for the pre-submission
-review boundary. The release candidate has not been submitted to a venue;
-external submission and publication remain separately authorized actions.
+Repository code is released under the [MIT License](LICENSE). Dataset use is
+governed by the source terms recorded in the acquisition manifest.
