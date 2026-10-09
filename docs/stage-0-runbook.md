@@ -231,21 +231,25 @@ record; the canonical result files remain ignored under `results\full-run\`.
 
 ## 9. Run the frozen analysis package
 
-Only after Gate D passes, run the pre-registered aggregation and analysis:
+Only after Gate D passes, run the internally frozen aggregation and analysis:
 
 ```powershell
 .venv\Scripts\python.exe scripts\run_analysis.py
 ```
 
 This validates Gate D again, aggregates only complete dataset cells, runs the
-frozen scalar-metric Friedman/Nemenyi and raw-versus-alternative Wilcoxon tests
-with Holm correction, computes paired rank-biserial effects and deterministic
-10,000-resample bootstrap intervals, summarizes registry moderators, writes
-complete-cell efficiency means for runtime, RSS, and post-sampling rows, and
-generates the class-distribution overview, ranking heatmap, baseline-delta plot,
-and critical-difference diagrams where the frozen Friedman/Nemenyi results are
-valid. Outputs are ignored under `results\analysis\` and include an analysis
-manifest with hashes, counts, procedure settings, and skipped-test reasons.
+frozen scalar-metric Friedman/Nemenyi and eligible raw-versus-alternative
+Wilcoxon tests with Holm correction, computes paired rank-biserial effects and
+deterministic 10,000-resample bootstrap intervals, summarizes registry
+moderators, writes complete-cell efficiency means for runtime, RSS, and
+post-sampling rows, and generates the class-distribution overview,
+complete-cell mean heatmap and coverage table, baseline-delta plot, and
+critical-difference diagrams where the frozen Friedman/Nemenyi results are
+valid. One- and two-block comparisons remain descriptive without inferential
+p-values. The primary metric also receives a post hoc seeded permutation and
+exact sign-flip sensitivity. Outputs are ignored under `results\analysis\`
+and include an analysis manifest with runtime versions, hashes, counts,
+procedure settings, and skipped-test reasons.
 Per-class recall is retained as a descriptive summary because class labels are
 dataset-specific; no cross-dataset inferential class matrix is created. Do not
 use these commands to change the dataset scope, conditions, seeds, folds, or

@@ -15,9 +15,13 @@ The script creates `.venv`, upgrades packaging tools, installs
 `requirements.txt`, and runs an import smoke test. It does not download
 benchmark data or create research results.
 
-If the system Python installation is unavailable but a repository-local
-`.python312\python.exe` exists, the bootstrap script uses that ignored runtime
-to recover or recreate `.venv`. The runtime itself must never be committed.
+The bootstrap script prefers an installed Python 3.12 from the Windows Python
+Launcher, then another available launcher version, then a working `python`
+command, and finally a repository-local `.python312\python.exe`. This fallback
+also handles a present but empty or unusable `py` launcher. The repository-local
+runtime itself is ignored and must never be committed. Python 3.12 is the
+project's recorded benchmark runtime; other supported environments should use
+the bounded dependencies and record their own versions.
 
 ## Record the environment
 

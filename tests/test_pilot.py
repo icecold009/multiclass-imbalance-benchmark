@@ -1,6 +1,8 @@
 import numpy as np
 import pandas as pd
 import pytest
+from imblearn.combine import SMOTEENN, SMOTETomek
+from imblearn.over_sampling import SMOTE, SMOTENC
 from sklearn.utils.class_weight import compute_sample_weight
 
 from src import pilot
@@ -66,9 +68,9 @@ def test_preprocessing_statistics_use_training_rows_only() -> None:
     X = frame.drop(columns=["target"])
     pipeline.fit(X.iloc[:4], frame["target"].iloc[:4])
 
-    imputer = pipeline.named_steps["preprocess"].named_transformers_["numeric"].named_steps[
-        "impute"
-    ]
+    imputer = (
+        pipeline.named_steps["preprocess"].named_transformers_["numeric"].named_steps["impute"]
+    )
     assert imputer.statistics_.tolist() == [2.0, 1.5]
 
 
@@ -131,6 +133,37 @@ def test_mixed_pipeline_encodes_categories_after_resampling() -> None:
     assert list(pipeline.named_steps) == ["pre_sampler", "sampler", "post_sampler", "classifier"]
     encoder = pipeline.named_steps["post_sampler"].named_transformers_["categorical"]
     assert encoder.categories_[0].tolist() == [0.0, 1.0, 2.0]
+
+
+@pytest.mark.parametrize(
+    ("condition", "wrapper_type"),
+    [("smoteenn", SMOTEENN), ("smotetomek", SMOTETomek)],
+)
+def test_hybrid_sampler_uses_feature_specific_synthetic_sampler(
+    condition: str,
+    wrapper_type: type,
+) -> None:
+    numeric_frame = pd.DataFrame({"x": range(12), "target": ["a", "b", "c"] * 4})
+    numeric_layout = feature_layout(numeric_frame, "target")
+    numeric_sampler, numeric_pipeline = sampler_for(condition, numeric_layout, random_state=0)
+
+    mixed_frame = pd.DataFrame(
+        {
+            "x": range(12),
+            "category": ["low", "high", "mid"] * 4,
+            "target": ["a", "b", "c"] * 4,
+        }
+    )
+    mixed_layout = feature_layout(mixed_frame, "target")
+    mixed_sampler, mixed_pipeline = sampler_for(condition, mixed_layout, random_state=0)
+
+    assert isinstance(numeric_sampler, wrapper_type)
+    assert isinstance(numeric_sampler.smote, SMOTE)
+    assert numeric_pipeline is False
+    assert isinstance(mixed_sampler, wrapper_type)
+    assert isinstance(mixed_sampler.smote, SMOTENC)
+    assert mixed_sampler.smote.categorical_features == [1]
+    assert mixed_pipeline is True
 
 
 def test_xgboost_weight_routing_matches_balanced_training_weights() -> None:

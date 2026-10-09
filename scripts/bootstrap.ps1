@@ -18,20 +18,30 @@ if (Test-Path -LiteralPath $venvPython) {
 if (-not $venvUsable) {
     $pythonLauncher = $null
     if (Get-Command py -ErrorAction SilentlyContinue) {
-        if (& py -0p | Select-String '3\.12') {
+        $installedPython = & py -0p 2>$null
+        if ($LASTEXITCODE -eq 0 -and ($installedPython | Select-String '3\.12')) {
             $pythonLauncher = 'py'
             & $pythonLauncher -3.12 -m venv --clear $venvPath
-        } else {
+        } elseif ($LASTEXITCODE -eq 0 -and $installedPython) {
             $pythonLauncher = 'py'
             & $pythonLauncher -3 -m venv --clear $venvPath
         }
-    } elseif (Get-Command python -ErrorAction SilentlyContinue) {
-        $pythonLauncher = 'python'
-        & $pythonLauncher -m venv --clear $venvPath
-    } elseif (Test-Path -LiteralPath $repoPython) {
+    }
+
+    if (-not $pythonLauncher -and (Get-Command python -ErrorAction SilentlyContinue)) {
+        & python --version *> $null
+        if ($LASTEXITCODE -eq 0) {
+            $pythonLauncher = 'python'
+            & $pythonLauncher -m venv --clear $venvPath
+        }
+    }
+
+    if (-not $pythonLauncher -and (Test-Path -LiteralPath $repoPython)) {
         $pythonLauncher = $repoPython
         & $pythonLauncher -m venv --clear $venvPath
-    } else {
+    }
+
+    if (-not $pythonLauncher) {
         throw 'Python launcher not found. Install Python 3.12, then rerun this script.'
     }
 }

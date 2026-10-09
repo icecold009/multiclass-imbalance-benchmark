@@ -31,7 +31,9 @@ def _read_json(path: Path, label: str) -> dict[str, Any]:
     try:
         payload = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, UnicodeError, json.JSONDecodeError) as error:
-        raise ValueError(f"{label} is not readable JSON: {type(error).__name__}: {error}") from error
+        raise ValueError(
+            f"{label} is not readable JSON: {type(error).__name__}: {error}"
+        ) from error
     if not isinstance(payload, dict):
         raise TypeError(f"{label} must be a JSON object")
     return payload
@@ -80,11 +82,15 @@ def verify_gate_c(
         )
 
     runs = review.get("runs")
-    runs_by_id = {
-        run.get("dataset_id"): run
-        for run in runs
-        if isinstance(run, dict) and isinstance(run.get("dataset_id"), str)
-    } if isinstance(runs, list) else {}
+    runs_by_id = (
+        {
+            run.get("dataset_id"): run
+            for run in runs
+            if isinstance(run, dict) and isinstance(run.get("dataset_id"), str)
+        }
+        if isinstance(runs, list)
+        else {}
+    )
     if set(runs_by_id) != set(dataset_ids):
         raise ValueError("pilot review runs do not exactly match the locked dataset scope")
 
@@ -176,13 +182,13 @@ def main() -> None:
         "--review", type=Path, default=ROOT / "artifacts" / "runs" / "stage0-pilot-review.json"
     )
     parser.add_argument("--registry", type=Path, default=ROOT / "data" / "dataset_registry.csv")
-    parser.add_argument(
-        "--manifest", type=Path, default=ROOT / "data" / "acquisition_manifest.csv"
-    )
+    parser.add_argument("--manifest", type=Path, default=ROOT / "data" / "acquisition_manifest.csv")
     parser.add_argument(
         "--scope-lock", type=Path, default=ROOT / "artifacts" / "runs" / "scope-lock.json"
     )
-    parser.add_argument("--output", type=Path, help="Optional path for the generated review payload")
+    parser.add_argument(
+        "--output", type=Path, help="Optional path for the generated review payload"
+    )
     args = parser.parse_args()
     payload = verify_gate_c(args.review, args.registry, args.manifest, args.scope_lock)
     rendered = json.dumps(payload, indent=2, sort_keys=True) + "\n"

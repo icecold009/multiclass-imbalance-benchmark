@@ -125,7 +125,14 @@ def _pilot_fixture(
         "balanced_random_forest",
     ]
     cells = [
-        {"dataset": "cmc", "seed": seed, "fold": fold, "classifier": classifier, "condition": condition, "feature_type": "numeric"}
+        {
+            "dataset": "cmc",
+            "seed": seed,
+            "fold": fold,
+            "classifier": classifier,
+            "condition": condition,
+            "feature_type": "numeric",
+        }
         for seed in range(3)
         for fold in range(5)
         for classifier in ("random_forest", "xgboost", "logistic_regression")
@@ -153,7 +160,8 @@ def _pilot_fixture(
         "results_path": str(run_dir / "pilot_results.csv"),
         "failures_path": str(run_dir / "pilot_failures.csv"),
         "runtime_evidence": _reference(run_dir / "pilot_results.csv") | {"wall_clock_seconds": 1.0},
-        "memory_evidence": _reference(run_dir / "pilot_results.csv") | {"method": "fixture RSS", "peak_mb": 1.0},
+        "memory_evidence": _reference(run_dir / "pilot_results.csv")
+        | {"method": "fixture RSS", "peak_mb": 1.0},
         "runtime_budget_seconds": 10,
         "deterministic_replay": deterministic_replay,
         "failure_review": "passed",
@@ -215,7 +223,9 @@ def test_scope_lock_requires_all_registry_and_manifest_columns(tmp_path: Path) -
     payload = build_scope_lock(registry, tmp_path / "lock.json")
 
     assert payload["status"] == "pending"
-    assert any("dataset registry missing required columns" in blocker for blocker in payload["blockers"])
+    assert any(
+        "dataset registry missing required columns" in blocker for blocker in payload["blockers"]
+    )
 
 
 def test_scope_lock_rejects_invalid_pilot_status(tmp_path: Path) -> None:
@@ -231,7 +241,9 @@ def test_scope_lock_rejects_invalid_pilot_status(tmp_path: Path) -> None:
 
 def test_scope_lock_stays_pending_for_missing_or_stale_pilot_evidence(tmp_path: Path) -> None:
     registry, manifest, _ = _provenance_fixture(tmp_path)
-    missing = build_scope_lock(registry, tmp_path / "missing.json", pilot_status="passed", manifest_path=manifest)
+    missing = build_scope_lock(
+        registry, tmp_path / "missing.json", pilot_status="passed", manifest_path=manifest
+    )
     assert missing["status"] == "pending"
     assert any("pilot review evidence is missing" in blocker for blocker in missing["blockers"])
 
@@ -248,7 +260,10 @@ def test_scope_lock_stays_pending_for_missing_or_stale_pilot_evidence(tmp_path: 
     assert any("pilot review evidence is malformed" in blocker for blocker in malformed["blockers"])
 
     evidence = _pilot_fixture(tmp_path, registry, manifest)
-    evidence.write_text(evidence.read_text(encoding="utf-8").replace(sha256_file(registry), "0" * 64), encoding="utf-8")
+    evidence.write_text(
+        evidence.read_text(encoding="utf-8").replace(sha256_file(registry), "0" * 64),
+        encoding="utf-8",
+    )
     stale = build_scope_lock(
         registry,
         tmp_path / "stale.json",
