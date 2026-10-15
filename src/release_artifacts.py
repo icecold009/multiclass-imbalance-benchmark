@@ -122,14 +122,17 @@ TMLR_PAPER_SUPPORT_FILES = (
 PUBLICATION_EVIDENCE_FILES = tuple(
     dict.fromkeys((*TMLR_SOURCE_FILES, *TMLR_PAPER_SUPPORT_FILES))
 )
-TMLR_IDENTITY_SCAN_EXEMPT_FILES = frozenset(
-    {"paper/tmlr.sty", "paper/tmlr.bst", "paper/fancyhdr.sty"}
-)
 TMLR_STYLE_SHA256 = {
     "paper/tmlr.sty": "5137789fbcfcf6188e67f3ccf28363472997a1a9498ce382e4cf4bee10d542e9",
     "paper/tmlr.bst": "e02e75749c78e47301c8dd346459bb34ec5efd08aa3ae99109a01e71bd42e107",
     "paper/fancyhdr.sty": "2bcdf00b7ff35411e1fc3dece5e1489b467e9e455a71e437bf07c41f359ab584",
 }
+TMLR_STYLE_FIXTURE_ORIGINS = {
+    f"tests/fixtures/submission/{relative}": relative for relative in TMLR_STYLE_SHA256
+}
+TMLR_IDENTITY_SCAN_EXEMPT_FILES = frozenset(
+    {*TMLR_STYLE_SHA256, *TMLR_STYLE_FIXTURE_ORIGINS}
+)
 
 
 def _sha256(data: bytes) -> str:
@@ -586,6 +589,15 @@ def _validate_tmlr_styles(files: dict[str, bytes]) -> None:
             raise RuntimeError(f"TMLR style asset is missing or changed: {relative}")
 
 
+def _validate_tmlr_fixture_styles(files: Mapping[str, bytes]) -> None:
+    for fixture_path, official_path in TMLR_STYLE_FIXTURE_ORIGINS.items():
+        content = files.get(fixture_path)
+        if content is not None and _sha256(content) != TMLR_STYLE_SHA256[official_path]:
+            raise RuntimeError(
+                f"TMLR style test fixture is not the reviewed official asset: {fixture_path}"
+            )
+
+
 def _anonymous_license(license_text: bytes) -> bytes:
     text = license_text.decode("utf-8")
     lines = text.splitlines()
@@ -846,6 +858,7 @@ def _supplement_entries(
     for relative in PUBLICATION_EVIDENCE_FILES:
         entries[relative] = _read_required(root, relative)
     _validate_tmlr_styles(entries)
+    _validate_tmlr_fixture_styles(entries)
 
     run_manifest_name = "results/full-run/benchmark_manifest.json"
     run_manifest_payload = _redact_git_revision_fields(

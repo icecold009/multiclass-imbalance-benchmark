@@ -10,11 +10,14 @@ from pypdf import PdfWriter
 from pypdf.generic import DecodedStreamObject, DictionaryObject, EncodedStreamObject, NameObject
 
 from src.release_artifacts import (
+    TMLR_IDENTITY_SCAN_EXEMPT_FILES,
     TMLR_SOURCE_FILES,
+    TMLR_STYLE_FIXTURE_ORIGINS,
     _duplicate_profile_sensitivity_entries,
     _gate_f_review_for_source,
     _redact_git_revision_fields,
     _replace_hash_references,
+    _validate_tmlr_fixture_styles,
     anonymize_gate_f_review_payload,
     anonymize_tmlr_source,
     author_identifiers,
@@ -27,6 +30,7 @@ from src.release_artifacts import (
 from src.submission import REQUIRED_RELEASE_FILES, _tracked_digest, _validate_publication_artifacts
 
 FIXTURE_ROOT = Path(__file__).parent / "fixtures" / "submission"
+ROOT = Path(__file__).resolve().parents[1]
 
 
 @pytest.mark.parametrize("matching_commit", [True, False])
@@ -78,6 +82,22 @@ def _official_tmlr_styles() -> dict[str, bytes]:
         f"paper/{name}": (FIXTURE_ROOT / "paper" / name).read_bytes()
         for name in ("tmlr.sty", "tmlr.bst", "fancyhdr.sty")
     }
+
+
+@pytest.mark.parametrize(
+    ("fixture_path", "official_path"), TMLR_STYLE_FIXTURE_ORIGINS.items()
+)
+def test_anonymous_package_exempts_only_hash_verified_style_fixtures(
+    fixture_path: str, official_path: str
+) -> None:
+    fixture_content = (ROOT / fixture_path).read_bytes()
+
+    assert fixture_path in TMLR_IDENTITY_SCAN_EXEMPT_FILES
+    assert fixture_content == (ROOT / official_path).read_bytes()
+    _validate_tmlr_fixture_styles({fixture_path: fixture_content})
+
+    with pytest.raises(RuntimeError, match="reviewed official asset"):
+        _validate_tmlr_fixture_styles({fixture_path: fixture_content + b"modified"})
 
 
 def _pdf_bytes(
