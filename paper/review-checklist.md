@@ -1,6 +1,11 @@
 # Paper review checklist
 
-## Complete in this V1 release candidate
+## Historical V1 release candidate checklist
+
+The completed items in this V1 section and the pending items in its historical
+TMLR snapshot below describe earlier candidates. They do not establish current
+package or publication readiness. Current status is recorded in the dated
+sections at the end of this checklist.
 
 - [x] Official TMLR source format and current JMLR-maintained style assets.
 - [x] De-anonymized title, abstract, introduction, related work, methods,
@@ -17,13 +22,22 @@
       placeholders when ignored result artifacts are unavailable.
 - [x] V1/V2 boundary recorded; no V2 execution result is used in this paper.
 
-## Previously verified technical snapshot
+## Historical V1 TMLR snapshot and pending items
+
+The checklist below records the state of the earlier TMLR-oriented V1
+candidate. Its TMLR-specific pending items are historical and are not current
+submission instructions. The controlling status for the October 14 package
+revision is in [Current local revision (2026-10-14)](#current-local-revision-2026-10-14)
+and the final publication gate must be completed for the venue actually
+selected. No venue or submission route is currently selected for the named
+non-arXiv candidate.
+
+### Previously verified technical snapshot
 
 The corrected percentage sentence and the four-artifact Gate G snapshot were
 verified on clean commit `9bfed74` before the ethics/broader-impact revision
 below. Those checks are historical evidence for that commit; they do not cover
-the current manuscript edits and must be repeated for the final submission
-candidate.
+later manuscript edits or the October 14 package candidates.
 
 - [x] The de-anonymized and anonymous PDFs were freshly compiled from commit
       `9bfed74` with BibTeX and two final LaTeX passes for each.
@@ -91,3 +105,48 @@ The preview above identifies itself as dirty and its Gate F entry says
 `results/analysis/gate-f-review.json` and `results/analysis/gate-g-review.json`;
 their recorded source commit must match the release manifest before the
 package can be treated as an exact clean-commit snapshot.
+
+## Current local revision (2026-10-14)
+
+- [x] Reconciled grouped-profile sensitivity results and limits with the
+      hash-verified run record; retained the post hoc, descriptive scope.
+- [x] Corrected the memory and elapsed-time descriptions to match endpoint RSS
+      sampling and the implemented timer boundary; recorded the frozen-protocol
+      departure in `docs/analysis-implementation-note.md`.
+- [x] Clarified that the original full-run training interpreter is unverified;
+      the Stage 0 and analysis environments are separate records.
+- [x] Distinguished this paper's per-class-recall G-mean from TILBench's
+      macro-sensitivity/macro-specificity formula.
+- [x] Audited cited bibliography records, corrected Branco et al.'s issue and
+      article pages, and removed the unused misattributed Gorishniy entry.
+- [x] Added named PDF title/author source metadata and preserved anonymous
+      metadata substitution in the release builder.
+- [x] Added the grouped-sensitivity script, results note, tests, and verified
+      outputs to the anonymous evidence package inventory.
+- [x] Rebuilt separate arXiv and named non-arXiv V2 candidates. Both 13-page
+      PDFs have the expected title/author metadata and embedded fonts; source
+      ZIPs rebuild to matching PDF text with no undefined references or
+      overfull boxes. All rendered pages were inspected with no visual defects.
+- [x] Both evidence ZIPs passed CRC, per-file manifest hashes, file-inventory
+      and exclusion checks. Each fresh extraction passed the 114-test suite and
+      two independent 18-table/8-figure replays; the 41 installed dependency
+      versions match `requirements-analysis.lock`.
+- [!] A clean Python environment was created for each package, but installing
+      the lock was blocked because this shell cannot resolve the PyPI host.
+      Tests and replays therefore used the repository Python 3.13.12 environment
+      matching every locked version; fresh installation is not claimed.
+- [ ] Exact clean-commit Gate F/G checks require an immutable clean source
+      commit. The current branch remains dirty and no commit was authorized.
+      Author and independent human technical review, author/disclosure
+      confirmation, arXiv preview/account checks, and non-arXiv venue selection
+      remain pending before any submission or public release.
+
+## Final status reconciliation (2026-10-15)
+
+- [x] Checked the official [CMC source description](https://archive.ics.uci.edu/dataset/30/contraceptive%26), which identifies the data as a subset of the 1987 National Indonesia Contraceptive Prevalence Survey, and the [Dermatology source description](https://archive.ics.uci.edu/dataset/33/dermatology), which says patient names and ID numbers were removed.
+- [ ] Author/institution confirmation of original data authority, consent, and applicable oversight remains required. The UCI descriptions do not establish those facts for this secondary analysis; no approval, consent, or exemption is claimed.
+- [!] Fresh dependency installation remains blocked by this shell's inability to resolve PyPI. The extracted-package tests and replays used the repository Python 3.13.12 environment with all locked versions installed.
+- [ ] Run exact clean-commit Gate F/G after an immutable source commit is authorized. No commit has been made.
+- [ ] Obtain independent human technical and claim review, and confirm authorship, contact, affiliation, AI disclosure, funding, conflicts, and applicable ethics statements from the author's records.
+- [ ] For arXiv, verify account/endorsement, categories, metadata/license, and arXiv's compiled preview. For the non-arXiv candidate, select a venue and verify its current formatting, anonymity, supplementary-material, and licensing requirements.
+- [ ] Present the exact PDFs, ZIPs, metadata, and verification receipts for final approval before either submission.
