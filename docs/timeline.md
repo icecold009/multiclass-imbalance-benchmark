@@ -14,12 +14,13 @@ to preserve the target date.
 Last updated: 2026-10-15
 
 The original Stage 0 rows below record earlier milestones. A correction pass
-on 2026-10-09 updated the analysis, manuscript, and release tooling; Gate E
-replayed successfully in fresh processes, and the named and anonymous PDFs
-were recompiled and visually checked. The October 14 packages remain local,
-uncommitted candidates. Exact-clean-commit Gate F/G checks and author review
-remain pending; historical `[x]` labels do not imply that those gates passed
-for the corrected revision.
+on 2026-10-09 updated the analysis, manuscript, and release tooling. On the
+final local feature-branch snapshot, Gate E and Gate F passed twice, and Gate G
+passed twice after rebuilding all four exact-commit artifacts. The separate
+October 14 arXiv and named non-arXiv packages remain local candidates; no
+submission or publication is claimed. Gate commands used a temporary,
+process-only Git exclude for the pre-existing untracked outreach draft so the
+committed source snapshot could be checked; that file remains untouched.
 
 On 2026-10-14, Package 3 rebuilt an uncommitted validation preview from the
 explicit 82-file publication-evidence inventory. Its 188 ZIP members passed
@@ -31,8 +32,10 @@ unchanged. The retained-dataset acquisition script now supports hash-pinned
 CMC, Glass, and Yeast, but the attempted online fetch was incomplete: CMC
 materialized with its expected hash (possibly from the local cache), Glass
 stalled before output, and Yeast was not reached. Offline verification of all
-three existing local files passed. The rebuilt release candidates and exact
-clean-commit Gate F/G checks remain for Package 6.
+three existing local files passed. The exact-commit V1 Gate F/G checks were
+completed later on the final feature-branch snapshot; V2 candidate readiness
+remains subject to the separate installation, acquisition, author, and venue
+gates below.
 
 Package 4 completed the duplicate-profile grouped-CV sensitivity for the six
 affected datasets. The 90 planned splits were feasible, and all 2,970 model
@@ -53,14 +56,17 @@ the source-claim review found no unresolved factual mismatch. Package 6
 rebuilt both candidates and fixed a newly exposed overfull manuscript line.
 
 On 2026-10-15, the review checklist was reconciled so the V1/TMLR items are
-clearly historical and the current author, oversight, environment, clean-commit,
+clearly historical and the current author, oversight, environment,
 human-review, arXiv, and venue gates are explicit. Official UCI descriptions
 were checked for CMC and Dermatology; they describe the source records but do
-not establish consent or oversight for this secondary analysis. Both evidence
-ZIPs were rebuilt with the checklist update. Their manifests, per-file hashes,
-and CRCs passed; fresh extractions each passed 114 tests and two independent
-replays of 18 tables and 8 figures. Tests ran in the matching repository
-environment because the fresh-install attempt remains blocked by PyPI DNS.
+not establish consent or oversight for this secondary analysis. Both V2
+evidence ZIPs were rebuilt with the checklist update. Their manifests,
+per-file hashes, and CRCs passed; fresh extractions each passed 114 tests and
+two independent replays of 18 tables and 8 figures. Tests ran in the matching
+repository environment because the fresh-install attempt remains blocked by
+PyPI DNS. The final committed source snapshot later passed Gate E/F twice and
+Gate G twice; the Gate G receipt records four current-commit artifacts and
+`external_submission: false`.
 
 The critical-path table below is the forecast. The task-status table is the
 current execution source of truth and must be updated whenever a task is
@@ -91,7 +97,7 @@ Status markers: `[x]` complete, `[>]` current, `[!]` blocked, `[ ]` pending.
 | PKG-01 | Repair package completeness, exact analysis dependencies, and retained-dataset acquisition. | [!] Blocked | `src/release_artifacts.py` uses an explicit inventory; Python 3.13.12 instructions and the 41-package lock are included. Both extracted V2 evidence packages passed all 114 tests and two portable replays in the repository environment, whose 41 installed package versions match the lock. Fresh installation could not reach PyPI because DNS resolution is unavailable. Offline source hashes passed; online acquisition remained incomplete (CMC may have used cache; Glass stalled; Yeast not reached). Original V1 packages/results remain unchanged. |
 | DUPSENS-01 | Run the frozen exact-profile grouped-CV sensitivity and compare it descriptively with row-wise V1. | [x] Complete | `docs/duplicate-profile-sensitivity-results.md` records the completed run; the ignored manifest verifies 2,970/2,970 keys and all output hashes. Independent review confirmed 90/90 feasible splits, every class in train/test, and zero profile overlap. No inference or replacement folds were added. |
 | PAPERFIX-01 | Correct manuscript claims, methods, environment disclosure, references, and PDF metadata against the verified evidence. | [x] Complete | Source claims, references, named metadata, grouped-sensitivity findings, timing/RSS wording, and environment limits were reconciled. Full tests, Ruff, Python compilation, and diff checks passed. Earlier bounded Jev diff reviews covered the task-owned implementation files; the October 15 checklist/status delta received a focused Jev plan review. The final aggregate diff request exceeded Jev's 45,000-character limit before transmission. |
-| PKG-06 | Rebuild and validate the arXiv and separate named non-arXiv candidates. | [!] Blocked | Candidates under `output/arxiv/2026-10-14/v2/` and `output/non-arxiv/2026-10-14/v2/` have 13-page PDFs, embedded fonts, fresh source-ZIP rebuilds, validated manifests/exclusions, and page-by-page visual inspection. After the October 15 checklist update, both evidence ZIPs were rebuilt; fresh extractions each passed 114 tests and two replays in the exact-lock-matching environment. Fresh installation is blocked by unavailable PyPI DNS; exact clean-commit Gate F/G and author/human review remain pending. No package was uploaded or submitted. |
+| PKG-06 | Rebuild and validate the arXiv and separate named non-arXiv candidates. | [!] Blocked | Candidates under `output/arxiv/2026-10-14/v2/` and `output/non-arxiv/2026-10-14/v2/` have 13-page PDFs, embedded fonts, fresh source-ZIP rebuilds, validated manifests/exclusions, and page-by-page visual inspection. After the October 15 checklist update, both evidence ZIPs were rebuilt; fresh extractions each passed 114 tests and two replays in the exact-lock-matching environment. The current V1 exact-commit Gate E/F/G checks passed twice. Fresh installation and online acquisition remain blocked, and author, independent human review, and venue gates remain open. No package was uploaded or submitted. |
 
 ### Update rule
 

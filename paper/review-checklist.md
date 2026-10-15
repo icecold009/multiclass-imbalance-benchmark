@@ -135,9 +135,10 @@ package can be treated as an exact clean-commit snapshot.
       the lock was blocked because this shell cannot resolve the PyPI host.
       Tests and replays therefore used the repository Python 3.13.12 environment
       matching every locked version; fresh installation is not claimed.
-- [ ] Exact clean-commit Gate F/G checks require an immutable clean source
-      commit. The current branch remains dirty and no commit was authorized.
-      Author and independent human technical review, author/disclosure
+- [x] This pre-commit checkpoint was recorded before local commits were
+      authorized. Its dirty-branch status is superseded by the final status
+      reconciliation below.
+- [ ] Author and independent human technical review, author/disclosure
       confirmation, arXiv preview/account checks, and non-arXiv venue selection
       remain pending before any submission or public release.
 
@@ -146,7 +147,16 @@ package can be treated as an exact clean-commit snapshot.
 - [x] Checked the official [CMC source description](https://archive.ics.uci.edu/dataset/30/contraceptive%26), which identifies the data as a subset of the 1987 National Indonesia Contraceptive Prevalence Survey, and the [Dermatology source description](https://archive.ics.uci.edu/dataset/33/dermatology), which says patient names and ID numbers were removed.
 - [ ] Author/institution confirmation of original data authority, consent, and applicable oversight remains required. The UCI descriptions do not establish those facts for this secondary analysis; no approval, consent, or exemption is claimed.
 - [!] Fresh dependency installation remains blocked by this shell's inability to resolve PyPI. The extracted-package tests and replays used the repository Python 3.13.12 environment with all locked versions installed.
-- [ ] Run exact clean-commit Gate F/G after an immutable source commit is authorized. No commit has been made.
+- [x] Gate E and Gate F passed twice and Gate G passed twice on the final local
+      feature-branch snapshot. Gate G validated all four current-commit
+      artifacts and records `external_submission: false`; the ignored receipts
+      bind them to the same source head.
+- [x] The gate commands used a temporary, process-only Git exclude for the
+      pre-existing untracked `docs/professor-feedback-emails.md`. The draft was
+      not staged or changed and remains in the checkout.
+- [!] Fresh lock installation is still blocked by PyPI DNS, and the earlier
+      online CMC/Glass/Yeast acquisition attempt was incomplete. No fresh
+      installation or complete live acquisition is claimed.
 - [ ] Obtain independent human technical and claim review, and confirm authorship, contact, affiliation, AI disclosure, funding, conflicts, and applicable ethics statements from the author's records.
 - [ ] For arXiv, verify account/endorsement, categories, metadata/license, and arXiv's compiled preview. For the non-arXiv candidate, select a venue and verify its current formatting, anonymity, supplementary-material, and licensing requirements.
 - [ ] Present the exact PDFs, ZIPs, metadata, and verification receipts for final approval before either submission.
