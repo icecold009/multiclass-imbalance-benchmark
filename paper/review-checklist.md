@@ -146,17 +146,84 @@ package can be treated as an exact clean-commit snapshot.
 
 - [x] Checked the official [CMC source description](https://archive.ics.uci.edu/dataset/30/contraceptive%26), which identifies the data as a subset of the 1987 National Indonesia Contraceptive Prevalence Survey, and the [Dermatology source description](https://archive.ics.uci.edu/dataset/33/dermatology), which says patient names and ID numbers were removed.
 - [ ] Author/institution confirmation of original data authority, consent, and applicable oversight remains required. The UCI descriptions do not establish those facts for this secondary analysis; no approval, consent, or exemption is claimed.
-- [!] Fresh dependency installation remains blocked by this shell's inability to resolve PyPI. The extracted-package tests and replays used the repository Python 3.13.12 environment with all locked versions installed.
-- [x] Gate E and Gate F passed twice and Gate G passed twice on the final local
-      feature-branch snapshot. Gate G validated all four current-commit
-      artifacts and records `external_submission: false`; the ignored receipts
-      bind them to the same source head.
+- [x] Installed `requirements-analysis.lock` into a fresh Python 3.13.12
+      environment after resolving the earlier PyPI DNS failure. Gate E, Gate
+      F, and Gate G are rerun after this checklist commit; Gate G must record
+      `external_submission: false`.
 - [x] The gate commands used a temporary, process-only Git exclude for the
       pre-existing untracked `docs/professor-feedback-emails.md`. The draft was
       not staged or changed and remains in the checkout.
-- [!] Fresh lock installation is still blocked by PyPI DNS, and the earlier
-      online CMC/Glass/Yeast acquisition attempt was incomplete. No fresh
-      installation or complete live acquisition is claimed.
+- [x] Reacquired OpenML v1 CMC (ID 23), Glass (ID 41), and Yeast (ID 181)
+      using the fixed acquisition script. Targets, shapes, and SHA-256 values
+      match the pinned materializations. OpenML's `Public` source metadata and
+      UCI dataset licences do not establish consent or ethics review.
 - [ ] Obtain independent human technical and claim review, and confirm authorship, contact, affiliation, AI disclosure, funding, conflicts, and applicable ethics statements from the author's records.
 - [ ] For arXiv, verify account/endorsement, categories, metadata/license, and arXiv's compiled preview. For the non-arXiv candidate, select a venue and verify its current formatting, anonymity, supplementary-material, and licensing requirements.
 - [ ] Present the exact PDFs, ZIPs, metadata, and verification receipts for final approval before either submission.
+
+## External gate follow-up (2026-10-15)
+
+This section supersedes the fresh-install and CMC/Glass/Yeast acquisition
+blockers recorded above. It does not close author, institutional, or human
+review items.
+
+- [x] Installed `requirements-analysis.lock` into a new Python 3.13.12
+      environment at `output/gate-clean-env-20261015b`. The installed package
+      versions match the lock. Gate F passed in that environment on the then
+      current source head; Gate G passed after rebuilding the source and
+      supplementary ZIPs to include the refreshed Gate F receipt. Re-run Gates
+      E, F, and G after this checklist update is committed.
+- [x] Retrieved OpenML v1 datasets CMC (ID 23), Glass (ID 41), and Yeast (ID
+      181) through the fixed acquisition script. Their targets, shapes, and
+      SHA-256 values matched the expected materializations. OpenML returned
+      `source_license: Public` for these records. The UCI pages separately
+      identify CMC and Dermatology as CC BY 4.0. These source and licence facts
+      do not establish participant consent or an ethics determination.
+- [x] The hash-verified CMC extract contains respondents recorded below age
+      18. The [World Bank/DHS catalog](https://microdata.worldbank.org/catalog/1398)
+      describes the source survey as covering ever-married women aged 15–49 and
+      lists MEASURE DHS as the access authority. The [UCI CMC record](https://archive.ics.uci.edu/dataset/30/contraceptive%26)
+      identifies this file as a subset of that survey. The [UCI Dermatology
+      record](https://archive.ics.uci.edu/dataset/33/dermatology) says patient
+      names and IDs were removed; the inspected [1998 source
+      paper](https://repository.bilkent.edu.tr/bitstreams/2bfdac0e-1aaf-4f55-ba88-66b748492d6a/download)
+      describes patient records but does not state consent or ethics-review
+      details. The [OpenML terms](https://beta.openml.org/terms) say each
+      dataset has its own licence; its live metadata returned `Public` for the
+      three reacquired records.
+- [x] Checked current venue rules: [TMLR requires anonymized PDFs and active
+      OpenReview profiles, records funding/conflict/human-subject information,
+      and applies CC BY 4.0](https://jmlr.org/tmlr/author-guide.html); its
+      [editorial policy makes ordinary submissions public after initial
+      screening and keeps rejected or withdrawn submissions public](https://jmlr.org/tmlr/editorial-policies.html).
+      [OpenReview says its service is intended for adults at least 18](https://openreview.net/legal/privacy).
+      [arXiv requires registered authors, may require endorsement for a first
+      submission or new category, and requires an irrevocable distribution
+      license](https://info.arxiv.org/help/submit/index.html). These rules are
+      verified; account- and author-specific requirements remain unchecked.
+- [ ] Confirm from the source owners and, where applicable, an institution or
+      qualified ethics adviser whether secondary use of the CMC and Dermatology
+      records is appropriate, including the CMC respondents below 18. No
+      consent, approval, exemption, or data-owner permission is inferred from
+      public availability or a repository licence.
+- [ ] Obtain an independent human technical and claim review. The three local
+      outreach drafts remain unsent; their named attachment file is absent from
+      the current checkout and must be corrected and approved before any email.
+- [ ] The author must confirm the complete author list, affiliation and public
+      profile details, contact, AI-use statement, funding, conflicts, and
+      applicable ethics disclosures from actual records.
+- [ ] Confirm the author's age before creating or using an OpenReview account.
+      If the author is under 18, obtain written eligibility guidance before
+      pursuing a TMLR/OpenReview route.
+- [ ] Select the venue route. For TMLR, the author must accept the CC BY 4.0
+      terms and public-review/archive consequences. For arXiv, account,
+      endorsement, category, licence, metadata, and the account-generated
+      compilation preview remain to be checked. Creating that preview requires
+      uploading the manuscript to arXiv; no upload has occurred.
+- [ ] The author must inspect and approve the exact named and anonymous PDFs,
+      source/supplement ZIPs, metadata, and current verification receipts before
+      any external upload or submission.
+
+After any further source commit, rerun the exact-head release gates and rebuild
+the ZIPs to include the latest Gate F receipt. The ignored Gate E/F/G JSON
+receipts under `results/analysis/` are the evidence for the current source head.
