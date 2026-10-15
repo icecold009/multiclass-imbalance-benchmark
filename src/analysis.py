@@ -1,4 +1,4 @@
-"""Gate D validation and internally frozen analysis for the locked benchmark."""
+"""Gate D validation and locked analysis, with a separate portable replay path."""
 
 from __future__ import annotations
 
@@ -1069,28 +1069,46 @@ def run_analysis(
     root: Path,
     run_dir: Path,
     output_dir: Path,
+    *,
+    aggregate_validation: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """Run Gate D, aggregation, confirmatory tests, effects, and figures."""
+    """Run the locked analysis after full Gate D or portable aggregate validation."""
 
     output_dir.mkdir(parents=True, exist_ok=True)
-    gate_d_path = output_dir / "gate-d-review.json"
-    gate_d = verify_gate_d(root, run_dir, gate_d_path)
+    if aggregate_validation is None:
+        gate_d_path: Path | None = output_dir / "gate-d-review.json"
+        gate_d = verify_gate_d(root, run_dir, gate_d_path)
+        dataset_ids = gate_d["dataset_ids"]
+        counts = gate_d["counts"]
+    else:
+        if (
+            aggregate_validation.get("schema_version") != "publication-aggregate-evidence-v1"
+            or aggregate_validation.get("status") != "passed"
+        ):
+            raise RuntimeError("portable aggregate evidence has not passed validation")
+        gate_d_path = None
+        gate_d = None
+        dataset_ids = aggregate_validation.get("dataset_ids")
+        counts = aggregate_validation.get("counts")
+        if not isinstance(dataset_ids, list) or not isinstance(counts, dict):
+            raise RuntimeError("portable aggregate validation has incomplete analysis context")
     results = pd.read_csv(run_dir / "benchmark_results.csv")
     failures = pd.read_csv(run_dir / "benchmark_failures.csv")
-    if len(results) != int(gate_d["counts"]["valid_cells"]):
-        raise RuntimeError("raw valid records disagree with the Gate D manifest")
-    if len(failures) != int(gate_d["counts"]["failure_cells"]):
-        raise RuntimeError("raw failure records disagree with the Gate D manifest")
+    validation_label = "Gate D manifest" if aggregate_validation is None else "portable receipt"
+    if len(results) != int(counts["valid_cells"]):
+        raise RuntimeError(f"raw valid records disagree with the {validation_label}")
+    if len(failures) != int(counts["failure_cells"]):
+        raise RuntimeError(f"raw failure records disagree with the {validation_label}")
     failure_accounting, failure_reasons = _failure_accounting(
         results,
         failures,
-        int(gate_d["counts"]["expected_cells"]),
+        int(counts["expected_cells"]),
     )
     cell_means, class_means = load_cell_means(results)
     efficiency = load_efficiency_means(results)
     deltas, class_deltas = build_baseline_deltas(cell_means, class_means)
     friedman, nemenyi, comparisons = _run_confirmatory_tests(cell_means)
-    moderators = _moderators(root, gate_d["dataset_ids"])
+    moderators = _moderators(root, dataset_ids)
     class_summary = _classwise_descriptive(class_deltas)
     figure_coverage = _macro_f1_figure_coverage(cell_means)
     permutation_sensitivity, sign_flip_sensitivity = _primary_sensitivity(cell_means)
@@ -1127,7 +1145,6 @@ def run_analysis(
         output_dir / "figures",
     )
     artifact_paths = [
-        gate_d_path,
         output_dir / "cell_means.csv",
         output_dir / "class_means.csv",
         output_dir / "baseline_deltas.csv",
@@ -1147,6 +1164,8 @@ def run_analysis(
         output_dir / "adasyn_excluded_pairwise.csv",
         output_dir / "adasyn_excluded_imbalance_descriptive.csv",
     ]
+    if gate_d_path is not None:
+        artifact_paths.insert(0, gate_d_path)
     artifact_refs = {_relative_path(path, root): _reference(path, root) for path in artifact_paths}
     for figure in figures:
         if figure["status"] == "generated":
@@ -1170,7 +1189,7 @@ def run_analysis(
         "analysis_runtime": _analysis_runtime(),
         "gate_d": gate_d,
         "input_run_manifest": _reference(run_dir / "benchmark_manifest.json", root),
-        "dataset_ids": gate_d["dataset_ids"],
+        "dataset_ids": dataset_ids,
         "cell_mean_count": len(cell_means),
         "class_mean_count": len(class_means),
         "baseline_delta_count": len(deltas),
@@ -1255,6 +1274,16 @@ def run_analysis(
         "figures": figures,
         "artifacts": artifact_refs,
     }
+    if aggregate_validation is not None:
+        manifest.pop("gate_d")
+        manifest["schema_version"] = "analysis-portable-replay-v1"
+        manifest["validation_scope"] = "aggregate_only"
+        manifest["portable_evidence_validation"] = {
+            "schema_version": aggregate_validation["schema_version"],
+            "status": aggregate_validation["status"],
+            "counts": aggregate_validation["counts"],
+            "not_checked": aggregate_validation["not_checked"],
+        }
     _write_json_atomic(output_dir / "analysis_manifest.json", manifest)
     return manifest
 
