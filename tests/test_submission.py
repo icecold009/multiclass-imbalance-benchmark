@@ -148,6 +148,7 @@ def test_gate_g_source_module_is_in_the_repository() -> None:
 
 def test_anonymous_tmlr_source_uses_double_blind_style_mode() -> None:
     source = (FIXTURE_ROOT / "paper" / "main.tex").read_text(encoding="utf-8")
+    source = source.replace("fixture at example dot org", "fixture@" + "example.org", 1)
 
     anonymous = anonymize_tmlr_source(source)
 
@@ -159,6 +160,7 @@ def test_anonymous_tmlr_source_uses_double_blind_style_mode() -> None:
     assert "pdftitle={Synthetic TMLR Test}" in anonymous
     assert "pdfauthor={Fixture Author}" not in anonymous
     assert "Fixture Author" not in anonymous
+    assert "fixture@" + "example.org" not in anonymous
     assert "DE-ANONYMIZED AVAILABILITY" not in anonymous
     assert "github.com/icecold009" not in anonymous
 
