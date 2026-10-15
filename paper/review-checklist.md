@@ -199,8 +199,14 @@ review items.
       [OpenReview says its service is intended for adults at least 18](https://openreview.net/legal/privacy).
       [arXiv requires registered authors, may require endorsement for a first
       submission or new category, and requires an irrevocable distribution
-      license](https://info.arxiv.org/help/submit/index.html). These rules are
-      verified; account- and author-specific requirements remain unchecked.
+      license](https://info.arxiv.org/help/submit/index.html); its [submission
+      agreement requires the submitter to represent full authority and grants
+      arXiv a perpetual, irrevocable license](https://info.arxiv.org/help/policies/submission_agreement.html).
+      The [arXiv third-party policy requires advance approval for proxy
+      submissions](https://info.arxiv.org/help/third_party_submission.html).
+      The reviewed public arXiv rules do not specify minor eligibility. These
+      rules are verified; account- and author-specific requirements remain
+      unchecked.
 - [ ] Confirm from the source owners and, where applicable, an institution or
       qualified ethics adviser whether secondary use of the CMC and Dermatology
       records is appropriate, including the CMC respondents below 18. No
@@ -211,15 +217,33 @@ review items.
       the current checkout and must be corrected and approved before any email.
 - [ ] The author must confirm the complete author list, affiliation and public
       profile details, contact, AI-use statement, funding, conflicts, and
-      applicable ethics disclosures from actual records.
-- [ ] Confirm the author's age before creating or using an OpenReview account.
-      If the author is under 18, obtain written eligibility guidance before
-      pursuing a TMLR/OpenReview route.
-- [ ] Select the venue route. For TMLR, the author must accept the CC BY 4.0
-      terms and public-review/archive consequences. For arXiv, account,
-      endorsement, category, licence, metadata, and the account-generated
-      compilation preview remain to be checked. Creating that preview requires
-      uploading the manuscript to arXiv; no upload has occurred.
+      applicable ethics disclosures from actual records. The author reports
+      being under 18, selected both TMLR and arXiv as intended routes, and
+      described the manuscript as independently written, while also reporting
+      AI use with its details not recorded. The remaining author and disclosure
+      records are unknown; the scope and nature of AI assistance must be
+      reconciled with that description.
+- [ ] Resolve minor eligibility before either route. OpenReview says its
+      service is intended for adults aged 18 or older; obtain written guidance
+      from TMLR/OpenReview before creating or using an account. arXiv's reviewed
+      public rules do not state an age threshold, while its agreement requires
+      the submitter to attest to full authority and grants a perpetual,
+      irrevocable distribution licence; get written eligibility and authority
+      guidance from arXiv before account creation or submission. No account has
+      been created or used for this check.
+- [x] The author selected both arXiv and TMLR as intended routes. TMLR permits
+      arXiv or other preprints, provided the anonymous TMLR submission does not
+      link to an identified version; route compatibility is documented, but
+      eligibility and all author-specific checks remain open. For TMLR, the
+      author must accept CC BY 4.0 and public-review/archive consequences. For
+      arXiv, account, endorsement, category, licence, and metadata checks remain
+      open. The account-generated compilation preview requires upload; no
+      manuscript or package has been uploaded to arXiv or TMLR.
+- [ ] Record which AI/LLM tools were used, when, and for what tasks; check
+      whether they affected research, analysis, editing, or paper content.
+      TMLR's [current FAQ](https://www.jmlr.org/tmlr/faq.html) requires a
+      first-page footnote disclosing LLM use. The reported use and “independently
+      written” description must be reconciled before producing final PDFs.
 - [ ] The author must inspect and approve the exact named and anonymous PDFs,
       source/supplement ZIPs, metadata, and current verification receipts before
       any external upload or submission.
