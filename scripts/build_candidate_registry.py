@@ -439,8 +439,8 @@ def main() -> None:
     parser.add_argument("--raw-dir", type=Path, default=ROOT / "data/raw")
     parser.add_argument(
         "--base-ref",
-        default="70ba5ae06b1709d1f703fce3d0d0b277656f81bd",
-        help="Git ref containing the seven-row pre-expansion tables",
+        required=True,
+        help="Git ref containing the seven-row pre-expansion tables (must be supplied explicitly)",
     )
     args = parser.parse_args()
     build(args.registry, args.manifest, args.raw_dir, args.base_ref)
