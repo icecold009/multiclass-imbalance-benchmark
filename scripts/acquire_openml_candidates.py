@@ -9,6 +9,7 @@ decisions are recorded separately in the dataset registry.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 from dataclasses import asdict, dataclass
 from pathlib import Path
@@ -23,6 +24,8 @@ class Candidate:
     filename: str
     expected_target: str
     drop_columns: tuple[str, ...] = ()
+    expected_source_version: int | None = None
+    expected_sha256: str | None = None
 
 
 CANDIDATES: tuple[Candidate, ...] = (
@@ -44,7 +47,80 @@ CANDIDATES: tuple[Candidate, ...] = (
     Candidate("seeds", 1499, "seeds.csv", "Class"),
     Candidate("splice", 46, "splice.csv", "Class", ("Instance_name",)),
     Candidate("wine_quality_red", 40691, "wine_quality_red.csv", "class"),
+    Candidate(
+        "cmc",
+        23,
+        "cmc.csv",
+        "Contraceptive_method_used",
+        expected_source_version=1,
+        expected_sha256="0a42de56db54f5e51830227dfc3efa2bee3120f2634dc623ed99dad0459ec5b3",
+    ),
+    Candidate(
+        "glass",
+        41,
+        "glass.csv",
+        "Type",
+        drop_columns=("Id_number",),
+        expected_source_version=1,
+        expected_sha256="bb06702a7c96a667a0781150e3a70d5b3080a976cdccd7c7f242f78e23a7ad11",
+    ),
+    Candidate(
+        "yeast",
+        181,
+        "yeast.csv",
+        "class_protein_localization",
+        drop_columns=("Sequence_Name",),
+        expected_source_version=1,
+        expected_sha256="743448d2ba31e10b538cf10ef03b03c6b04222ad6e32c4873ba0b07d252dcdc0",
+    ),
 )
+
+
+def _sha256(data: bytes) -> str:
+    return hashlib.sha256(data).hexdigest()
+
+
+def verify_local_materializations(
+    output_dir: Path, selected: set[str] | None = None
+) -> list[dict[str, str]]:
+    """Verify recorded CMC, Glass, and Yeast CSV hashes without network access."""
+
+    hash_pinned_ids = {
+        candidate.dataset_id for candidate in CANDIDATES if candidate.expected_sha256 is not None
+    }
+    if selected is not None:
+        unsupported = selected.difference(hash_pinned_ids)
+        if unsupported:
+            raise ValueError(
+                "local hash verification is available only for hash-pinned datasets: "
+                f"{', '.join(sorted(unsupported))}"
+            )
+    records: list[dict[str, str]] = []
+    for candidate in CANDIDATES:
+        if candidate.expected_sha256 is None:
+            continue
+        if selected is not None and candidate.dataset_id not in selected:
+            continue
+        path = output_dir / candidate.filename
+        if not path.is_file():
+            raise FileNotFoundError(f"{candidate.dataset_id}: materialized CSV is missing: {path}")
+        actual_sha256 = _sha256(path.read_bytes())
+        if actual_sha256 != candidate.expected_sha256:
+            raise ValueError(
+                f"{candidate.dataset_id}: CSV hash mismatch; expected "
+                f"{candidate.expected_sha256}, got {actual_sha256}"
+            )
+        records.append(
+            {
+                "dataset_id": candidate.dataset_id,
+                "path": str(path),
+                "sha256": actual_sha256,
+                "status": "verified_local_materialization",
+            }
+        )
+    if not records:
+        raise ValueError("no hash-pinned local materializations were selected for verification")
+    return records
 
 
 def acquire(output_dir: Path, selected: set[str] | None = None) -> list[dict[str, object]]:
@@ -67,22 +143,47 @@ def acquire(output_dir: Path, selected: set[str] | None = None) -> list[dict[str
                 f"{candidate.dataset_id}: expected target {candidate.expected_target!r}, "
                 f"received {target!r}"
             )
+        source_version = dataset.details.get("version")
+        if (
+            candidate.expected_source_version is not None
+            and str(source_version) != str(candidate.expected_source_version)
+        ):
+            raise ValueError(
+                f"{candidate.dataset_id}: expected OpenML version "
+                f"{candidate.expected_source_version}, received {source_version!r}"
+            )
         present_drop_columns = [
             column for column in candidate.drop_columns if column in frame.columns
         ]
         frame = frame.drop(columns=present_drop_columns)
         output_path = output_dir / candidate.filename
-        frame.to_csv(output_path, index=False)
+        csv_bytes = frame.to_csv(index=False).encode("utf-8")
+        actual_sha256 = _sha256(csv_bytes)
+        if candidate.expected_sha256 is not None and actual_sha256 != candidate.expected_sha256:
+            raise ValueError(
+                f"{candidate.dataset_id}: materialized CSV hash mismatch; expected "
+                f"{candidate.expected_sha256}, got {actual_sha256}"
+            )
+        if candidate.expected_sha256 is not None and output_path.exists():
+            existing_sha256 = _sha256(output_path.read_bytes())
+            if existing_sha256 != candidate.expected_sha256:
+                raise FileExistsError(
+                    f"{candidate.dataset_id}: refusing to overwrite existing CSV with "
+                    f"unexpected hash {existing_sha256}"
+                )
+        else:
+            output_path.write_bytes(csv_bytes)
         records.append(
             {
                 **asdict(candidate),
                 "target": target,
                 "source_name": dataset.details.get("name"),
-                "source_version": dataset.details.get("version"),
+                "source_version": source_version,
                 "source_url": dataset.details.get("url"),
                 "source_license": dataset.details.get("licence"),
                 "dropped_columns": present_drop_columns,
                 "shape": list(frame.shape),
+                "sha256": actual_sha256,
                 "path": str(output_path),
             }
         )
@@ -93,6 +194,11 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output-dir", type=Path, default=Path("data/raw"))
     parser.add_argument("--dataset-id", action="append", dest="dataset_ids")
+    parser.add_argument(
+        "--verify-local",
+        action="store_true",
+        help="verify recorded local CMC, Glass, and Yeast CSV hashes without network access",
+    )
     args = parser.parse_args()
     selected = set(args.dataset_ids) if args.dataset_ids else None
     unknown = (
@@ -102,7 +208,11 @@ def main() -> None:
     )
     if unknown:
         parser.error(f"unknown dataset id(s): {', '.join(sorted(unknown))}")
-    print(json.dumps(acquire(args.output_dir, selected), indent=2, sort_keys=True))
+    if args.verify_local:
+        result = verify_local_materializations(args.output_dir, selected)
+    else:
+        result = acquire(args.output_dir, selected)
+    print(json.dumps(result, indent=2, sort_keys=True))
 
 
 if __name__ == "__main__":

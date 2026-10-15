@@ -30,30 +30,56 @@ LOCAL_USER_PATH_PATTERN = re.compile(
 )
 
 TMLR_SOURCE_FILES = (
+    "pyproject.toml",
     "config/stage0.yaml",
+    "config/v2.yaml",
     "data/acquisition_manifest.csv",
     "data/dataset_feature_overrides.csv",
     "data/dataset_registry.csv",
     "docs/data-acquisition.md",
     "docs/analysis-implementation-note.md",
+    "docs/analysis-plan-v2.md",
+    "docs/duplicate-profile-policy.md",
+    "docs/duplicate-profile-sensitivity-results.md",
     "docs/environment.md",
     "docs/protocol-status.md",
+    "docs/protocol-v2.md",
     "docs/protocol.md",
+    "docs/release.md",
     "docs/reproducibility.md",
     "docs/stage-0-feasibility.md",
     "docs/stage-0-runbook.md",
     "requirements.txt",
+    "requirements-analysis.in",
+    "requirements-analysis.lock",
+    "requirements-v2.lock",
+    "requirements-v2.txt",
+    "scripts/bootstrap.ps1",
     "scripts/build_release_artifacts.py",
+    "scripts/acquire_openml_candidates.py",
+    "scripts/audit_duplicate_profiles.py",
+    "scripts/build_candidate_registry.py",
+    "scripts/record_environment.ps1",
+    "scripts/build_pilot_review.py",
+    "scripts/replay_publication_analysis.py",
+    "scripts/run_duplicate_profile_sensitivity.py",
+    "scripts/run_benchmark.py",
     "scripts/run_analysis.py",
     "scripts/verify_gate_d.py",
     "scripts/verify_gate_e.py",
     "scripts/verify_gate_f.py",
     "scripts/verify_gate_g.py",
+    "scripts/verify_gate_c.py",
+    "scripts/verify_setup.ps1",
     "requirements-release.txt",
     "src/analysis.py",
     "src/benchmark.py",
+    "src/__init__.py",
+    "src/duplicate_profiles.py",
+    "src/duplicate_profile_sensitivity.py",
     "src/pilot.py",
     "src/posthoc_sensitivity.py",
+    "src/publication_evidence.py",
     "src/release_artifacts.py",
     "src/reproducibility.py",
     "src/robustness.py",
@@ -61,15 +87,30 @@ TMLR_SOURCE_FILES = (
     "src/stage0.py",
     "src/stats.py",
     "src/submission.py",
+    "src/v2_engineering.py",
+    "tests/fixtures/historical-v2/README.md",
+    "tests/fixtures/historical-v2/dataset_registry_v2.csv",
+    "tests/fixtures/submission/paper/main.tex",
+    "tests/fixtures/submission/paper/tmlr.sty",
+    "tests/fixtures/submission/paper/tmlr.bst",
+    "tests/fixtures/submission/paper/fancyhdr.sty",
     "tests/test_analysis.py",
+    "tests/test_acquire_openml_candidates.py",
     "tests/test_benchmark.py",
+    "tests/test_duplicate_profiles.py",
+    "tests/test_duplicate_profile_sensitivity.py",
     "tests/test_pilot.py",
     "tests/test_posthoc_sensitivity.py",
+    "tests/test_publication_evidence.py",
     "tests/test_reproducibility.py",
     "tests/test_robustness.py",
     "tests/test_stage0.py",
     "tests/test_stats.py",
     "tests/test_submission.py",
+    "tests/test_v2_config.py",
+    "tests/test_v2_engineering.py",
+    "paper/README.md",
+    "paper/review-checklist.md",
 )
 TMLR_PAPER_SUPPORT_FILES = (
     "paper/references.bib",
@@ -77,6 +118,9 @@ TMLR_PAPER_SUPPORT_FILES = (
     "paper/tmlr.sty",
     "paper/tmlr.bst",
     "paper/fancyhdr.sty",
+)
+PUBLICATION_EVIDENCE_FILES = tuple(
+    dict.fromkeys((*TMLR_SOURCE_FILES, *TMLR_PAPER_SUPPORT_FILES))
 )
 TMLR_IDENTITY_SCAN_EXEMPT_FILES = frozenset(
     {"paper/tmlr.sty", "paper/tmlr.bst", "paper/fancyhdr.sty"}
@@ -137,14 +181,23 @@ def anonymize_tmlr_source(source: str) -> str:
     if acknowledgment_count != 1:
         raise RuntimeError("paper source no longer has the expected acknowledgments section")
 
-    metadata = r"\hypersetup{hidelinks}"
-    anonymous_metadata = (
-        r"\hypersetup{hidelinks,pdfauthor={Anonymous},pdfcreator={},"
-        r"pdftitle={An Auditable Benchmark of Imbalance Handling for Multiclass Tabular Classification}}"
+    metadata = re.compile(
+        r"\\hypersetup\{hidelinks,pdftitle=\{([^{}]+)\},pdfauthor=\{[^{}]*\}\}"
     )
-    if anonymous.count(metadata) != 1:
-        raise RuntimeError("paper source no longer has the expected PDF metadata declaration")
-    anonymous = anonymous.replace(metadata, anonymous_metadata, 1)
+
+    def anonymous_metadata(match: re.Match[str]) -> str:
+        title = match.group(1)
+        return (
+            r"\hypersetup{hidelinks,pdfauthor={Anonymous},pdfcreator={},pdftitle={"
+            + title
+            + "}}"
+        )
+
+    anonymous, metadata_count = metadata.subn(anonymous_metadata, anonymous, count=1)
+    if metadata_count != 1:
+        raise RuntimeError(
+            "paper source no longer has the expected named PDF metadata declaration"
+        )
 
     if re.search(r"(?m)^\\author\s*\{", anonymous):
         raise RuntimeError("anonymous paper source still declares an author")
@@ -565,10 +618,13 @@ def _anonymous_readme() -> bytes:
         b"conditions from applicable failures. `adasyn_excluded_friedman.csv`, "
         b"`adasyn_excluded_pairwise.csv`, and "
         b"`adasyn_excluded_imbalance_descriptive.csv` report the post hoc macro-F1 "
-        b"sensitivity, exact follow-ups, and descriptive imbalance strata.\n\n"
+        b"sensitivity, exact follow-ups, and descriptive imbalance strata. A separate, "
+        b"post hoc grouped-profile model run and its split assignments, results, failures, "
+        b"summaries, and manifest are under `results/duplicate-profile-sensitivity/`.\n\n"
         b"Install the packages in `requirements.txt`, then follow `docs/reproducibility.md` "
         b"to regenerate the analysis from the supplied frozen result records; this does not "
-        b"rerun model training. A fresh benchmark run requires separately obtaining the listed "
+        b"rerun the original row-wise model training. The grouped-profile sensitivity is a "
+        b"separate model run. A fresh benchmark run requires separately obtaining the listed "
         b"public datasets and following `docs/stage-0-runbook.md`. In repository records, "
         b"Stage 0 means the pre-run feasibility and scope audit; Gate D accounts for raw "
         b"records, Gate E replays and validates the analysis, Gate F checks reproduction "
@@ -706,6 +762,65 @@ def _json_bytes(payload: dict[str, Any]) -> bytes:
     return (json.dumps(payload, indent=2, sort_keys=True) + "\n").encode("utf-8")
 
 
+def _duplicate_profile_sensitivity_entries(root: Path) -> dict[str, bytes]:
+    """Read a complete, hash-verified grouped-profile sensitivity output set."""
+
+    directory_name = "results/duplicate-profile-sensitivity"
+    directory = (root / directory_name).resolve()
+    manifest_relative = f"{directory_name}/sensitivity_manifest.json"
+    manifest_bytes = _read_required(root, manifest_relative)
+    try:
+        manifest = json.loads(manifest_bytes)
+    except json.JSONDecodeError as error:
+        raise RuntimeError("duplicate-profile sensitivity manifest is not valid JSON") from error
+    if not isinstance(manifest, dict) or manifest.get("status") != "complete":
+        raise RuntimeError("duplicate-profile sensitivity run is not complete")
+    outputs = manifest.get("outputs")
+    if not isinstance(outputs, dict) or not outputs:
+        raise RuntimeError("duplicate-profile sensitivity manifest has no output hashes")
+
+    actual_files = {
+        path.relative_to(directory).as_posix()
+        for path in directory.rglob("*")
+        if path.is_file()
+        and path.relative_to(directory).as_posix() != "sensitivity_manifest.json"
+    }
+    if actual_files != set(outputs):
+        missing = sorted(set(outputs) - actual_files)
+        unlisted = sorted(actual_files - set(outputs))
+        raise RuntimeError(
+            "duplicate-profile sensitivity output inventory differs from its manifest: "
+            f"missing={missing}, unlisted={unlisted}"
+        )
+
+    entries = {manifest_relative: manifest_bytes}
+    for relative, expected_digest in sorted(outputs.items()):
+        if (
+            not isinstance(relative, str)
+            or "\\" in relative
+            or ":" in relative
+            or PurePosixPath(relative).is_absolute()
+            or PureWindowsPath(relative).is_absolute()
+            or ".." in PurePosixPath(relative).parts
+            or not isinstance(expected_digest, str)
+        ):
+            raise RuntimeError("duplicate-profile sensitivity manifest has an unsafe output path")
+        candidate = (directory / Path(*PurePosixPath(relative).parts)).resolve()
+        try:
+            candidate.relative_to(directory)
+        except ValueError as error:
+            raise RuntimeError(
+                f"duplicate-profile sensitivity output escapes its directory: {relative}"
+            ) from error
+        if not candidate.is_file():
+            raise RuntimeError(f"duplicate-profile sensitivity output is missing: {relative}")
+        content = candidate.read_bytes()
+        if _sha256(content) != expected_digest:
+            raise RuntimeError(f"duplicate-profile sensitivity hash mismatch: {relative}")
+        entries[f"{directory_name}/{PurePosixPath(relative).as_posix()}"] = content
+    return entries
+
+
 def _supplement_entries(
     root: Path,
     anonymous_source: str,
@@ -720,7 +835,15 @@ def _supplement_entries(
         "paper/main.tex": anonymous_source.encode("utf-8"),
         "paper/main.pdf": anonymous_pdf,
     }
-    for relative in (*TMLR_SOURCE_FILES, *TMLR_PAPER_SUPPORT_FILES):
+    missing_inventory_files = [
+        relative for relative in PUBLICATION_EVIDENCE_FILES if not (root / relative).is_file()
+    ]
+    if missing_inventory_files:
+        raise RuntimeError(
+            "publication evidence inventory has missing files: "
+            f"{missing_inventory_files}"
+        )
+    for relative in PUBLICATION_EVIDENCE_FILES:
         entries[relative] = _read_required(root, relative)
     _validate_tmlr_styles(entries)
 
@@ -770,6 +893,8 @@ def _supplement_entries(
     entries[gate_f_name] = _json_bytes(gate_f_payload)
     for path in sorted((analysis_dir / "figures").glob("*.png")):
         entries[path.relative_to(root).as_posix()] = path.read_bytes()
+
+    entries.update(_duplicate_profile_sensitivity_entries(root))
 
     for name, content in entries.items():
         if name in TMLR_IDENTITY_SCAN_EXEMPT_FILES:
@@ -827,6 +952,7 @@ def _source_release_entries(
         for path in sorted(directory.rglob("*")):
             if path.is_file() and path.name != "gate-g-review.json":
                 entries[path.relative_to(root).as_posix()] = path.read_bytes()
+    entries.update(_duplicate_profile_sensitivity_entries(root))
     entries["paper/main.pdf"] = _read_required(root, "paper/main.pdf")
     entries["results/analysis/gate-f-review.json"] = _json_bytes(
         _gate_f_review_for_source(root, source_commit, source_tree_clean)

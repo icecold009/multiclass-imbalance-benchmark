@@ -11,6 +11,7 @@ from pypdf.generic import DecodedStreamObject, DictionaryObject, EncodedStreamOb
 
 from src.release_artifacts import (
     TMLR_SOURCE_FILES,
+    _duplicate_profile_sensitivity_entries,
     _gate_f_review_for_source,
     _redact_git_revision_fields,
     _replace_hash_references,
@@ -25,6 +26,8 @@ from src.release_artifacts import (
 )
 from src.submission import REQUIRED_RELEASE_FILES, _tracked_digest, _validate_publication_artifacts
 
+FIXTURE_ROOT = Path(__file__).parent / "fixtures" / "submission"
+
 
 @pytest.mark.parametrize("matching_commit", [True, False])
 def test_expected_source_release_entries_bind_gate_f_to_current_commit(
@@ -38,6 +41,21 @@ def test_expected_source_release_entries_bind_gate_f_to_current_commit(
     analysis_dir.mkdir(parents=True)
     (analysis_dir / "gate-f-review.json").write_text(
         json.dumps({"status": "passed", "git_head": commit if matching_commit else "b" * 40}),
+        encoding="utf-8",
+    )
+    sensitivity_dir = tmp_path / "results/duplicate-profile-sensitivity"
+    sensitivity_dir.mkdir(parents=True)
+    sensitivity_output = b"dataset,score\ncmc,0.5\n"
+    (sensitivity_dir / "grouped_results.csv").write_bytes(sensitivity_output)
+    (sensitivity_dir / "sensitivity_manifest.json").write_text(
+        json.dumps(
+            {
+                "status": "complete",
+                "outputs": {
+                    "grouped_results.csv": hashlib.sha256(sensitivity_output).hexdigest()
+                },
+            }
+        ),
         encoding="utf-8",
     )
     monkeypatch.setattr(
@@ -57,8 +75,8 @@ def test_expected_source_release_entries_bind_gate_f_to_current_commit(
 
 def _official_tmlr_styles() -> dict[str, bytes]:
     return {
-        relative: Path(relative).read_bytes()
-        for relative in ("paper/tmlr.sty", "paper/tmlr.bst", "paper/fancyhdr.sty")
+        f"paper/{name}": (FIXTURE_ROOT / "paper" / name).read_bytes()
+        for name in ("tmlr.sty", "tmlr.bst", "fancyhdr.sty")
     }
 
 
@@ -114,10 +132,22 @@ def test_gate_g_source_module_is_in_the_repository() -> None:
     assert "docs/analysis-implementation-note.md" in TMLR_SOURCE_FILES
     assert "requirements-release.txt" in REQUIRED_RELEASE_FILES
     assert "requirements-release.txt" in TMLR_SOURCE_FILES
+    assert "requirements-analysis.lock" in TMLR_SOURCE_FILES
+    assert "src/publication_evidence.py" in TMLR_SOURCE_FILES
+    assert "scripts/replay_publication_analysis.py" in TMLR_SOURCE_FILES
+    assert "docs/duplicate-profile-policy.md" in TMLR_SOURCE_FILES
+    assert "docs/duplicate-profile-sensitivity-results.md" in TMLR_SOURCE_FILES
+    assert "scripts/run_duplicate_profile_sensitivity.py" in TMLR_SOURCE_FILES
+    assert "src/duplicate_profile_sensitivity.py" in TMLR_SOURCE_FILES
+    assert "tests/test_duplicate_profile_sensitivity.py" in TMLR_SOURCE_FILES
+    assert "tests/fixtures/historical-v2/dataset_registry_v2.csv" in TMLR_SOURCE_FILES
+    assert "tests/fixtures/submission/paper/main.tex" in TMLR_SOURCE_FILES
+    assert not any(name.startswith(("data/raw/", "results/")) for name in TMLR_SOURCE_FILES)
+    assert all(Path(name).is_file() for name in TMLR_SOURCE_FILES)
 
 
 def test_anonymous_tmlr_source_uses_double_blind_style_mode() -> None:
-    source = Path("paper/main.tex").read_text(encoding="utf-8")
+    source = (FIXTURE_ROOT / "paper" / "main.tex").read_text(encoding="utf-8")
 
     anonymous = anonymize_tmlr_source(source)
 
@@ -126,12 +156,34 @@ def test_anonymous_tmlr_source_uses_double_blind_style_mode() -> None:
     assert r"\author{" not in anonymous
     assert "Acknowledgments" not in anonymous
     assert "pdfauthor={Anonymous}" in anonymous
-    assert (
-        "pdftitle={An Auditable Benchmark of Imbalance Handling for Multiclass Tabular Classification}"
-        in anonymous
-    )
+    assert "pdftitle={Synthetic TMLR Test}" in anonymous
+    assert "pdfauthor={Fixture Author}" not in anonymous
+    assert "Fixture Author" not in anonymous
     assert "DE-ANONYMIZED AVAILABILITY" not in anonymous
     assert "github.com/icecold009" not in anonymous
+
+
+def test_duplicate_profile_sensitivity_package_entries_verify_manifest_hashes(tmp_path) -> None:
+    output_dir = tmp_path / "results" / "duplicate-profile-sensitivity"
+    output_dir.mkdir(parents=True)
+    output = b"dataset,score\ncmc,0.5\n"
+    (output_dir / "grouped_results.csv").write_bytes(output)
+    manifest = {
+        "status": "complete",
+        "outputs": {"grouped_results.csv": hashlib.sha256(output).hexdigest()},
+    }
+    (output_dir / "sensitivity_manifest.json").write_text(
+        json.dumps(manifest), encoding="utf-8"
+    )
+
+    entries = _duplicate_profile_sensitivity_entries(tmp_path)
+
+    assert entries["results/duplicate-profile-sensitivity/grouped_results.csv"] == output
+    assert "results/duplicate-profile-sensitivity/sensitivity_manifest.json" in entries
+
+    (output_dir / "grouped_results.csv").write_bytes(output + b"stale")
+    with pytest.raises(RuntimeError, match="hash mismatch"):
+        _duplicate_profile_sensitivity_entries(tmp_path)
 
 
 def test_anonymous_evidence_redacts_revision_and_rebinds_manifest_hashes() -> None:
@@ -224,7 +276,7 @@ def test_anonymous_package_manifest_withholds_commit_and_checks_identity(tmp_pat
 
 
 def test_author_identifiers_are_extracted_for_anonymous_artifact_scans() -> None:
-    source = Path("paper/main.tex").read_text(encoding="utf-8")
+    source = (FIXTURE_ROOT / "paper" / "main.tex").read_text(encoding="utf-8")
 
     identifiers = author_identifiers(source)
 

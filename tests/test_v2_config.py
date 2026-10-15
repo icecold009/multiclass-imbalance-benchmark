@@ -83,7 +83,8 @@ def test_v2_registry_schema_is_provenance_ready() -> None:
         "applicable_conditions",
         "notes",
     ]
-    with (ROOT / "data" / "dataset_registry_v2.csv").open(encoding="utf-8", newline="") as handle:
+    fixture = ROOT / "tests" / "fixtures" / "historical-v2" / "dataset_registry_v2.csv"
+    with fixture.open(encoding="utf-8", newline="") as handle:
         header = next(csv.reader(handle))
 
     assert header == expected
