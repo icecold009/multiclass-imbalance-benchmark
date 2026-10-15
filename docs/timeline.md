@@ -11,15 +11,56 @@ to preserve the target date.
 
 ## Live progress
 
-Last updated: 2026-10-09
+Last updated: 2026-10-15
 
-The status table below records the earlier V1 milestone. A correction pass on
-2026-10-09 updated the analysis, manuscript, and release tooling; Gate E
+The original Stage 0 rows below record earlier milestones. A correction pass
+on 2026-10-09 updated the analysis, manuscript, and release tooling; Gate E
 replayed successfully in fresh processes, and the named and anonymous PDFs
-were recompiled and visually checked. The local packages are uncommitted
-previews. Exact-clean-commit Gate F/G checks remain pending, and the author
-must review the current PDFs. Historical `[x]` labels below do not imply that
-those release gates have passed for the corrected revision.
+were recompiled and visually checked. The October 14 packages remain local,
+uncommitted candidates. Exact-clean-commit Gate F/G checks and author review
+remain pending; historical `[x]` labels do not imply that those gates passed
+for the corrected revision.
+
+On 2026-10-14, Package 3 rebuilt an uncommitted validation preview from the
+explicit 82-file publication-evidence inventory. Its 188 ZIP members passed
+manifest hash checks; the fresh extraction passed the 108-test suite, Ruff, and
+Python compilation. Two portable replay processes regenerated 18 tables and 8
+figures, with all 26 artifacts byte-identical to the frozen analysis and to each
+other. The original V1 ZIPs and frozen benchmark/analysis outputs remain
+unchanged. The retained-dataset acquisition script now supports hash-pinned
+CMC, Glass, and Yeast, but the attempted online fetch was incomplete: CMC
+materialized with its expected hash (possibly from the local cache), Glass
+stalled before output, and Yeast was not reached. Offline verification of all
+three existing local files passed. The rebuilt release candidates and exact
+clean-commit Gate F/G checks remain for Package 6.
+
+Package 4 completed the duplicate-profile grouped-CV sensitivity for the six
+affected datasets. The 90 planned splits were feasible, and all 2,970 model
+keys are accounted for as 2,295 valid results, 540 unsupported combinations,
+and 135 ADASYN failures. An independent read-only review verified split
+assignments, zero profile overlap, all 21 output hashes, and the reported
+descriptive comparisons.
+
+Package 5 reconciled the manuscript and documentation with that sensitivity,
+the endpoint RSS and timer implementation, and the available environment
+records. It distinguishes the paper's G-mean from TILBench's definition,
+corrects the Branco bibliography record, removes an unused misattributed
+entry, and sets named PDF metadata while preserving anonymous exports. The
+evidence package builder now includes hash-verified grouped-sensitivity
+outputs. The canonical manuscript, citations, metadata, and documentation
+changes passed the full test suite, Ruff, Python compilation, and diff checks;
+the source-claim review found no unresolved factual mismatch. Package 6
+rebuilt both candidates and fixed a newly exposed overfull manuscript line.
+
+On 2026-10-15, the review checklist was reconciled so the V1/TMLR items are
+clearly historical and the current author, oversight, environment, clean-commit,
+human-review, arXiv, and venue gates are explicit. Official UCI descriptions
+were checked for CMC and Dermatology; they describe the source records but do
+not establish consent or oversight for this secondary analysis. Both evidence
+ZIPs were rebuilt with the checklist update. Their manifests, per-file hashes,
+and CRCs passed; fresh extractions each passed 114 tests and two independent
+replays of 18 tables and 8 figures. Tests ran in the matching repository
+environment because the fresh-install attempt remains blocked by PyPI DNS.
 
 The critical-path table below is the forecast. The task-status table is the
 current execution source of truth and must be updated whenever a task is
@@ -45,6 +86,12 @@ Status markers: `[x]` complete, `[>]` current, `[!]` blocked, `[ ]` pending.
 | PAPER-01 | Write and review the paper against generated evidence. | [x] Complete | De-anonymized TMLR-formatted V1 release candidate in `paper/main.tex`, references, official style assets, and `paper/review-checklist.md`; all reported results are tied to the frozen analysis package. |
 | REPRO-01 | Reproduce the locked workflow from a clean checkout and archive manifests. | [x] Complete | `scripts/verify_gate_f.py` archives the exact tracked source, runs the full checks in that temporary checkout, and revalidates the frozen Gate E evidence; the ignored payload is `results/analysis/gate-f-review.json`. |
 | SUBMIT-01 | Finalize release materials and preserve the submitted commit snapshot. | [x] Complete | Gate G technical release snapshot: `docs/release.md`, `scripts/verify_gate_g.py`, and ignored `results/analysis/gate-g-review.json`; no external submission is claimed. |
+| PUBREPLAY-01 | Implement and exercise the portable aggregate-only replay route from an unpacked evidence copy with the route files overlaid. | [x] Complete | `src/publication_evidence.py`, `scripts/replay_publication_analysis.py`, and aggregate-validation support in `src/analysis.py`; both V2 evidence ZIPs independently regenerated 18 tables and 8 figures twice, each with 26 byte-identical comparisons. V1 ZIPs remain untouched. |
+| DUPPROFILE-01 | Freeze an evidence-backed duplicate-profile policy and grouped-CV sensitivity design before rerunning models. | [x] Complete | `docs/duplicate-profile-policy.md` records hash-verified counts for all 11 datasets and a predictor-only five-fold/three-seed design for the six affected datasets. `scripts/audit_duplicate_profiles.py` reports 90/90 feasible grouped splits with all classes and zero profile overlap; no sensitivity models were run. |
+| PKG-01 | Repair package completeness, exact analysis dependencies, and retained-dataset acquisition. | [!] Blocked | `src/release_artifacts.py` uses an explicit inventory; Python 3.13.12 instructions and the 41-package lock are included. Both extracted V2 evidence packages passed all 114 tests and two portable replays in the repository environment, whose 41 installed package versions match the lock. Fresh installation could not reach PyPI because DNS resolution is unavailable. Offline source hashes passed; online acquisition remained incomplete (CMC may have used cache; Glass stalled; Yeast not reached). Original V1 packages/results remain unchanged. |
+| DUPSENS-01 | Run the frozen exact-profile grouped-CV sensitivity and compare it descriptively with row-wise V1. | [x] Complete | `docs/duplicate-profile-sensitivity-results.md` records the completed run; the ignored manifest verifies 2,970/2,970 keys and all output hashes. Independent review confirmed 90/90 feasible splits, every class in train/test, and zero profile overlap. No inference or replacement folds were added. |
+| PAPERFIX-01 | Correct manuscript claims, methods, environment disclosure, references, and PDF metadata against the verified evidence. | [x] Complete | Source claims, references, named metadata, grouped-sensitivity findings, timing/RSS wording, and environment limits were reconciled. Full tests, Ruff, Python compilation, and diff checks passed. Earlier bounded Jev diff reviews covered the task-owned implementation files; the October 15 checklist/status delta received a focused Jev plan review. The final aggregate diff request exceeded Jev's 45,000-character limit before transmission. |
+| PKG-06 | Rebuild and validate the arXiv and separate named non-arXiv candidates. | [!] Blocked | Candidates under `output/arxiv/2026-10-14/v2/` and `output/non-arxiv/2026-10-14/v2/` have 13-page PDFs, embedded fonts, fresh source-ZIP rebuilds, validated manifests/exclusions, and page-by-page visual inspection. After the October 15 checklist update, both evidence ZIPs were rebuilt; fresh extractions each passed 114 tests and two replays in the exact-lock-matching environment. Fresh installation is blocked by unavailable PyPI DNS; exact clean-commit Gate F/G and author/human review remain pending. No package was uploaded or submitted. |
 
 ### Update rule
 
