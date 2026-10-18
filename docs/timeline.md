@@ -83,8 +83,10 @@ checks exited successfully. The exact-head artifacts are archived under
 `output/gate-validation/2026-10-18/cb5a3ba/`. A fresh MiKTeX compile was blocked
 by sandbox access to its user registry/cache; Gate G reused the previously
 compiled PDFs after confirming the manuscript TeX had not changed. The
-timeline-only update below requires a final exact-head gate rerun. No upload,
-submission, or publication is claimed.
+subsequent timeline-only commit `e803835` also passed Gates E and F twice on the
+source branch and Gate G twice in an isolated checkout at the exact head; its
+snapshot is archived under `output/gate-validation/2026-10-18/e803835/`. No
+upload, submission, or publication is claimed.
 
 The public TMLR, OpenReview, arXiv, and India Code rules are recorded in the
 paper review checklist. The author reports being under 18 and having used AI
