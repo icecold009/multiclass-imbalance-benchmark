@@ -223,14 +223,31 @@ review items.
       AI use with its details not recorded. The remaining author and disclosure
       records are unknown; the scope and nature of AI assistance must be
       reconciled with that description.
-- [ ] Resolve minor eligibility before either route. OpenReview says its
-      service is intended for adults aged 18 or older; obtain written guidance
-      from TMLR/OpenReview before creating or using an account. arXiv's reviewed
-      public rules do not state an age threshold, while its agreement requires
-      the submitter to attest to full authority and grants a perpetual,
-      irrevocable distribution licence; get written eligibility and authority
-      guidance from arXiv before account creation or submission. No account has
-      been created or used for this check.
+- [ ] Resolve minor eligibility before either route. The current OpenReview
+      [Terms of Use](https://openreview.net/legal/terms) require a user to
+      represent that they are of legal age to form a binding contract; its
+      [Privacy Policy](https://openreview.net/legal/privacy) says the service
+      is intended for adults at least 18. TMLR requires every author to have a
+      complete, active OpenReview profile
+      ([Author Guidelines](https://jmlr.org/tmlr/author-guide.html)). The
+      author reports being under 18, and the [India Code Majority Act](https://www.indiacode.nic.in/bitstream/123456789/2284/1/A1875-09.pdf)
+      states that persons domiciled in India attain majority at 18; the
+      author's domicile is not confirmed. The public rules reviewed do not
+      establish an allowed guardian or alternate-profile process. Do not
+      create/use an OpenReview account or proceed with TMLR
+      until OpenReview and TMLR give written guidance on eligibility.
+
+      The official arXiv submission and proxy pages reviewed do not state an
+      age threshold. Its [submittal agreement](https://info.arxiv.org/help/policies/submission_agreement.html) requires
+      the submitter to be the original author or an arXiv-preapproved proxy,
+      to have full authority to bind all authors and grant the rights, and it
+      grants a perpetual, irrevocable licence. The [proxy policy](https://info.arxiv.org/help/third_party_submission.html) requires
+      potential proxies to contact arXiv in advance. Obtain written guidance
+      from arXiv on minor-author, agreement, and proxy eligibility before
+      account creation or submission. Three policy inquiries are saved as
+      unsent drafts; the arXiv inquiry is prepared for its official
+      [General Help form](https://arxiv.org/support/general_help). No account
+      has been created, and no manuscript or package has been uploaded.
 - [x] The author selected both arXiv and TMLR as intended routes. TMLR permits
       arXiv or other preprints, provided the anonymous TMLR submission does not
       link to an identified version; route compatibility is documented, but
