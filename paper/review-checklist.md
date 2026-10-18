@@ -266,5 +266,8 @@ review items.
       any external upload or submission.
 
 After any further source commit, rerun the exact-head release gates and rebuild
-the ZIPs to include the latest Gate F receipt. The ignored Gate E/F/G JSON
-receipts under `results/analysis/` are the evidence for the current source head.
+the ZIPs to include the latest Gate F receipt. The root Gate E and F receipts
+are under `results/analysis/`. The exact-head Gate G receipt is archived with
+its matching artifacts under `output/gate-validation/`; verify the report's
+`git.head` before treating it as current. The root Gate G receipt may be older
+when preserving an earlier TMLR artifact set.
