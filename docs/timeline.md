@@ -11,7 +11,7 @@ to preserve the target date.
 
 ## Live progress
 
-Last updated: 2026-10-18
+Last updated: 2026-10-20
 
 The original Stage 0 rows below record earlier milestones. A correction pass
 on 2026-10-09 updated the analysis, manuscript, and release tooling. On the
@@ -77,6 +77,20 @@ Python 3.13.12 environment. The pre-existing V2 package artifacts remain
 unchanged. The V3 package provenance correctly points to the manuscript commit;
 later commits only updated release-gate documentation.
 
+On 2026-10-20, the manuscript abstract and first-page AI disclosure were
+updated from the canonical source, and the runtime interpretation was copyedited
+without changing benchmark results. New arXiv, named non-arXiv, and anonymous
+TMLR V3 candidates were generated under the dated `output/.../2026-10-20/v3/`
+directories. Their 176-word abstracts, 18 citations, metadata, PDF text, ZIP
+member hashes, and scientific Results text were checked; all three 12-page
+PDFs and the formal Gate G named and anonymous PDFs passed all-page visual
+review. The existing V2 trees and October 18 candidate artifacts remain
+untouched. Gate E, F, and G passed twice against the final exact feature-branch
+commit in a clean local clone; Gate G records `external_submission: false`.
+These are local candidates only. The author reports being under 18, and written
+route guidance, author and institution records, the complete AI-use history,
+ethics/data authority, and independent human technical review remain pending.
+
 At source commit `cb5a3ba`, Gate E and Gate F passed twice and Gate G passed
 twice in an isolated feature-branch checkout at the same head. The seven Gate F
 checks exited successfully. The exact-head artifacts are archived under
@@ -124,7 +138,7 @@ Status markers: `[x]` complete, `[>]` current, `[!]` blocked, `[ ]` pending.
 | PKG-01 | Repair package completeness, exact analysis dependencies, and retained-dataset acquisition. | [x] Complete | `src/release_artifacts.py` uses an explicit inventory; Python 3.13.12 instructions and the 41-package lock are included. The fresh `output/gate-clean-env-20261015b` environment has no broken requirements and matches all 41 locked versions. CMC, Glass, and Yeast OpenML v1 records have downloaded status and raw sizes/SHA-256 values matching `data/acquisition_manifest.csv`. Both V3 evidence ZIPs were freshly extracted; each passed 114 tests and two portable replays. |
 | DUPSENS-01 | Run the frozen exact-profile grouped-CV sensitivity and compare it descriptively with row-wise V1. | [x] Complete | `docs/duplicate-profile-sensitivity-results.md` records the completed run; the ignored manifest verifies 2,970/2,970 keys and all output hashes. Independent review confirmed 90/90 feasible splits, every class in train/test, and zero profile overlap. No inference or replacement folds were added. |
 | PAPERFIX-01 | Correct manuscript claims, methods, environment disclosure, references, and PDF metadata against the verified evidence. | [x] Complete | Source claims, references, named metadata, grouped-sensitivity findings, timing/RSS wording, and environment limits were reconciled. Full tests, Ruff, Python compilation, and diff checks passed. Earlier bounded Jev diff reviews covered the task-owned implementation files; the October 15 checklist/status delta received a focused Jev plan review. The final aggregate diff request exceeded Jev's 45,000-character limit before transmission. |
-| PKG-06 | Rebuild and validate the arXiv and separate named non-arXiv candidates. | [x] Complete | Local candidates are under `output/arxiv/2026-10-18/v3/`, `output/non-arxiv/2026-10-18/v3/`, and `output/tmlr/2026-10-18/v3/`. Their manifests and ZIP integrity passed; all PDFs have 12 pages. Both named evidence ZIPs passed 114 tests and two portable replays after fresh extraction; page-by-page visual checks and source/PDF validation were completed. Exact-head Gate E/F/G evidence is archived in `output/gate-validation/`; author, venue, and human-review gates remain separate and open. No upload or submission occurred. |
+| PKG-06 | Rebuild and validate the arXiv and separate named non-arXiv candidates. | [x] Complete | October 18 candidates remain at `output/{arxiv,non-arxiv,tmlr}/2026-10-18/v3/`; the fresh October 20 variants are at the matching `2026-10-20/v3/` paths. The new variants have matching 176-word abstracts, 18 citations, valid internal and package manifests, 12 pages each, and completed visual review. Exact-head Gate E/F/G passed twice in `output/gate-validation/clean-validation-2026-10-20/`; Gate G records `external_submission: false`. Existing V2 artifacts remain unchanged. Author, venue, disclosure, and human-review gates remain open; no upload or submission occurred. |
 
 ### Update rule
 
