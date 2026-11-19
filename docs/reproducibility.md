@@ -92,6 +92,17 @@ it does not isolate a causal explanation. The three generated tables are
 `adasyn_excluded_imbalance_descriptive.csv`; the IR-stratified rows are
 descriptive only.
 
+The three-block numeric-core XGBoost macro-F1 sensitivity also has an additive
+exact tied-rank calibration. From the locked analysis environment, run
+`.venv-analysis\Scripts\python.exe scripts/run_publication_addenda.py`.
+The command verifies the frozen analysis manifest and `cell_means.csv` hashes,
+then writes a separately manifested result to
+`results/publication-addenda/v4/`. It enumerates the 5,184 configurations after
+fixing one block under global condition-label symmetry and independently
+checks all 373,248 configurations. It neither regenerates the original
+analysis tables and figures nor changes the planned asymptotic or Monte Carlo
+results; the exact calibration is post hoc.
+
 ## Post hoc duplicate-profile sensitivity
 
 The separate `results/duplicate-profile-sensitivity/` directory records the
