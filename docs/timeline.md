@@ -11,7 +11,7 @@ to preserve the target date.
 
 ## Live progress
 
-Last updated: 2026-10-20
+Last updated: 2026-11-18
 
 The original Stage 0 rows below record earlier milestones. A correction pass
 on 2026-10-09 updated the analysis, manuscript, and release tooling. On the
@@ -109,9 +109,11 @@ records, data authority/consent/oversight, and independent human review remain
 unconfirmed. The three eligibility inquiries are unsent drafts, so no written
 venue guidance is available yet.
 
-The critical-path table below is the forecast. The task-status table is the
-current execution source of truth and must be updated whenever a task is
-completed, blocked, or materially re-scoped.
+On 2026-11-18, T1 completed the grouped-sensitivity method and denominator
+reporting and clarified the original Friedman computed/skipped counts. The
+counts were recomputed from the frozen grouped and Friedman CSVs; the focused+analysis/grouped-sensitivity tests passed (14 tests). The source compiled with+three `pdflatex` passes and one BibTeX pass; affected pages 5, 7, 9, and 10+were visually inspected. Hashes for the original 18 analysis tables and 8+figures were unchanged. No model rerun, package build, commit, push, PR, or+publication occurred. Author confirmations and independent human review remain+open for later release steps.
+
+The critical-path table below is the forecast. The task-status table is the+current execution source of truth and must be updated whenever a task is+completed, blocked, or materially re-scoped.
 
 Status markers: `[x]` complete, `[>]` current, `[!]` blocked, `[ ]` pending.
 
@@ -138,7 +140,8 @@ Status markers: `[x]` complete, `[>]` current, `[!]` blocked, `[ ]` pending.
 | PKG-01 | Repair package completeness, exact analysis dependencies, and retained-dataset acquisition. | [x] Complete | `src/release_artifacts.py` uses an explicit inventory; Python 3.13.12 instructions and the 41-package lock are included. The fresh `output/gate-clean-env-20261015b` environment has no broken requirements and matches all 41 locked versions. CMC, Glass, and Yeast OpenML v1 records have downloaded status and raw sizes/SHA-256 values matching `data/acquisition_manifest.csv`. Both V3 evidence ZIPs were freshly extracted; each passed 114 tests and two portable replays. |
 | DUPSENS-01 | Run the frozen exact-profile grouped-CV sensitivity and compare it descriptively with row-wise V1. | [x] Complete | `docs/duplicate-profile-sensitivity-results.md` records the completed run; the ignored manifest verifies 2,970/2,970 keys and all output hashes. Independent review confirmed 90/90 feasible splits, every class in train/test, and zero profile overlap. No inference or replacement folds were added. |
 | PAPERFIX-01 | Correct manuscript claims, methods, environment disclosure, references, and PDF metadata against the verified evidence. | [x] Complete | Source claims, references, named metadata, grouped-sensitivity findings, timing/RSS wording, and environment limits were reconciled. Full tests, Ruff, Python compilation, and diff checks passed. Earlier bounded Jev diff reviews covered the task-owned implementation files; the October 15 checklist/status delta received a focused Jev plan review. The final aggregate diff request exceeded Jev's 45,000-character limit before transmission. |
-| PKG-06 | Rebuild and validate the arXiv and separate named non-arXiv candidates. | [x] Complete | October 18 candidates remain at `output/{arxiv,non-arxiv,tmlr}/2026-10-18/v3/`; the fresh October 20 variants are at the matching `2026-10-20/v3/` paths. The new variants have matching 176-word abstracts, 18 citations, valid internal and package manifests, 12 pages each, and completed visual review. Exact-head Gate E/F/G passed twice in `output/gate-validation/clean-validation-2026-10-20/`; Gate G records `external_submission: false`. Existing V2 artifacts remain unchanged. Author, venue, disclosure, and human-review gates remain open; no upload or submission occurred. |
+| PKG-06 | Rebuild and validate the arXiv and separate named non-arXiv candidates. | [x] Complete | October 18 candidates remain at `output/{arxiv,non-arXiv,tmlr}/2026-10-18/v3/`; the fresh October 20 variants are at the matching `2026-10-20/v3/` paths. The new variants have matching 176-word abstracts, 18 citations, valid internal and package manifests, 12 pages each, and completed visual review. Exact-head Gate E/F/G passed twice in `output/gate-validation/clean-validation-2026-10-20/`; Gate G records `external_submission: false`. Existing V2 artifacts remain unchanged. Author, venue, disclosure, and human-review gates remain open; no upload or submission occurred. |
+| PUBREPAIR-T1 | Complete the scientific reporting repair for grouped sensitivity denominators, methods, ranking coverage, and Friedman row accounting. | [x] Complete | Updated `paper/main.tex`, the scientific protection checklist, grouped-sensitivity run record, and this timeline. Frozen counts and claims match the CSVs; the 14 focused tests passed; three `pdflatex` passes and one BibTeX pass succeeded; affected pages 5, 7, 9, and 10 were inspected. Hashes for all 18 original tables and 8 figures were unchanged. No model rerun, generated package, commit, push, PR, or publication. |
 
 ### Update rule
 

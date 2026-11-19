@@ -9,17 +9,21 @@ It does not amend the protocol or replace the row-wise V1 benchmark.
 The six datasets with row-wise profile overlap were CMC, CNAE-9, Glass, Iris,
 Wine Quality Red, and Yeast. All 6,000 rows and their recorded targets were
 retained. Profile groups use exact raw predictor values with the target
-excluded; identical profiles with conflicting labels remain in one group.
-Splits use shuffled `StratifiedGroupKFold`, five folds, and seeds 0, 1, and 2.
-The locked V1 classifiers, conditions, preprocessing, sampler settings,
+excluded; missing values count as equal only when they occur in the same
+predictor columns. Identical profiles with conflicting labels remain in one
+group; labels are used for stratification, not as group identifiers. Splits
+use shuffled `StratifiedGroupKFold`, five folds, and seeds 0, 1, and 2. The
+locked V1 classifiers, conditions, preprocessing, sampler settings,
 random-state routing, training-only fitting, and metrics were reused.
 
 The model-free preflight recorded all 90 planned splits as feasible: every class
 appeared in both train and test, and no predictor profile was shared between
-the partitions. The runner accounted for all 2,970 model-grid keys. It recorded
-2,295 valid results, 540 unsupported combinations, and 135 model failures.
-There were no infeasible splits. Unsupported combinations and model failures
-remain explicit; neither is treated as a score.
+the partitions. Split feasibility does not imply successful model fits. The
+runner accounted for all 2,970 model-grid records: 2,430 applicable records
+and 540 unsupported combinations. It recorded 2,295 valid results and 135
+model failures among the applicable records. There were no infeasible splits.
+Unsupported combinations and model failures remain explicit; neither is
+treated as a score.
 
 The sensitivity ran on Python 3.13.12 with the 41-package replay/analysis lock
 whose SHA-256 is recorded in the run manifest. The frozen analysis manifest
@@ -30,15 +34,15 @@ interpreter remains unverified.
 
 ## Coverage and failures
 
-| Dataset | Expected keys | Valid | Unsupported | Model failures | Complete supported cells |
-|---|---:|---:|---:|---:|---:|
-| CMC | 495 | 330 | 165 | 0 | 22 / 22 |
-| CNAE-9 | 495 | 420 | 75 | 0 | 28 / 28 |
-| Glass | 495 | 375 | 75 | 45 | 25 / 28 |
-| Iris | 495 | 420 | 75 | 0 | 28 / 28 |
-| Wine Quality Red | 495 | 375 | 75 | 45 | 25 / 28 |
-| Yeast | 495 | 375 | 75 | 45 | 25 / 28 |
-| **Total** | **2,970** | **2,295** | **540** | **135** | **153 / 162** |
+| Dataset | Expected keys | Applicable | Valid | Unsupported | Model failures | Complete supported cells |
+|---|---:|---:|---:|---:|---:|---:|
+| CMC | 495 | 330 | 330 | 165 | 0 | 22 / 22 |
+| CNAE-9 | 495 | 420 | 420 | 75 | 0 | 28 / 28 |
+| Glass | 495 | 420 | 375 | 75 | 45 | 25 / 28 |
+| Iris | 495 | 420 | 420 | 75 | 0 | 28 / 28 |
+| Wine Quality Red | 495 | 420 | 375 | 75 | 45 | 25 / 28 |
+| Yeast | 495 | 420 | 375 | 75 | 45 | 25 / 28 |
+| **Total** | **2,970** | **2,430** | **2,295** | **540** | **135** | **153 / 162** |
 
 All 135 model failures were ADASYN fit failures under the locked settings.
 Glass and Wine Quality Red each had 45 failures because the requested ratio
@@ -70,16 +74,17 @@ For the raw baseline, the row-wise-to-grouped macro-F1 means were:
 | Wine Quality Red | 0.3478 → 0.2818 (-0.0660) | 0.3554 → 0.2802 (-0.0752) | 0.3011 → 0.3032 (+0.0021) |
 | Yeast | 0.5530 → 0.5518 (-0.0012) | 0.5126 → 0.5029 (-0.0097) | 0.5475 → 0.5393 (-0.0082) |
 
-Ranks across all applicable macro-F1 conditions could be compared for nine
-dataset/classifier matrices where both designs had complete supported cells.
-Across those matrices, 78 condition ranks were available and 27 changed; the
-mean absolute rank change was 0.62, with a maximum of six positions. The other
-nine matrices were left unranked because the grouped design had incomplete
-cells. These are descriptive comparisons of two different split designs, not
-tests of whether the original row-wise evaluation is invalid. The larger
-raw-baseline decreases for Wine Quality Red and the rank changes warrant
-explicit discussion, but do not identify entity identity or establish a
-causal effect of duplicated rows.
+All applicable macro-F1 conditions could be compared in nine of the 18
+dataset/classifier matrices: CMC, CNAE-9, and Iris for each classifier. The
+other nine matrices, for Glass, Wine Quality Red, and Yeast, were excluded from
+the all-condition ranking summary because grouped ADASYN cells were incomplete.
+The nine complete matrices supplied 78 paired condition ranks, and 27 changed;
+the mean absolute rank change was 0.62, with a maximum of six positions. These
+are descriptive comparisons of two different split designs, not tests of
+whether the original row-wise evaluation is invalid. The larger raw-baseline
+decreases for Wine Quality Red and the rank changes warrant explicit
+discussion, but do not identify entity identity or establish a causal effect
+of duplicated rows.
 
 ## Reproduction and output files
 
