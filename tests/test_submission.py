@@ -1,5 +1,6 @@
 import hashlib
 import json
+import shutil
 import zipfile
 from io import BytesIO
 from pathlib import Path
@@ -9,10 +10,12 @@ import pytest
 from pypdf import PdfWriter
 from pypdf.generic import DecodedStreamObject, DictionaryObject, EncodedStreamObject, NameObject
 
+from scripts.build_release_artifacts import default_output_root
 from src.release_artifacts import (
     TMLR_IDENTITY_SCAN_EXEMPT_FILES,
     TMLR_SOURCE_FILES,
     TMLR_STYLE_FIXTURE_ORIGINS,
+    _anonymous_exact_calibration_entries,
     _duplicate_profile_sensitivity_entries,
     _gate_f_review_for_source,
     _redact_git_revision_fields,
@@ -23,6 +26,7 @@ from src.release_artifacts import (
     author_identifiers,
     build_release_artifacts,
     expected_source_release_entries,
+    expected_tmlr_supplement_entries,
     validate_package_zip,
     validate_pdf,
     write_package_zip,
@@ -155,6 +159,8 @@ def test_gate_g_source_module_is_in_the_repository() -> None:
     assert "requirements-analysis.lock" in TMLR_SOURCE_FILES
     assert "src/publication_evidence.py" in TMLR_SOURCE_FILES
     assert "scripts/replay_publication_analysis.py" in TMLR_SOURCE_FILES
+    assert "scripts/run_publication_addenda.py" in TMLR_SOURCE_FILES
+    assert "tests/test_sensitivity_exact.py" in TMLR_SOURCE_FILES
     assert "docs/duplicate-profile-policy.md" in TMLR_SOURCE_FILES
     assert "docs/duplicate-profile-sensitivity-results.md" in TMLR_SOURCE_FILES
     assert "scripts/run_duplicate_profile_sensitivity.py" in TMLR_SOURCE_FILES
@@ -169,6 +175,12 @@ def test_gate_g_source_module_is_in_the_repository() -> None:
 def test_anonymous_tmlr_source_uses_double_blind_style_mode() -> None:
     source = (FIXTURE_ROOT / "paper" / "main.tex").read_text(encoding="utf-8")
     source = source.replace("fixture at example dot org", "fixture@" + "example.org", 1)
+    source = source.replace(
+        r"\begin{document}",
+        "The source and evidence package prepared for this draft is available from the author on request.\n"
+        + r"\begin{document}",
+        1,
+    )
 
     anonymous = anonymize_tmlr_source(source)
 
@@ -182,7 +194,91 @@ def test_anonymous_tmlr_source_uses_double_blind_style_mode() -> None:
     assert "Fixture Author" not in anonymous
     assert "fixture@" + "example.org" not in anonymous
     assert "DE-ANONYMIZED AVAILABILITY" not in anonymous
+    assert "available from the author on request" not in anonymous
+    assert "included in the anonymous supplementary material" in anonymous
     assert "github.com/icecold009" not in anonymous
+
+
+def test_anonymous_only_staging_needs_no_named_pdf_or_release_zip(tmp_path, monkeypatch) -> None:
+    root = tmp_path / "repo"
+    paper = root / "paper"
+    paper.mkdir(parents=True)
+    shutil.copyfile(FIXTURE_ROOT / "paper" / "main.tex", paper / "main.tex")
+    for relative in (
+        "paper/references.bib",
+        "paper/math_commands.tex",
+        "paper/tmlr.sty",
+        "paper/tmlr.bst",
+        "paper/fancyhdr.sty",
+    ):
+        target = root / relative
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(b"synthetic release fixture")
+
+    monkeypatch.setattr(
+        "src.release_artifacts._source_tree_state",
+        lambda _root, _allow_dirty: ("a" * 40, False, []),
+    )
+    monkeypatch.setattr("src.release_artifacts._validate_tmlr_styles", lambda _entries: None)
+    monkeypatch.setattr("src.release_artifacts.author_identifiers", lambda _source: ("Fixture Author",))
+    monkeypatch.setattr("src.release_artifacts.repository_identifiers", lambda _root: ())
+
+    output_root = default_output_root(root, anonymous_only=True)
+    result = build_release_artifacts(
+        root,
+        output_root,
+        allow_dirty=True,
+        stage_only=True,
+        anonymous_only=True,
+    )
+
+    assert output_root == root / "output" / "publication-v4-anonymous-evidence"
+    assert result["anonymous_only"] is True
+    assert Path(result["anonymous_source"]).is_file()
+    assert not (paper / "main.pdf").exists()
+    assert not (output_root / "release").exists()
+    assert not (root / "output" / "submission").exists()
+
+
+def test_anonymous_supplement_rebinds_exact_calibration_manifest() -> None:
+    paper_source = (ROOT / "paper/main.tex").read_text(encoding="utf-8")
+    if r"\author{" in paper_source:
+        entries = expected_tmlr_supplement_entries(ROOT, _anonymous_pdf_bytes())
+    else:
+        analysis_manifest = (ROOT / "results/analysis/analysis_manifest.json").read_bytes()
+        entries = _anonymous_exact_calibration_entries(ROOT, analysis_manifest)
+        entries["results/analysis/analysis_manifest.json"] = analysis_manifest
+    analysis_manifest = entries["results/analysis/analysis_manifest.json"]
+    addendum_path = "results/publication-addenda/v4/publication_addendum_manifest.json"
+    addendum = json.loads(entries[addendum_path])
+    csv_path = "results/publication-addenda/v4/exact_friedman_permutation.csv"
+    csv_bytes = entries[csv_path]
+    cell_means = entries.get("results/analysis/cell_means.csv")
+    if cell_means is None:
+        cell_means = (ROOT / "results/analysis/cell_means.csv").read_bytes()
+    environment_name = "artifacts/environment/metadata.json"
+    environment_bytes = entries.get(environment_name)
+    if environment_bytes is None:
+        environment_bytes = (ROOT / environment_name).read_bytes()
+    benchmark_name = "results/full-run/benchmark_manifest.json"
+    benchmark_bytes = entries.get(benchmark_name)
+    if benchmark_bytes is None:
+        benchmark_bytes = (ROOT / benchmark_name).read_bytes()
+
+    assert addendum["input"]["analysis_manifest"]["sha256"] == hashlib.sha256(
+        analysis_manifest
+    ).hexdigest()
+    assert addendum["input"]["cell_means"]["sha256"] == hashlib.sha256(
+        cell_means
+    ).hexdigest()
+    assert addendum["outputs"]["exact_friedman_permutation.csv"]["sha256"] == hashlib.sha256(
+        csv_bytes
+    ).hexdigest()
+    assert addendum["result"]["exact_p_value_fraction"] == "1/5184"
+    assert json.loads(environment_bytes)["git_commit"] is None
+    assert json.loads(benchmark_bytes)["frozen_inputs"][environment_name]["sha256"] == (
+        hashlib.sha256(environment_bytes).hexdigest()
+    )
 
 
 def test_duplicate_profile_sensitivity_package_entries_verify_manifest_hashes(tmp_path) -> None:

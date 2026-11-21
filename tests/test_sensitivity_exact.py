@@ -152,7 +152,9 @@ def test_exact_friedman_rejects_state_overflow_before_enumeration() -> None:
 
 def test_frozen_analysis_manifest_and_original_outputs_keep_their_hashes() -> None:
     manifest_path = ROOT / "results/analysis/analysis_manifest.json"
-    assert _sha256(manifest_path) == FROZEN_ANALYSIS_MANIFEST_SHA256
+    paper_source = (ROOT / "paper/main.tex").read_text(encoding="utf-8")
+    if r"\author{" in paper_source:
+        assert _sha256(manifest_path) == FROZEN_ANALYSIS_MANIFEST_SHA256
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     artifacts = manifest["artifacts"]
     frozen_tables_and_figures = {
@@ -175,6 +177,9 @@ def test_publication_addendum_runner_writes_exact_manifest(tmp_path: Path) -> No
 
     manifest_path = output_dir / "publication_addendum_manifest.json"
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    assert manifest_path.read_bytes() == (
+        json.dumps(manifest, indent=2, sort_keys=True) + "\n"
+    ).encode("utf-8")
     result = manifest["result"]
     assert manifest["post_hoc"] is True
     assert result["friedman_statistic"] == pytest.approx(24.0)
@@ -187,3 +192,36 @@ def test_publication_addendum_runner_writes_exact_manifest(tmp_path: Path) -> No
     assert result["exact_p_value"] == pytest.approx(1 / 5_184)
     output = manifest["outputs"]["exact_friedman_permutation.csv"]
     assert _sha256(output_dir / output["path"]) == output["sha256"]
+
+
+def test_publication_addendum_replays_with_a_rebound_anonymous_manifest(
+    tmp_path: Path,
+) -> None:
+    snapshot = tmp_path / "anonymous-snapshot"
+    analysis_dir = snapshot / "results" / "analysis"
+    analysis_dir.mkdir(parents=True)
+    (analysis_dir / "cell_means.csv").write_bytes(
+        (ROOT / "results/analysis/cell_means.csv").read_bytes()
+    )
+    manifest = json.loads(
+        (ROOT / "results/analysis/analysis_manifest.json").read_text(encoding="utf-8")
+    )
+    manifest["anonymous_snapshot"] = True
+    manifest_path = analysis_dir / "analysis_manifest.json"
+    manifest_path.write_text(
+        json.dumps(manifest, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    output_dir = snapshot / "results" / "publication-addenda" / "v4"
+
+    replayed = run_addendum(snapshot, output_dir)
+    replay_manifest_path = output_dir / "publication_addendum_manifest.json"
+
+    assert replayed["input"]["analysis_manifest"]["sha256"] == _sha256(manifest_path)
+    assert replayed["input"]["analysis_manifest"]["sha256"] != FROZEN_ANALYSIS_MANIFEST_SHA256
+    assert replayed["result"]["exact_p_value_fraction"] == "1/5184"
+    assert replayed["result"]["reduced_total_states"] == 5_184
+    assert replayed["result"]["full_total_states"] == 373_248
+    assert replay_manifest_path.read_bytes() == (
+        json.dumps(replayed, indent=2, sort_keys=True) + "\n"
+    ).encode("utf-8")

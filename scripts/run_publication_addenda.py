@@ -18,7 +18,6 @@ sys.path.insert(0, str(ROOT))
 
 ANALYSIS_MANIFEST = Path("results/analysis/analysis_manifest.json")
 CELL_MEANS = Path("results/analysis/cell_means.csv")
-EXPECTED_ANALYSIS_MANIFEST_SHA256 = "f398bc3dcd53eefc05e7ce8b96d2ae5736a8d0e50a7cb6f594e79557b4ecdb3b"
 EXPECTED_CELL_MEANS_SHA256 = "868aa61153ff8fa2d7fbae094608eb514333354ea7d0d17700269ce8a4c0195a"
 OUTPUT_CSV = "exact_friedman_permutation.csv"
 OUTPUT_MANIFEST = "publication_addendum_manifest.json"
@@ -58,8 +57,6 @@ def _load_frozen_matrix(root: Path) -> tuple[pd.DataFrame, dict[str, str]]:
     cell_means_path = root / CELL_MEANS
     manifest_sha256 = _sha256(manifest_path)
     cell_means_sha256 = _sha256(cell_means_path)
-    if manifest_sha256 != EXPECTED_ANALYSIS_MANIFEST_SHA256:
-        raise RuntimeError("frozen analysis manifest SHA-256 does not match the V4 source")
     if cell_means_sha256 != EXPECTED_CELL_MEANS_SHA256:
         raise RuntimeError("frozen cell_means.csv SHA-256 does not match the V4 source")
 
@@ -192,10 +189,8 @@ def run_addendum(root: Path, output_dir: Path) -> dict[str, Any]:
             }
         },
     }
-    manifest_path.write_text(
-        json.dumps(manifest, indent=2, sort_keys=True) + "\n",
-        encoding="utf-8",
-    )
+    with manifest_path.open("w", encoding="utf-8", newline="\n") as stream:
+        stream.write(json.dumps(manifest, indent=2, sort_keys=True) + "\n")
     return manifest
 
 

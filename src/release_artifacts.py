@@ -62,6 +62,7 @@ TMLR_SOURCE_FILES = (
     "scripts/record_environment.ps1",
     "scripts/build_pilot_review.py",
     "scripts/replay_publication_analysis.py",
+    "scripts/run_publication_addenda.py",
     "scripts/run_duplicate_profile_sensitivity.py",
     "scripts/run_benchmark.py",
     "scripts/run_analysis.py",
@@ -104,6 +105,7 @@ TMLR_SOURCE_FILES = (
     "tests/test_publication_evidence.py",
     "tests/test_reproducibility.py",
     "tests/test_robustness.py",
+    "tests/test_sensitivity_exact.py",
     "tests/test_stage0.py",
     "tests/test_stats.py",
     "tests/test_submission.py",
@@ -178,6 +180,18 @@ def anonymize_tmlr_source(source: str) -> str:
         raise RuntimeError(
             "paper source no longer has the expected de-anonymized availability block"
         )
+
+    author_request = (
+        "The source and evidence package prepared for this draft is available from the author on request."
+    )
+    if anonymous.count(author_request) > 1:
+        raise RuntimeError("paper source repeats its author-request availability statement")
+    anonymous = anonymous.replace(
+        author_request,
+        "The source and evidence package supporting this submission is included in the "
+        "anonymous supplementary material accompanying the manuscript.",
+        1,
+    )
 
     acknowledgments = re.compile(r"(?ms)^\\section\*\{Acknowledgments\}\s+.*?(?=^\\bibliography\{)")
     anonymous, acknowledgment_count = acknowledgments.subn("", anonymous, count=1)
@@ -615,37 +629,37 @@ def _anonymous_license(license_text: bytes) -> bytes:
 
 def _anonymous_readme() -> bytes:
     return (
-        b"# Supplementary material\n\n"
-        b"This anonymized archive accompanies the V1 benchmark manuscript. It contains "
-        b"the paper source, analysis code, public dataset provenance, frozen result tables, "
-        b"and figures that directly support the manuscript. The raw datasets are not "
-        b"redistributed; their public source identifiers and acquisition instructions are "
-        b"provided in `data/acquisition_manifest.csv` and `docs/data-acquisition.md`.\n\n"
-        b"For source and scope details, see `data/dataset_registry.csv` and "
-        b"`data/acquisition_manifest.csv`. In `results/analysis/`, `cell_means.csv` and "
-        b"`macro_f1_figure_coverage.csv` locate complete-cell values and coverage; "
-        b"`class_means.csv`, `per_class_recall_summary.csv`, and "
-        b"`baseline_deltas_per_class.csv` contain class-wise summaries; "
-        b"`failure_accounting.csv` and `failure_reason_counts.csv` separate unsupported "
-        b"conditions from applicable failures. `adasyn_excluded_friedman.csv`, "
-        b"`adasyn_excluded_pairwise.csv`, and "
-        b"`adasyn_excluded_imbalance_descriptive.csv` report the post hoc macro-F1 "
-        b"sensitivity, exact follow-ups, and descriptive imbalance strata. A separate, "
-        b"post hoc grouped-profile model run and its split assignments, results, failures, "
-        b"summaries, and manifest are under `results/duplicate-profile-sensitivity/`.\n\n"
-        b"Install the packages in `requirements.txt`, then follow `docs/reproducibility.md` "
-        b"to regenerate the analysis from the supplied frozen result records; this does not "
-        b"rerun the original row-wise model training. The grouped-profile sensitivity is a "
-        b"separate model run. A fresh benchmark run requires separately obtaining the listed "
-        b"public datasets and following `docs/stage-0-runbook.md`. In repository records, "
-        b"Stage 0 means the pre-run feasibility and scope audit; Gate D accounts for raw "
-        b"records, Gate E replays and validates the analysis, Gate F checks reproduction "
-        b"from a clean checkout, and Gate G validates a release snapshot. These are internal "
-        b"workflow labels, not venue certifications. The TMLR style "
-        b"files in `paper/` are supplied unchanged. Install `requirements-release.txt` "
-        b"as well when running the PDF validators. Source revision fields are redacted from "
-        b"the anonymous evidence manifests; their hashes are updated to match the packaged "
-        b"bytes. Per-file hashes in the ZIP manifest identify the exact review archive.\n"
+        b"# Anonymous supplementary material\n\n"
+        b"This V4 supplement accompanies the blinded benchmark manuscript. It contains the "
+        b"paper source, analysis code and tests, public dataset provenance, frozen aggregate "
+        b"records, tables, figures, grouped-profile evidence, and the separate exact "
+        b"calibration. Raw or processed dataset files, private correspondence, and credentials "
+        b"are not included. Dataset sources and terms are listed in `data/acquisition_manifest.csv` "
+        b"and `docs/data-acquisition.md`.\n\n"
+        b"## Quick start\n\n"
+        b"Use the locked Python environment described by `requirements-analysis.lock` and "
+        b"`docs/environment.md`. From the extracted archive root, run `python -m pytest` "
+        b"for the included tests and `python scripts/run_publication_addenda.py` "
+        b"to reproduce the post hoc exact Friedman calibration. The separate result is written "
+        b"under `results/publication-addenda/v4/`; it reports `p = 1/5,184` and leaves the "
+        b"planned analysis and its Monte Carlo record unchanged.\n\n"
+        b"Follow `docs/reproducibility.md` to replay the original tables and figures from the "
+        b"supplied frozen result records; this does not rerun model training. The grouped-profile "
+        b"sensitivity is a separate post hoc model run. A new benchmark run requires separately "
+        b"obtaining the listed public datasets and following `docs/stage-0-runbook.md`.\n\n"
+        b"In `results/analysis/`, `cell_means.csv` and `macro_f1_figure_coverage.csv` locate "
+        b"complete-cell values and coverage; `class_means.csv`, `per_class_recall_summary.csv`, "
+        b"and `baseline_deltas_per_class.csv` contain class-wise summaries; `failure_accounting.csv` "
+        b"and `failure_reason_counts.csv` separate unsupported conditions from applicable "
+        b"failures. The three ADASYN-excluded files report the post hoc macro-F1 sensitivity and "
+        b"descriptive imbalance strata. Grouped-profile assignments, results, failures, summaries, "
+        b"and their manifest are under `results/duplicate-profile-sensitivity/`.\n\n"
+        b"The anonymous archive redacts source revision fields and rebinds hashes for transformed "
+        b"metadata. Hashes for unchanged scientific files remain intact. This is a derived review "
+        b"snapshot; it does not claim fresh verification of excluded raw-data provenance. The "
+        b"TMLR style files in `paper/` are supplied unchanged. Install `requirements-release.txt` "
+        b"as well when running the PDF validators. Per-file hashes in the ZIP manifest identify "
+        b"the exact review archive.\n"
     )
 
 
@@ -833,6 +847,58 @@ def _duplicate_profile_sensitivity_entries(root: Path) -> dict[str, bytes]:
     return entries
 
 
+def _anonymous_exact_calibration_entries(
+    root: Path,
+    anonymous_analysis_manifest: bytes,
+) -> dict[str, bytes]:
+    """Include the exact calibration and rebind its transformed manifest input."""
+
+    directory = Path("results/publication-addenda/v4")
+    analysis_manifest_name = "results/analysis/analysis_manifest.json"
+    addendum_manifest_path = root / directory / "publication_addendum_manifest.json"
+    addendum_csv_path = root / directory / "exact_friedman_permutation.csv"
+    source_analysis_manifest = _read_required(root, analysis_manifest_name)
+    if not addendum_manifest_path.is_file() or not addendum_csv_path.is_file():
+        raise RuntimeError("exact publication calibration outputs are missing")
+
+    manifest = json.loads(addendum_manifest_path.read_text(encoding="utf-8"))
+    if (
+        manifest.get("schema_version") != "publication-addendum-exact-friedman-v1"
+        or manifest.get("status") != "complete"
+        or manifest.get("post_hoc") is not True
+    ):
+        raise RuntimeError("exact publication calibration manifest is not complete and post hoc")
+    input_manifest = manifest.get("input", {}).get("analysis_manifest", {})
+    if (
+        input_manifest.get("path") != analysis_manifest_name
+        or input_manifest.get("sha256") != _sha256(source_analysis_manifest)
+    ):
+        raise RuntimeError("exact calibration does not reference the current source analysis manifest")
+
+    input_cell_means = manifest.get("input", {}).get("cell_means", {})
+    cell_means_path = root / "results/analysis/cell_means.csv"
+    if (
+        input_cell_means.get("path") != "results/analysis/cell_means.csv"
+        or not cell_means_path.is_file()
+        or input_cell_means.get("sha256") != _sha256(cell_means_path.read_bytes())
+    ):
+        raise RuntimeError("exact calibration does not reference the frozen cell means")
+
+    output = manifest.get("outputs", {}).get("exact_friedman_permutation.csv", {})
+    csv_bytes = addendum_csv_path.read_bytes()
+    if (
+        output.get("path") != addendum_csv_path.name
+        or output.get("sha256") != _sha256(csv_bytes)
+    ):
+        raise RuntimeError("exact calibration CSV does not match its manifest hash")
+
+    input_manifest["sha256"] = _sha256(anonymous_analysis_manifest)
+    return {
+        (directory / addendum_csv_path.name).as_posix(): csv_bytes,
+        (directory / addendum_manifest_path.name).as_posix(): _json_bytes(manifest),
+    }
+
+
 def _supplement_entries(
     root: Path,
     anonymous_source: str,
@@ -846,6 +912,8 @@ def _supplement_entries(
         "LICENSE": _anonymous_license(_read_required(root, "LICENSE")),
         "paper/main.tex": anonymous_source.encode("utf-8"),
         "paper/main.pdf": anonymous_pdf,
+        # pyproject.toml configures pytest's --basetemp inside this directory.
+        "artifacts/test-tmp/.gitkeep": b"",
     }
     missing_inventory_files = [
         relative for relative in PUBLICATION_EVIDENCE_FILES if not (root / relative).is_file()
@@ -860,13 +928,26 @@ def _supplement_entries(
     _validate_tmlr_styles(entries)
     _validate_tmlr_fixture_styles(entries)
 
+    # The portable replay validates this locked applicability and scope record.
+    scope_lock_name = "artifacts/runs/scope-lock.json"
+    entries[scope_lock_name] = _read_required(root, scope_lock_name)
+
+    environment_name = "artifacts/environment/metadata.json"
+    environment_payload = _redact_git_revision_fields(
+        json.loads(_read_required(root, environment_name))
+    )
+    environment_bytes = _json_bytes(environment_payload)
+    entries[environment_name] = environment_bytes
+    hash_replacements = {environment_name: _sha256(environment_bytes)}
+
     run_manifest_name = "results/full-run/benchmark_manifest.json"
     run_manifest_payload = _redact_git_revision_fields(
         json.loads(_read_required(root, run_manifest_name))
     )
+    _replace_hash_references(run_manifest_payload, hash_replacements)
     run_manifest_bytes = _json_bytes(run_manifest_payload)
     entries[run_manifest_name] = run_manifest_bytes
-    hash_replacements = {run_manifest_name: _sha256(run_manifest_bytes)}
+    hash_replacements[run_manifest_name] = _sha256(run_manifest_bytes)
 
     for path in sorted((root / "results/full-run").glob("*")):
         relative = path.relative_to(root).as_posix()
@@ -892,6 +973,7 @@ def _supplement_entries(
     analysis_bytes = _json_bytes(analysis_payload)
     entries[analysis_manifest_name] = analysis_bytes
     hash_replacements[analysis_manifest_name] = _sha256(analysis_bytes)
+    entries.update(_anonymous_exact_calibration_entries(root, analysis_bytes))
 
     gate_e_name = "results/analysis/gate-e-review.json"
     gate_e_payload = _redact_git_revision_fields(json.loads(_read_required(root, gate_e_name)))
@@ -986,8 +1068,9 @@ def build_release_artifacts(
     *,
     allow_dirty: bool = False,
     stage_only: bool = False,
+    anonymous_only: bool = False,
 ) -> dict[str, Any]:
-    """Build both source ZIPs and stage anonymous TeX for a matching PDF build."""
+    """Build release ZIPs, or only the anonymous supplement, and stage its TeX."""
 
     root = root.resolve()
     output_root = output_root.resolve()
@@ -995,7 +1078,7 @@ def build_release_artifacts(
         raise ValueError("artifact output root must remain inside the repository")
     commit, clean, source_files = _source_tree_state(root, allow_dirty)
     paths = artifact_paths(root, commit)
-    if not (root / "paper/main.pdf").is_file():
+    if not anonymous_only and not (root / "paper/main.pdf").is_file():
         raise RuntimeError("compile paper/main.tex before building the V1 source release ZIP")
 
     source_text = _read_required(root, "paper/main.tex").decode("utf-8")
@@ -1022,6 +1105,7 @@ def build_release_artifacts(
             "source_tree_clean": clean,
             "anonymous_source": (stage / "paper/main.tex").as_posix(),
             "stage_only": True,
+            "anonymous_only": anonymous_only,
         }
 
     anonymous_pdf = output_root / "submission" / paths["tmlr_anonymous_pdf"].name
@@ -1050,23 +1134,24 @@ def build_release_artifacts(
         anonymous=True,
     )
 
-    release_entries = _source_release_entries(root, source_files, commit, clean)
-    release = paths["source_release_zip"]
-    release = output_root / "release" / release.name
-    release_ref = write_package_zip(
-        release,
-        release_entries,
-        source_commit=commit,
-        source_tree_clean=clean,
-        anonymous=False,
-    )
-    return {
+    result = {
         "source_commit": commit,
         "source_tree_clean": clean,
         "anonymous_source": (stage / "paper/main.tex").as_posix(),
-        "source_release_zip": release_ref,
         "tmlr_anonymous_supplement_zip": supplement_ref,
         "tmlr_anonymous_pdf_expected": (
             output_root / "submission" / paths["tmlr_anonymous_pdf"].name
         ).as_posix(),
+        "anonymous_only": anonymous_only,
     }
+    if not anonymous_only:
+        release_entries = _source_release_entries(root, source_files, commit, clean)
+        release = output_root / "release" / paths["source_release_zip"].name
+        result["source_release_zip"] = write_package_zip(
+            release,
+            release_entries,
+            source_commit=commit,
+            source_tree_clean=clean,
+            anonymous=False,
+        )
+    return result

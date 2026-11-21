@@ -58,6 +58,36 @@ The local Gate G payload is written to the ignored
 environment/results archive. Any later source or artifact change requires new
 Gate E, Gate F, package, and Gate G evidence.
 
+## V4 anonymous-evidence preview
+
+The bounded V4 T3 build creates only the anonymous supplement. Its default
+output root is the ignored
+`output/publication-v4-anonymous-evidence/`, which keeps the existing V3
+submission PDF, supplement, and named release ZIPs untouched. The package
+includes the separate post hoc exact calibration at
+`results/publication-addenda/v4/`; replay it from an extracted archive with
+`python scripts/run_publication_addenda.py`. The README inside the ZIP lists
+the included test and replay commands.
+
+For a local, uncommitted preview, stage and compile the anonymous source in the
+V4 output tree, then build only the supplement:
+
+```powershell
+python scripts/build_release_artifacts.py --anonymous-only --allow-dirty --stage-only
+Push-Location output/publication-v4-anonymous-evidence/staging/tmlr-anonymous/paper
+pdflatex -interaction=nonstopmode -halt-on-error main.tex
+bibtex main
+pdflatex -interaction=nonstopmode -halt-on-error main.tex
+pdflatex -interaction=nonstopmode -halt-on-error main.tex
+Copy-Item main.pdf ..\..\..\submission\tmlr-anonymous-submission.pdf
+Pop-Location
+python scripts/build_release_artifacts.py --anonymous-only --allow-dirty
+```
+
+The uncommitted preview is not a Gate G release candidate: its package manifest
+records `source_tree_clean: false`. It does not modify the named V1/V3 paths or
+perform submission, upload, or publication.
+
 ## Acceptance criteria
 
 Gate G passes only when:
