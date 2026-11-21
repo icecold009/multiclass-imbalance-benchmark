@@ -1,0 +1,140 @@
+{
+  "excluded": [
+    "data/raw",
+    "data/processed",
+    "results",
+    "output",
+    "paper",
+    ".git"
+  ],
+  "files": [
+    {
+      "path": "README.md",
+      "sha256": "ab6d5a190831e2a8a535f869a8cb8145a4c1b2b4cb12ec2edf13b17b38f7f052",
+      "size": 2113
+    },
+    {
+      "path": "requirements-v2.txt",
+      "sha256": "9becb9dca7c36dcb83acf4217a46a627f207664487b5defef9a30685f0335f26",
+      "size": 398
+    },
+    {
+      "path": "requirements-v2.lock",
+      "sha256": "1d97e8319666b352be9557cc2920bfd88ae098339f8af610c86b1eb9fbad1c8c",
+      "size": 1044
+    },
+    {
+      "path": "pyproject.toml",
+      "sha256": "8e55f46848112ff0d975547e9aa1d4677e94b0506cd7a33f58386b5179dba439",
+      "size": 277
+    },
+    {
+      "path": "config/v2.yaml",
+      "sha256": "66433ad95c1f400dafecb26a13c5b9f1cc225244dadf704fa94ae493855429d1",
+      "size": 13350
+    },
+    {
+      "path": "data/dataset_registry_v2.csv",
+      "sha256": "61a0dfd0a8ef5a672e140a486b53b2759a2382f3cc3c8aecacc96fe3a8e1b723",
+      "size": 44548
+    },
+    {
+      "path": "data/dataset_feature_overrides_v2.csv",
+      "sha256": "68fb5f95c0e7b0c31c08bb004760c7de877791d3f37cc5beb910fd909d6198ab",
+      "size": 11380
+    },
+    {
+      "path": "docs/protocol-v2.md",
+      "sha256": "a25c436dd5b3dc84d6f1719698a5e3702e63befd61c186246453989e68b5d9a9",
+      "size": 26953
+    },
+    {
+      "path": "docs/analysis-plan-v2.md",
+      "sha256": "969bf71a72d7b5429fee5798550b8cb4d9076136d3ea6083474caaeaa836d26e",
+      "size": 9027
+    },
+    {
+      "path": "docs/decision-register-v2.md",
+      "sha256": "cb00d517e00a0b04fe457e8cc472bf04c9043caf4e0f744baf7fb954d70fc92f",
+      "size": 5724
+    },
+    {
+      "path": "kaggle/README.md",
+      "sha256": "46bc3363fdc0acecccd675842552e7dc0d02522051ccde09c042773de3f27c94",
+      "size": 1166
+    },
+    {
+      "path": "kaggle/v2_cpu_shard.ipynb",
+      "sha256": "8f06cef6cef7c56e79917da4bc64749ce550790a02836f77b0f1ee34e753418b",
+      "size": 2729
+    },
+    {
+      "path": "scripts/run_v2_full.py",
+      "sha256": "4d173b127dc58bcea2ca1f41b4c0f88d640d63c65d58099b597fa26344e4b1c0",
+      "size": 1141
+    },
+    {
+      "path": "scripts/run_v2_analysis.py",
+      "sha256": "b073f516d6c7a6a2f481578972d8598db07b8266579ac1cd527709cf599098b4",
+      "size": 1051
+    },
+    {
+      "path": "scripts/prepare_v2_shards.py",
+      "sha256": "e10fd59248225df4a4e458ec258d6156df56795b3e4829697f3ef74f6d4faf8c",
+      "size": 1027
+    },
+    {
+      "path": "scripts/merge_v2_shards.py",
+      "sha256": "a0aca6da31c9564645d52eeda04d59f20462fab2e9b8be26ef62867696def167",
+      "size": 2051
+    },
+    {
+      "path": "scripts/record_kaggle_environment.py",
+      "sha256": "84b7778a588aad1de4319e1c4e84921148bf80c23832d37e6abb769dec56b66a",
+      "size": 3545
+    },
+    {
+      "path": "src/__init__.py",
+      "sha256": "5b11f624382f74f48c85ca0f17252b4bf97ef15506f44a321393e54a27f2abf9",
+      "size": 59
+    },
+    {
+      "path": "src/v2_analysis.py",
+      "sha256": "e21fa8d6ae23bb83b2fc03f86e5484f822393262e991a9557ce590fc609b4ab7",
+      "size": 12886
+    },
+    {
+      "path": "src/v2_engineering.py",
+      "sha256": "f28d60b046abe800a40a6594c2e56982b50528516af8e0d239e70712f2990161",
+      "size": 21455
+    },
+    {
+      "path": "src/v2_execution.py",
+      "sha256": "8ef88321ed2b4e4cff8720ca3279ff8754e95ffe1fc3797b2fedabe3eda75f16",
+      "size": 33487
+    },
+    {
+      "path": "src/v2_pipeline.py",
+      "sha256": "10d870fafde666da5f80d8205fad7c9a671c70919dfaa280346ec909b89567f6",
+      "size": 14472
+    },
+    {
+      "path": "src/v2_registry.py",
+      "sha256": "438ac4ce4f43ef1eda7fe5911a0592f15d38e72aaef5993466444c9ffc4db2f7",
+      "size": 9892
+    },
+    {
+      "path": "src/v2_sharding.py",
+      "sha256": "79555eee5fe4f933b2b6c4ac640a8ec41fa9ecbd6746193981721de93e228017",
+      "size": 15094
+    },
+    {
+      "path": "src/v2_tuning.py",
+      "sha256": "f11956330d9af63714c9c41f00afe55ddf65cfbaca16bd641317d78003ff7c51",
+      "size": 2314
+    }
+  ],
+  "purpose": "data-free private Kaggle CPU package",
+  "schema_version": "kaggle-v2-package-v1",
+  "source_commit": "417bc8de52cda3b92feaa1cd3ac480aea2bf6768"
+}
