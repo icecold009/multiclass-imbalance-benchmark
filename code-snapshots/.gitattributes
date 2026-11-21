@@ -1,0 +1,2 @@
+# Preserve original package hashes, including CSV line endings.
+kaggle-v2-cpu/** -text
