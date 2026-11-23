@@ -168,7 +168,55 @@ def _validate_pinned_analysis_manifest(
     return actual_sha256
 
 
-def _validate_evidence(root: Path) -> dict[str, Any]:
+def _fresh_gate_e(
+    root: Path,
+    run_dir: Path,
+    analysis_dir: Path,
+    analysis_python: Path | None,
+) -> dict[str, Any]:
+    """Replay Gate E in its frozen analysis environment when it differs from Gate F."""
+
+    if analysis_python is None:
+        receipt = verify_gate_e(root, run_dir, analysis_dir)
+    else:
+        interpreter = analysis_python.expanduser().resolve()
+        if not interpreter.is_file():
+            raise RuntimeError(f"Gate E analysis interpreter does not exist: {interpreter}")
+        with tempfile.TemporaryDirectory(prefix="stage0-gate-f-gate-e-") as temporary_name:
+            output_dir = Path(temporary_name)
+            result = _run(
+                [
+                    interpreter,
+                    root / "scripts/verify_gate_e.py",
+                    "--run-dir",
+                    run_dir,
+                    "--analysis-dir",
+                    analysis_dir,
+                    "--output-dir",
+                    output_dir,
+                ],
+                root,
+                timeout=900,
+            )
+            _require_passed(result)
+            receipt = _read_json(output_dir / "gate-e-review.json", "fresh Gate E review")
+
+    if receipt.get("status") != "passed":
+        raise RuntimeError("fresh Gate E validation did not pass")
+    return receipt
+
+
+def _validate_evidence(
+    root: Path,
+    analysis_python: Path | None = None,
+) -> dict[str, Any]:
+    analysis_manifest = _read_json(
+        root / "results/analysis/analysis_manifest.json",
+        "analysis manifest",
+    )
+    analysis_runtime = analysis_manifest.get("analysis_runtime")
+    if not isinstance(analysis_runtime, dict):
+        raise TypeError("frozen analysis manifest has no analysis runtime record")
     references: dict[str, dict[str, str]] = {}
     for relative in EVIDENCE_PATHS:
         path = root / relative
@@ -190,7 +238,12 @@ def _validate_evidence(root: Path) -> dict[str, Any]:
     paper_source = root / "paper/main.tex"
     if paper_source.is_file() and r"\author{" in paper_source.read_text(encoding="utf-8"):
         _validate_pinned_analysis_manifest(root)
-    gate_e = verify_gate_e(root, root / "results/full-run", root / "results/analysis")
+    gate_e = _fresh_gate_e(
+        root,
+        root / "results/full-run",
+        root / "results/analysis",
+        analysis_python,
+    )
     if gate_e.get("status") != "passed":
         raise RuntimeError("fresh Gate E validation did not pass")
     return {
@@ -198,6 +251,12 @@ def _validate_evidence(root: Path) -> dict[str, Any]:
         "gate_e": {
             "status": gate_e["status"],
             "analysis_counts": gate_e["analysis_counts"],
+            "analysis_runtime": analysis_runtime,
+            "execution_role": (
+                "separate_analysis_interpreter"
+                if analysis_python is not None
+                else "gate_f_invoking_interpreter"
+            ),
             "replay": gate_e["deterministic_replay"],
         },
     }
@@ -229,7 +288,11 @@ def _validate_source_archive_paths(paths: Sequence[str]) -> None:
         raise RuntimeError(f"clean source archive contains generated data: {generated}")
 
 
-def verify_gate_f(root: Path, output_path: Path | None = None) -> dict[str, Any]:
+def verify_gate_f(
+    root: Path,
+    output_path: Path | None = None,
+    analysis_python: Path | None = None,
+) -> dict[str, Any]:
     """Recheck frozen evidence and validate a clean Git source checkout."""
 
     root = root.resolve()
@@ -239,7 +302,7 @@ def verify_gate_f(root: Path, output_path: Path | None = None) -> dict[str, Any]
         raise RuntimeError("Gate F requires a clean tracked working tree")
 
     tracked = _tracked_files(root)
-    evidence = _validate_evidence(root)
+    evidence = _validate_evidence(root, analysis_python)
     with tempfile.TemporaryDirectory(prefix="stage0-gate-f-") as temporary_name:
         temporary = Path(temporary_name)
         archive, checkout, archived_files = _archive_checkout(root, temporary)
@@ -312,10 +375,18 @@ def main() -> None:
 
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, default=Path("results/analysis/gate-f-review.json"))
+    parser.add_argument(
+        "--analysis-python",
+        type=Path,
+        help=(
+            "optional interpreter for Gate E replay when the frozen analysis runtime differs "
+            "from the interpreter used for Gate F source checks"
+        ),
+    )
     args = parser.parse_args()
     root = Path(__file__).resolve().parents[1]
     output = args.output if args.output.is_absolute() else root / args.output
-    payload = verify_gate_f(root, output)
+    payload = verify_gate_f(root, output, args.analysis_python)
     print(payload["status"])
     print(output)
 

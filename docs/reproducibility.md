@@ -126,6 +126,25 @@ directory. Passing Gate E does not establish an exact clean-commit reproduction
 (Gate F) or a release snapshot (Gate G); those checks remain separate and
 require their stated source state.
 
+Gate F runs its clean-archive pytest, Ruff, and CLI checks with the invoking
+interpreter. When the frozen analysis manifest records another Python runtime,
+pass that environment separately with `--analysis-python`; Gate F uses it only
+for the fresh Gate E replay. For example, run the source checks with the V2
+Python 3.12 environment and supply the frozen analysis Python 3.13 environment:
+
+```powershell
+.venv-v2\Scripts\python.exe scripts\verify_gate_f.py `
+  --analysis-python "C:\path\to\frozen-analysis\.venv\Scripts\python.exe" `
+  --output output\gate-validation\<commit>\gate-f-review.json
+```
+
+Gate E must still pass independently before Gate F. Gate F repeats that frozen
+analysis replay through the supplied analysis interpreter, then runs the full
+source suite and command checks from a clean Git archive with the invoking
+interpreter. The Gate F receipt records the frozen analysis runtime and its
+execution role separately from the clean-archive check commands; the original
+full-run training interpreter remains unknown.
+
 ## What this evidence does and does not establish
 
 The shared source-archive policy permits exactly the three committed V2 host
