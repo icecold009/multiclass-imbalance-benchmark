@@ -34,8 +34,6 @@ FROZEN_EVIDENCE = (
     "results/analysis/gate-e-review.json",
 )
 REQUIRED_RELEASE_FILES = (
-    "src/source_snapshot.py",
-    "tests/test_source_snapshot.py",
     "AGENTS.md",
     "README.md",
     "docs/data-acquisition.md",
@@ -67,8 +65,6 @@ REQUIRED_RELEASE_FILES = (
     "tests/test_pilot.py",
     "tests/test_submission.py",
 )
-
-
 def _utc_now() -> str:
     return dt.datetime.now(dt.UTC).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
@@ -245,14 +241,18 @@ def _archive_snapshot(root: Path, tracked: Sequence[str]) -> dict[str, Any]:
             )
         if members != list(tracked):
             raise RuntimeError("submission archive file set differs from git ls-files")
-        generated = disallowed_generated_paths(members)
-        if generated:
-            raise RuntimeError(f"submission archive contains generated data: {generated}")
+        _validate_submission_archive_paths(members)
         return {
             "archive_sha256": sha256_file(archive),
             "tracked_file_count": len(tracked),
             "tracked_file_set_sha256": _tracked_digest(tracked),
         }
+
+
+def _validate_submission_archive_paths(paths: Sequence[str]) -> None:
+    generated = disallowed_generated_paths(paths)
+    if generated:
+        raise RuntimeError(f"submission archive contains generated data: {generated}")
 
 
 def verify_gate_g(root: Path, output_path: Path | None = None) -> dict[str, Any]:

@@ -1,0 +1,17 @@
+# Direct package versions recorded in results/analysis/analysis_manifest.json.
+imbalanced-learn==0.14.2
+matplotlib==3.11.2
+numpy==2.5.3
+pandas==2.3.3
+scikit-learn==1.9.0
+scikit-posthocs==0.14.0
+scipy==1.18.1
+statsmodels==0.14.6
+xgboost==3.2.0
+
+# Portable replay, package validation, and full test-suite tools.
+pypdf>=6.10,<7
+psutil>=6,<8
+PyYAML>=6,<7
+pytest>=8,<9
+ruff>=0.8,<1

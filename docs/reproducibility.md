@@ -24,7 +24,7 @@ lock. Raw datasets are not redistributed. The acquisition manifest records
 their source identifiers and terms; a fresh model rerun requires obtaining
 those datasets under their stated terms.
 
-## Reproduce the analysis from frozen records
+## Full-checkout analysis and Gate E
 
 From the repository root, install the declared analysis and release
 dependencies, then use the existing `results/full-run/` evidence:
@@ -36,12 +36,36 @@ powershell -ExecutionPolicy Bypass -File scripts/bootstrap.ps1
 .venv\Scripts\python.exe scripts/verify_gate_e.py
 ```
 
-This path validates and re-analyzes the frozen result and failure records; it
-does not retrain models. The analysis manifest records the current analysis
-Python and package versions, all analysis-table hashes, and all generated
-figure hashes. Gate E independently replays the analysis and compares those
-tables and figures. The critical-difference renderer is also checked in fresh
-processes with distinct `PYTHONHASHSEED` values.
+This full-checkout path validates the frozen result and failure records and
+re-analyzes them; it does not retrain models. Gate D also requires the raw CSVs
+and per-dataset completion markers, and Gate E calls Gate D before replaying
+the analysis. Those inputs are not included in the publication evidence ZIPs.
+The analysis manifest records the analysis Python and package versions,
+analysis-table hashes, and generated-figure hashes. The critical-difference
+renderer is also checked in fresh processes with distinct `PYTHONHASHSEED`
+values.
+
+## Portable replay from a publication evidence package
+
+The rebuilt package should include a separate aggregate-only replay route.
+Create Python 3.13.12 environment and install the pinned replay/test lock. From
+the unpacked evidence directory, run:
+
+```powershell
+python -c "import sys; assert sys.version_info[:3] == (3, 13, 12), sys.version"
+python -m venv .venv-analysis
+.venv-analysis\Scripts\python.exe -m pip install -r requirements-analysis.lock
+.venv-analysis\Scripts\python.exe scripts/replay_publication_analysis.py
+```
+
+This route checks the included manifests and hashes, the exact 5,445 unique
+result/failure keys, record schemas and metrics, and consistency of the stored
+analysis artifacts. It regenerates the 18 analysis tables and 8 figures under
+`results/analysis-portable-replay/` and compares them byte-for-byte with the
+frozen versions. The receipt lists the checks and their limits. It does not
+check raw dataset bytes or excluded completion markers, rerun training, or
+constitute Gate D, Gate E, or an independent training reproduction. Keep the
+full-checkout Gate D/E route above when those provenance inputs are available.
 
 The corrected analysis retains all 184 baseline-comparison rows but computes
 Wilcoxon and Holm values only for the 104 comparisons with at least three
@@ -68,11 +92,58 @@ it does not isolate a causal explanation. The three generated tables are
 `adasyn_excluded_imbalance_descriptive.csv`; the IR-stratified rows are
 descriptive only.
 
+The three-block numeric-core XGBoost macro-F1 sensitivity also has an additive
+exact tied-rank calibration. From the locked analysis environment, run
+`.venv-analysis\Scripts\python.exe scripts/run_publication_addenda.py`.
+The command verifies the frozen analysis manifest and `cell_means.csv` hashes,
+then writes a separately manifested result to
+`results/publication-addenda/v4/`. It enumerates the 5,184 configurations after
+fixing one block under global condition-label symmetry and independently
+checks all 373,248 configurations. It neither regenerates the original
+analysis tables and figures nor changes the planned asymptotic or Monte Carlo
+results; the exact calibration is post hoc.
+
+## Post hoc duplicate-profile sensitivity
+
+The separate `results/duplicate-profile-sensitivity/` directory records the
+grouped-CV run on the six datasets with observed exact predictor-profile
+overlap. Its manifest hashes the inputs, split assignments, result and failure
+tables, descriptive comparisons, and coverage summaries. The run completed 90
+feasible splits and accounts for all 2,970 model-grid keys. It is a post hoc
+model run under a different split design; it does not overwrite or amend the
+row-wise V1 results or frozen analysis outputs. The publication evidence
+package includes its manifest and hash-verified output files, but does not
+redistribute raw datasets.
+
+The July Stage 0 environment record is Python 3.12.10 and the frozen analysis
+manifest records Python 3.13.12. The full-run manifest omits the original
+training interpreter, which therefore remains unverified.
+
 Gate E denotes local validation and independent replay of analysis tables
-and figures from frozen records. Its replay now writes temporary files under
-the repository's writable `output/tmp` directory. Passing Gate E does not
-establish an exact clean-commit reproduction (Gate F) or a release snapshot
-(Gate G); those checks remain separate and require their stated source state.
+and figures from frozen records after the full-checkout Gate D checks pass. Its
+replay now writes temporary files under the repository's writable `output/tmp`
+directory. Passing Gate E does not establish an exact clean-commit reproduction
+(Gate F) or a release snapshot (Gate G); those checks remain separate and
+require their stated source state.
+
+Gate F runs its clean-archive pytest, Ruff, and CLI checks with the invoking
+interpreter. When the frozen analysis manifest records another Python runtime,
+pass that environment separately with `--analysis-python`; Gate F uses it only
+for the fresh Gate E replay. For example, run the source checks with the V2
+Python 3.12 environment and supply the frozen analysis Python 3.13 environment:
+
+```powershell
+.venv-v2\Scripts\python.exe scripts\verify_gate_f.py `
+  --analysis-python "C:\path\to\frozen-analysis\.venv\Scripts\python.exe" `
+  --output output\gate-validation\<commit>\gate-f-review.json
+```
+
+Gate E must still pass independently before Gate F. Gate F repeats that frozen
+analysis replay through the supplied analysis interpreter, then runs the full
+source suite and command checks from a clean Git archive with the invoking
+interpreter. The Gate F receipt records the frozen analysis runtime and its
+execution role separately from the clean-archive check commands; the original
+full-run training interpreter remains unknown.
 
 ## What this evidence does and does not establish
 

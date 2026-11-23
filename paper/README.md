@@ -20,7 +20,6 @@ This is an author-supplied PDF snapshot. The build commands below produce
 `main.pdf` from the repository's `main.tex`; the supplied snapshot was not
 rebuilt or used to revalidate the release packages. It contains author
 information, so the anonymous TMLR packaging workflow still applies.
-
 The manuscript contains only the frozen V1 benchmark evidence. The expanded V2
 study is a separate follow-up and must not be used to amend these results.
 
@@ -41,8 +40,9 @@ pdflatex main.tex
 The manuscript references generated figures under
 `../results/analysis/figures/`. A clean checkout must first reproduce the
 ignored full-run and analysis artifacts, or the source will show a clear
-placeholder box in place of a missing figure. Local build PDFs and auxiliary
-files remain ignored; `main4.pdf` is the explicitly tracked manuscript snapshot.
+placeholder box in place of a missing figure. Generated build PDFs and
+auxiliary files remain ignored; `main4.pdf` is the explicitly tracked supplied
+manuscript snapshot.
 
 ## Anonymous TMLR package
 
