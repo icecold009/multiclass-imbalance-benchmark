@@ -11,19 +11,109 @@ to preserve the target date.
 
 ## Live progress
 
-Last updated: 2026-10-09
+Last updated: 2026-11-23
 
-The status table below records the earlier V1 milestone. A correction pass on
-2026-10-09 updated the analysis, manuscript, and release tooling; Gate E
-replayed successfully in fresh processes, and the named and anonymous PDFs
-were recompiled and visually checked. The local packages are uncommitted
-previews. Exact-clean-commit Gate F/G checks remain pending, and the author
-must review the current PDFs. Historical `[x]` labels below do not imply that
-those release gates have passed for the corrected revision.
+The original Stage 0 rows below record earlier milestones. A correction pass
+on 2026-10-09 updated the analysis, manuscript, and release tooling. On the
+final local feature-branch snapshot, Gate E and Gate F passed twice, and Gate G
+passed twice after rebuilding all four exact-commit artifacts. The separate
+October 14 arXiv and named non-arXiv packages remain local candidates; no
+submission or publication is claimed. Gate commands used a temporary,
+process-only Git exclude for the pre-existing untracked outreach draft so the
+committed source snapshot could be checked; that file remains untouched.
 
-The critical-path table below is the forecast. The task-status table is the
-current execution source of truth and must be updated whenever a task is
-completed, blocked, or materially re-scoped.
+On 2026-10-14, Package 3 rebuilt an uncommitted validation preview from the
+explicit 82-file publication-evidence inventory. Its 188 ZIP members passed
+manifest hash checks; the fresh extraction passed the 108-test suite, Ruff, and
+Python compilation. Two portable replay processes regenerated 18 tables and 8
+figures, with all 26 artifacts byte-identical to the frozen analysis and to each
+other. The original V1 ZIPs and frozen benchmark/analysis outputs remain
+unchanged. The retained-dataset acquisition script now supports hash-pinned
+CMC, Glass, and Yeast, but the attempted online fetch was incomplete: CMC
+materialized with its expected hash (possibly from the local cache), Glass
+stalled before output, and Yeast was not reached. Offline verification of all
+three existing local files passed. The exact-commit V1 Gate F/G checks were
+completed later on the final feature-branch snapshot; V2 candidate readiness
+remains subject to the separate installation, acquisition, author, and venue
+gates below.
+
+Package 4 completed the duplicate-profile grouped-CV sensitivity for the six
+affected datasets. The 90 planned splits were feasible, and all 2,970 model
+keys are accounted for as 2,295 valid results, 540 unsupported combinations,
+and 135 ADASYN failures. An independent read-only review verified split
+assignments, zero profile overlap, all 21 output hashes, and the reported
+descriptive comparisons.
+
+Package 5 reconciled the manuscript and documentation with that sensitivity,
+the endpoint RSS and timer implementation, and the available environment
+records. It distinguishes the paper's G-mean from TILBench's definition,
+corrects the Branco bibliography record, removes an unused misattributed
+entry, and sets named PDF metadata while preserving anonymous exports. The
+evidence package builder now includes hash-verified grouped-sensitivity
+outputs. The canonical manuscript, citations, metadata, and documentation
+changes passed the full test suite, Ruff, Python compilation, and diff checks;
+the source-claim review found no unresolved factual mismatch. Package 6
+rebuilt both candidates and fixed a newly exposed overfull manuscript line.
+
+On 2026-10-15, the review checklist was reconciled so the V1/TMLR items are
+clearly historical and the current author, oversight, environment,
+human-review, arXiv, and venue gates are explicit. Official UCI descriptions
+were checked for CMC and Dermatology; they describe the source records but do
+not establish consent or oversight for this secondary analysis. Both V2
+evidence ZIPs were rebuilt with the checklist update. Their manifests,
+per-file hashes, and CRCs passed; fresh extractions each passed 114 tests and
+two independent replays of 18 tables and 8 figures. Tests ran in the matching
+repository environment because the fresh-install attempt remains blocked by
+PyPI DNS. The final committed source snapshot later passed Gate E/F twice and
+Gate G twice; the Gate G receipt records four current-commit artifacts and
+`external_submission: false`.
+
+On 2026-10-18, the named arXiv and non-arXiv V3 packages and anonymous TMLR V3
+candidate were prepared from manuscript content commit `112078e`. Their
+manifests and ZIP integrity checks passed; all three PDFs are 12 pages. Fresh
+extractions of the arXiv and non-arXiv evidence ZIPs each passed all 114 tests
+and two portable replays of 18 tables and 8 figures in the matching 41-package
+Python 3.13.12 environment. The pre-existing V2 package artifacts remain
+unchanged. The V3 package provenance correctly points to the manuscript commit;
+later commits only updated release-gate documentation.
+
+On 2026-10-20, the manuscript abstract and first-page AI disclosure were
+updated from the canonical source, and the runtime interpretation was copyedited
+without changing benchmark results. New arXiv, named non-arXiv, and anonymous
+TMLR V3 candidates were generated under the dated `output/.../2026-10-20/v3/`
+directories. Their 176-word abstracts, 18 citations, metadata, PDF text, ZIP
+member hashes, and scientific Results text were checked; all three 12-page
+PDFs and the formal Gate G named and anonymous PDFs passed all-page visual
+review. The existing V2 trees and October 18 candidate artifacts remain
+untouched. Gate E, F, and G passed twice against the final exact feature-branch
+commit in a clean local clone; Gate G records `external_submission: false`.
+These are local candidates only. The author reports being under 18, and written
+route guidance, author and institution records, the complete AI-use history,
+ethics/data authority, and independent human technical review remain pending.
+
+At source commit `cb5a3ba`, Gate E and Gate F passed twice and Gate G passed
+twice in an isolated feature-branch checkout at the same head. The seven Gate F
+checks exited successfully. The exact-head artifacts are archived under
+`output/gate-validation/2026-10-18/cb5a3ba/`. A fresh MiKTeX compile was blocked
+by sandbox access to its user registry/cache; Gate G reused the previously
+compiled PDFs after confirming the manuscript TeX had not changed. The
+subsequent timeline-only commit `e803835` also passed Gates E and F twice on the
+source branch and Gate G twice in an isolated checkout at the exact head; its
+snapshot is archived under `output/gate-validation/2026-10-18/e803835/`. No
+upload, submission, or publication is claimed.
+
+The public TMLR, OpenReview, arXiv, and India Code rules are recorded in the
+paper review checklist. The author reports being under 18 and having used AI
+with historical tools/tasks unrecorded; domicile, author and institution
+records, data authority/consent/oversight, and independent human review remain
+unconfirmed. The three eligibility inquiries are unsent drafts, so no written
+venue guidance is available yet.
+
+On 2026-11-18, T1 completed the grouped-sensitivity method and denominator
+reporting and clarified the original Friedman computed/skipped counts. The
+counts were recomputed from the frozen grouped and Friedman CSVs; the focused+analysis/grouped-sensitivity tests passed (14 tests). The source compiled with+three `pdflatex` passes and one BibTeX pass; affected pages 5, 7, 9, and 10+were visually inspected. Hashes for the original 18 analysis tables and 8+figures were unchanged. No model rerun, package build, commit, push, PR, or+publication occurred. Author confirmations and independent human review remain+open for later release steps.
+
+The critical-path table below is the forecast. The task-status table is the+current execution source of truth and must be updated whenever a task is+completed, blocked, or materially re-scoped.
 
 Status markers: `[x]` complete, `[>]` current, `[!]` blocked, `[ ]` pending.
 
@@ -45,6 +135,15 @@ Status markers: `[x]` complete, `[>]` current, `[!]` blocked, `[ ]` pending.
 | PAPER-01 | Write and review the paper against generated evidence. | [x] Complete | De-anonymized TMLR-formatted V1 release candidate in `paper/main.tex`, references, official style assets, and `paper/review-checklist.md`; all reported results are tied to the frozen analysis package. |
 | REPRO-01 | Reproduce the locked workflow from a clean checkout and archive manifests. | [x] Complete | `scripts/verify_gate_f.py` archives the exact tracked source, runs the full checks in that temporary checkout, and revalidates the frozen Gate E evidence; the ignored payload is `results/analysis/gate-f-review.json`. |
 | SUBMIT-01 | Finalize release materials and preserve the submitted commit snapshot. | [x] Complete | Gate G technical release snapshot: `docs/release.md`, `scripts/verify_gate_g.py`, and ignored `results/analysis/gate-g-review.json`; no external submission is claimed. |
+| PUBREPLAY-01 | Implement and exercise the portable aggregate-only replay route from an unpacked evidence copy with the route files overlaid. | [x] Complete | `src/publication_evidence.py`, `scripts/replay_publication_analysis.py`, and aggregate-validation support in `src/analysis.py`; both V2 evidence ZIPs independently regenerated 18 tables and 8 figures twice, each with 26 byte-identical comparisons. V1 ZIPs remain untouched. |
+| DUPPROFILE-01 | Freeze an evidence-backed duplicate-profile policy and grouped-CV sensitivity design before rerunning models. | [x] Complete | `docs/duplicate-profile-policy.md` records hash-verified counts for all 11 datasets and a predictor-only five-fold/three-seed design for the six affected datasets. `scripts/audit_duplicate_profiles.py` reports 90/90 feasible grouped splits with all classes and zero profile overlap; no sensitivity models were run. |
+| PKG-01 | Repair package completeness, exact analysis dependencies, and retained-dataset acquisition. | [x] Complete | `src/release_artifacts.py` uses an explicit inventory; Python 3.13.12 instructions and the 41-package lock are included. The fresh `output/gate-clean-env-20261015b` environment has no broken requirements and matches all 41 locked versions. CMC, Glass, and Yeast OpenML v1 records have downloaded status and raw sizes/SHA-256 values matching `data/acquisition_manifest.csv`. Both V3 evidence ZIPs were freshly extracted; each passed 114 tests and two portable replays. |
+| DUPSENS-01 | Run the frozen exact-profile grouped-CV sensitivity and compare it descriptively with row-wise V1. | [x] Complete | `docs/duplicate-profile-sensitivity-results.md` records the completed run; the ignored manifest verifies 2,970/2,970 keys and all output hashes. Independent review confirmed 90/90 feasible splits, every class in train/test, and zero profile overlap. No inference or replacement folds were added. |
+| PAPERFIX-01 | Correct manuscript claims, methods, environment disclosure, references, and PDF metadata against the verified evidence. | [x] Complete | Source claims, references, named metadata, grouped-sensitivity findings, timing/RSS wording, and environment limits were reconciled. Full tests, Ruff, Python compilation, and diff checks passed. Earlier bounded Jev diff reviews covered the task-owned implementation files; the October 15 checklist/status delta received a focused Jev plan review. The final aggregate diff request exceeded Jev's 45,000-character limit before transmission. |
+| PKG-06 | Rebuild and validate the arXiv and separate named non-arXiv candidates. | [x] Complete | October 18 candidates remain at `output/{arxiv,non-arXiv,tmlr}/2026-10-18/v3/`; the fresh October 20 variants are at the matching `2026-10-20/v3/` paths. The new variants have matching 176-word abstracts, 18 citations, valid internal and package manifests, 12 pages each, and completed visual review. Exact-head Gate E/F/G passed twice in `output/gate-validation/clean-validation-2026-10-20/`; Gate G records `external_submission: false`. Existing V2 artifacts remain unchanged. Author, venue, disclosure, and human-review gates remain open; no upload or submission occurred. |
+| PUBREPAIR-T1 | Complete the scientific reporting repair for grouped sensitivity denominators, methods, ranking coverage, and Friedman row accounting. | [x] Complete | Updated `paper/main.tex`, the scientific protection checklist, grouped-sensitivity run record, and this timeline. Frozen counts and claims match the CSVs; the 14 focused tests passed; three `pdflatex` passes and one BibTeX pass succeeded; affected pages 5, 7, 9, and 10 were inspected. Hashes for all 18 original tables and 8 figures were unchanged. No model rerun, generated package, commit, push, PR, or publication. |
+
+| INTEGRATE-V4 | Integrate V4 T1–T3 with current V2 main and close the source, evidence, and anonymous-package gates. | [>] In progress | The feature branch contains the conflict-resolved 45-file integration of `b8c4073` and `4c1cf04`; the proper two-parent merge commit and source-only push are next. All 11 full-run raw files were copied from the preserved V1 checkout only after matching the integrated acquisition manifest, with before/after hashes recorded in ignored `output/validation-inputs-20261123/raw-input-validation.json`; no model training ran. The isolated Python 3.12.10 V2 environment has pinned LightGBM 4.7.0 and CatBoost 1.2.10, passes `pip check`, and its full source suite passed 202 tests plus Ruff. The frozen Python 3.13.12 analysis environment replayed all 18 tables and 8 figures with 26 byte-identical comparisons; the separate exact addendum completed with 1/5,184 = 72/373,248 and preserves the prior Monte Carlo result. A current manuscript build resolved all citations/references; its 13 rendered pages were visually inspected. Independent review found no numerical discrepancy; the abstract now states the 16/32 computable Friedman denominator and the Branco and Grinsztajn bibliography records were corrected against primary proceedings. Remaining: commit/push this source-only merge, run exact-head Gate E then Gate F, rebuild and verify a fresh anonymous supplement, obtain the authorized hosted check, then stop for independent package validation. Author disclosures and independent human technical review remain release gates; no T4 package, upload, or publication is authorized by this row. |
 
 ### Update rule
 

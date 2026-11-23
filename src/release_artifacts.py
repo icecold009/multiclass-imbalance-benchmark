@@ -13,6 +13,7 @@ from collections.abc import Mapping
 from io import BytesIO
 from pathlib import Path, PurePosixPath, PureWindowsPath
 from typing import Any
+from urllib.parse import urlsplit
 
 from pypdf import PdfReader
 
@@ -30,30 +31,57 @@ LOCAL_USER_PATH_PATTERN = re.compile(
 )
 
 TMLR_SOURCE_FILES = (
+    "pyproject.toml",
     "config/stage0.yaml",
+    "config/v2.yaml",
     "data/acquisition_manifest.csv",
     "data/dataset_feature_overrides.csv",
     "data/dataset_registry.csv",
     "docs/data-acquisition.md",
     "docs/analysis-implementation-note.md",
+    "docs/analysis-plan-v2.md",
+    "docs/duplicate-profile-policy.md",
+    "docs/duplicate-profile-sensitivity-results.md",
     "docs/environment.md",
     "docs/protocol-status.md",
+    "docs/protocol-v2.md",
     "docs/protocol.md",
+    "docs/release.md",
     "docs/reproducibility.md",
     "docs/stage-0-feasibility.md",
     "docs/stage-0-runbook.md",
     "requirements.txt",
+    "requirements-analysis.in",
+    "requirements-analysis.lock",
+    "requirements-v2.lock",
+    "requirements-v2.txt",
+    "scripts/bootstrap.ps1",
     "scripts/build_release_artifacts.py",
+    "scripts/acquire_openml_candidates.py",
+    "scripts/audit_duplicate_profiles.py",
+    "scripts/build_candidate_registry.py",
+    "scripts/record_environment.ps1",
+    "scripts/build_pilot_review.py",
+    "scripts/replay_publication_analysis.py",
+    "scripts/run_publication_addenda.py",
+    "scripts/run_duplicate_profile_sensitivity.py",
+    "scripts/run_benchmark.py",
     "scripts/run_analysis.py",
     "scripts/verify_gate_d.py",
     "scripts/verify_gate_e.py",
     "scripts/verify_gate_f.py",
     "scripts/verify_gate_g.py",
+    "scripts/verify_gate_c.py",
+    "scripts/verify_setup.ps1",
     "requirements-release.txt",
     "src/analysis.py",
     "src/benchmark.py",
+    "src/__init__.py",
+    "src/duplicate_profiles.py",
+    "src/duplicate_profile_sensitivity.py",
     "src/pilot.py",
     "src/posthoc_sensitivity.py",
+    "src/publication_evidence.py",
     "src/release_artifacts.py",
     "src/reproducibility.py",
     "src/robustness.py",
@@ -62,16 +90,31 @@ TMLR_SOURCE_FILES = (
     "src/stage0.py",
     "src/stats.py",
     "src/submission.py",
+    "src/v2_engineering.py",
+    "tests/fixtures/historical-v2/README.md",
+    "tests/fixtures/historical-v2/dataset_registry_v2.csv",
+    "tests/fixtures/submission/paper/main.tex",
+    "tests/fixtures/submission/paper/tmlr.sty",
+    "tests/fixtures/submission/paper/tmlr.bst",
+    "tests/fixtures/submission/paper/fancyhdr.sty",
     "tests/test_analysis.py",
+    "tests/test_acquire_openml_candidates.py",
     "tests/test_benchmark.py",
+    "tests/test_duplicate_profiles.py",
+    "tests/test_duplicate_profile_sensitivity.py",
     "tests/test_pilot.py",
     "tests/test_posthoc_sensitivity.py",
+    "tests/test_publication_evidence.py",
     "tests/test_reproducibility.py",
     "tests/test_robustness.py",
-    "tests/test_source_snapshot.py",
+    "tests/test_sensitivity_exact.py",
     "tests/test_stage0.py",
     "tests/test_stats.py",
     "tests/test_submission.py",
+    "tests/test_v2_config.py",
+    "tests/test_v2_engineering.py",
+    "paper/README-anonymous.md",
+    "paper/review-checklist.md",
 )
 TMLR_PAPER_SUPPORT_FILES = (
     "paper/references.bib",
@@ -80,14 +123,20 @@ TMLR_PAPER_SUPPORT_FILES = (
     "paper/tmlr.bst",
     "paper/fancyhdr.sty",
 )
-TMLR_IDENTITY_SCAN_EXEMPT_FILES = frozenset(
-    {"paper/tmlr.sty", "paper/tmlr.bst", "paper/fancyhdr.sty"}
+PUBLICATION_EVIDENCE_FILES = tuple(
+    dict.fromkeys((*TMLR_SOURCE_FILES, *TMLR_PAPER_SUPPORT_FILES))
 )
 TMLR_STYLE_SHA256 = {
     "paper/tmlr.sty": "5137789fbcfcf6188e67f3ccf28363472997a1a9498ce382e4cf4bee10d542e9",
     "paper/tmlr.bst": "e02e75749c78e47301c8dd346459bb34ec5efd08aa3ae99109a01e71bd42e107",
     "paper/fancyhdr.sty": "2bcdf00b7ff35411e1fc3dece5e1489b467e9e455a71e437bf07c41f359ab584",
 }
+TMLR_STYLE_FIXTURE_ORIGINS = {
+    f"tests/fixtures/submission/{relative}": relative for relative in TMLR_STYLE_SHA256
+}
+TMLR_IDENTITY_SCAN_EXEMPT_FILES = frozenset(
+    {*TMLR_STYLE_SHA256, *TMLR_STYLE_FIXTURE_ORIGINS}
+)
 
 
 def _sha256(data: bytes) -> str:
@@ -134,19 +183,40 @@ def anonymize_tmlr_source(source: str) -> str:
             "paper source no longer has the expected de-anonymized availability block"
         )
 
+    author_request = (
+        "The source and evidence package prepared for this draft is available from the author on request."
+    )
+    if anonymous.count(author_request) > 1:
+        raise RuntimeError("paper source repeats its author-request availability statement")
+    anonymous = anonymous.replace(
+        author_request,
+        "The source and evidence package supporting this submission is included in the "
+        "anonymous supplementary material accompanying the manuscript.",
+        1,
+    )
+
     acknowledgments = re.compile(r"(?ms)^\\section\*\{Acknowledgments\}\s+.*?(?=^\\bibliography\{)")
     anonymous, acknowledgment_count = acknowledgments.subn("", anonymous, count=1)
     if acknowledgment_count != 1:
         raise RuntimeError("paper source no longer has the expected acknowledgments section")
 
-    metadata = r"\hypersetup{hidelinks}"
-    anonymous_metadata = (
-        r"\hypersetup{hidelinks,pdfauthor={Anonymous},pdfcreator={},"
-        r"pdftitle={An Auditable Benchmark of Imbalance Handling for Multiclass Tabular Classification}}"
+    metadata = re.compile(
+        r"\\hypersetup\{hidelinks,pdftitle=\{([^{}]+)\},pdfauthor=\{[^{}]*\}\}"
     )
-    if anonymous.count(metadata) != 1:
-        raise RuntimeError("paper source no longer has the expected PDF metadata declaration")
-    anonymous = anonymous.replace(metadata, anonymous_metadata, 1)
+
+    def anonymous_metadata(match: re.Match[str]) -> str:
+        title = match.group(1)
+        return (
+            r"\hypersetup{hidelinks,pdfauthor={Anonymous},pdfcreator={},pdftitle={"
+            + title
+            + "}}"
+        )
+
+    anonymous, metadata_count = metadata.subn(anonymous_metadata, anonymous, count=1)
+    if metadata_count != 1:
+        raise RuntimeError(
+            "paper source no longer has the expected named PDF metadata declaration"
+        )
 
     if re.search(r"(?m)^\\author\s*\{", anonymous):
         raise RuntimeError("anonymous paper source still declares an author")
@@ -171,7 +241,7 @@ def author_identifiers(source: str) -> tuple[str, ...]:
 
 
 def repository_identifiers(root: Path) -> tuple[str, ...]:
-    """Return local origin URL spellings that must not enter blind material."""
+    """Return host-qualified origin spellings without exposing URL credentials."""
 
     try:
         remote = _git_output(root, "remote", "get-url", "origin").strip()
@@ -179,12 +249,75 @@ def repository_identifiers(root: Path) -> tuple[str, ...]:
         return ()
     if not remote:
         return ()
-    variants = {remote, remote.removesuffix(".git")}
-    if remote.startswith("git@") and ":" in remote:
-        host, repository = remote.split(":", 1)
-        variants.add(f"https://{host[4:]}/{repository}")
-        variants.add(f"https://{host[4:]}/{repository.removesuffix('.git')}")
+
+    if "://" not in remote and ":" in remote:
+        host_part, repository = remote.split(":", 1)
+        if "/" in host_part or "\\" in host_part or re.match(r"^[A-Za-z]$", host_part):
+            return ()
+        host = host_part.rsplit("@", 1)[-1]
+        scheme = "ssh"
+    else:
+        try:
+            parsed = urlsplit(remote)
+            scheme = parsed.scheme.casefold()
+            if scheme not in {"http", "https", "ssh", "git", "git+ssh"}:
+                return ()
+            host = parsed.hostname or ""
+            if parsed.port is not None:
+                host = f"{host}:{parsed.port}"
+            repository = parsed.path.lstrip("/")
+        except ValueError:
+            return ()
+
+    repository = repository.split("?", 1)[0].split("#", 1)[0].strip("/")
+    if not host or not repository:
+        return ()
+    repository_without_suffix = repository.removesuffix(".git")
+    segments = repository_without_suffix.split("/")
+    if len(segments) < 2 or not all(segments):
+        return ()
+    owner = segments[-2]
+    variants: set[str] = set()
+    for safe_scheme in {scheme, "https", "ssh"}:
+        variants.update(
+            {
+                f"{safe_scheme}://{host}/{repository}",
+                f"{safe_scheme}://{host}/{repository_without_suffix}",
+                f"{safe_scheme}://{host}/{owner}",
+            }
+        )
+    variants.update(
+        {
+            f"{host}/{repository}",
+            f"{host}/{repository_without_suffix}",
+            f"{host}/{owner}",
+            f"{host}:{repository}",
+            f"{host}:{repository_without_suffix}",
+            f"{host}:{owner}",
+            f"git@{host}:{repository}",
+            f"git@{host}:{repository_without_suffix}",
+            f"git@{host}:{owner}",
+        }
+    )
     return tuple(sorted(value for value in variants if value))
+
+
+def _validate_anonymous_tmlr_identity(
+    entries: Mapping[str, bytes], forbidden_terms: tuple[str, ...]
+) -> None:
+    """Reject identifying metadata and repository names in anonymous package inputs."""
+
+    for name, content in entries.items():
+        if name in TMLR_IDENTITY_SCAN_EXEMPT_FILES:
+            continue
+        identity_content = name.encode("utf-8") + b"\n" + content
+        if (
+            EMAIL_PATTERN.search(identity_content)
+            or LOCAL_USER_PATH_PATTERN.search(identity_content)
+            or REVISION_PATTERN.search(identity_content)
+            or any(_contains_identifier(identity_content, term) for term in forbidden_terms)
+        ):
+            raise RuntimeError(f"anonymous TMLR package contains identifying data in {name}")
 
 
 def _git_output(root: Path, *arguments: str) -> str:
@@ -535,6 +668,15 @@ def _validate_tmlr_styles(files: dict[str, bytes]) -> None:
             raise RuntimeError(f"TMLR style asset is missing or changed: {relative}")
 
 
+def _validate_tmlr_fixture_styles(files: Mapping[str, bytes]) -> None:
+    for fixture_path, official_path in TMLR_STYLE_FIXTURE_ORIGINS.items():
+        content = files.get(fixture_path)
+        if content is not None and _sha256(content) != TMLR_STYLE_SHA256[official_path]:
+            raise RuntimeError(
+                f"TMLR style test fixture is not the reviewed official asset: {fixture_path}"
+            )
+
+
 def _anonymous_license(license_text: bytes) -> bytes:
     text = license_text.decode("utf-8")
     lines = text.splitlines()
@@ -552,34 +694,37 @@ def _anonymous_license(license_text: bytes) -> bytes:
 
 def _anonymous_readme() -> bytes:
     return (
-        b"# Supplementary material\n\n"
-        b"This anonymized archive accompanies the V1 benchmark manuscript. It contains "
-        b"the paper source, analysis code, public dataset provenance, frozen result tables, "
-        b"and figures that directly support the manuscript. The raw datasets are not "
-        b"redistributed; their public source identifiers and acquisition instructions are "
-        b"provided in `data/acquisition_manifest.csv` and `docs/data-acquisition.md`.\n\n"
-        b"For source and scope details, see `data/dataset_registry.csv` and "
-        b"`data/acquisition_manifest.csv`. In `results/analysis/`, `cell_means.csv` and "
-        b"`macro_f1_figure_coverage.csv` locate complete-cell values and coverage; "
-        b"`class_means.csv`, `per_class_recall_summary.csv`, and "
-        b"`baseline_deltas_per_class.csv` contain class-wise summaries; "
-        b"`failure_accounting.csv` and `failure_reason_counts.csv` separate unsupported "
-        b"conditions from applicable failures. `adasyn_excluded_friedman.csv`, "
-        b"`adasyn_excluded_pairwise.csv`, and "
-        b"`adasyn_excluded_imbalance_descriptive.csv` report the post hoc macro-F1 "
-        b"sensitivity, exact follow-ups, and descriptive imbalance strata.\n\n"
-        b"Install the packages in `requirements.txt`, then follow `docs/reproducibility.md` "
-        b"to regenerate the analysis from the supplied frozen result records; this does not "
-        b"rerun model training. A fresh benchmark run requires separately obtaining the listed "
-        b"public datasets and following `docs/stage-0-runbook.md`. In repository records, "
-        b"Stage 0 means the pre-run feasibility and scope audit; Gate D accounts for raw "
-        b"records, Gate E replays and validates the analysis, Gate F checks reproduction "
-        b"from a clean checkout, and Gate G validates a release snapshot. These are internal "
-        b"workflow labels, not venue certifications. The TMLR style "
-        b"files in `paper/` are supplied unchanged. Install `requirements-release.txt` "
-        b"as well when running the PDF validators. Source revision fields are redacted from "
-        b"the anonymous evidence manifests; their hashes are updated to match the packaged "
-        b"bytes. Per-file hashes in the ZIP manifest identify the exact review archive.\n"
+        b"# Anonymous supplementary material\n\n"
+        b"This V4 supplement accompanies the blinded benchmark manuscript. It contains the "
+        b"paper source, analysis code and tests, public dataset provenance, frozen aggregate "
+        b"records, tables, figures, grouped-profile evidence, and the separate exact "
+        b"calibration. Raw or processed dataset files, private correspondence, and credentials "
+        b"are not included. Dataset sources and terms are listed in `data/acquisition_manifest.csv` "
+        b"and `docs/data-acquisition.md`.\n\n"
+        b"## Quick start\n\n"
+        b"Use the locked Python environment described by `requirements-analysis.lock` and "
+        b"`docs/environment.md`. From the extracted archive root, run `python -m pytest` "
+        b"for the included tests and `python scripts/run_publication_addenda.py` "
+        b"to reproduce the post hoc exact Friedman calibration. The separate result is written "
+        b"under `results/publication-addenda/v4/`; it reports `p = 1/5,184` and leaves the "
+        b"planned analysis and its Monte Carlo record unchanged.\n\n"
+        b"Follow `docs/reproducibility.md` to replay the original tables and figures from the "
+        b"supplied frozen result records; this does not rerun model training. The grouped-profile "
+        b"sensitivity is a separate post hoc model run. A new benchmark run requires separately "
+        b"obtaining the listed public datasets and following `docs/stage-0-runbook.md`.\n\n"
+        b"In `results/analysis/`, `cell_means.csv` and `macro_f1_figure_coverage.csv` locate "
+        b"complete-cell values and coverage; `class_means.csv`, `per_class_recall_summary.csv`, "
+        b"and `baseline_deltas_per_class.csv` contain class-wise summaries; `failure_accounting.csv` "
+        b"and `failure_reason_counts.csv` separate unsupported conditions from applicable "
+        b"failures. The three ADASYN-excluded files report the post hoc macro-F1 sensitivity and "
+        b"descriptive imbalance strata. Grouped-profile assignments, results, failures, summaries, "
+        b"and their manifest are under `results/duplicate-profile-sensitivity/`.\n\n"
+        b"The anonymous archive redacts source revision fields and rebinds hashes for transformed "
+        b"metadata. Hashes for unchanged scientific files remain intact. This is a derived review "
+        b"snapshot; it does not claim fresh verification of excluded raw-data provenance. The "
+        b"TMLR style files in `paper/` are supplied unchanged. Install `requirements-release.txt` "
+        b"as well when running the PDF validators. Per-file hashes in the ZIP manifest identify "
+        b"the exact review archive.\n"
     )
 
 
@@ -708,6 +853,145 @@ def _json_bytes(payload: dict[str, Any]) -> bytes:
     return (json.dumps(payload, indent=2, sort_keys=True) + "\n").encode("utf-8")
 
 
+def _anonymous_environment_and_benchmark_entries(
+    root: Path,
+) -> tuple[dict[str, bytes], dict[str, str]]:
+    """Redact revision fields and rebind the benchmark's environment hash."""
+
+    environment_name = "artifacts/environment/metadata.json"
+    environment_payload = _redact_git_revision_fields(
+        json.loads(_read_required(root, environment_name))
+    )
+    environment_bytes = _json_bytes(environment_payload)
+
+    run_manifest_name = "results/full-run/benchmark_manifest.json"
+    run_manifest_payload = _redact_git_revision_fields(
+        json.loads(_read_required(root, run_manifest_name))
+    )
+    hash_replacements = {environment_name: _sha256(environment_bytes)}
+    _replace_hash_references(run_manifest_payload, hash_replacements)
+    run_manifest_bytes = _json_bytes(run_manifest_payload)
+    hash_replacements[run_manifest_name] = _sha256(run_manifest_bytes)
+    return (
+        {
+            environment_name: environment_bytes,
+            run_manifest_name: run_manifest_bytes,
+        },
+        hash_replacements,
+    )
+
+
+def _duplicate_profile_sensitivity_entries(root: Path) -> dict[str, bytes]:
+    """Read a complete, hash-verified grouped-profile sensitivity output set."""
+
+    directory_name = "results/duplicate-profile-sensitivity"
+    directory = (root / directory_name).resolve()
+    manifest_relative = f"{directory_name}/sensitivity_manifest.json"
+    manifest_bytes = _read_required(root, manifest_relative)
+    try:
+        manifest = json.loads(manifest_bytes)
+    except json.JSONDecodeError as error:
+        raise RuntimeError("duplicate-profile sensitivity manifest is not valid JSON") from error
+    if not isinstance(manifest, dict) or manifest.get("status") != "complete":
+        raise RuntimeError("duplicate-profile sensitivity run is not complete")
+    outputs = manifest.get("outputs")
+    if not isinstance(outputs, dict) or not outputs:
+        raise RuntimeError("duplicate-profile sensitivity manifest has no output hashes")
+
+    actual_files = {
+        path.relative_to(directory).as_posix()
+        for path in directory.rglob("*")
+        if path.is_file()
+        and path.relative_to(directory).as_posix() != "sensitivity_manifest.json"
+    }
+    if actual_files != set(outputs):
+        missing = sorted(set(outputs) - actual_files)
+        unlisted = sorted(actual_files - set(outputs))
+        raise RuntimeError(
+            "duplicate-profile sensitivity output inventory differs from its manifest: "
+            f"missing={missing}, unlisted={unlisted}"
+        )
+
+    entries = {manifest_relative: manifest_bytes}
+    for relative, expected_digest in sorted(outputs.items()):
+        if (
+            not isinstance(relative, str)
+            or "\\" in relative
+            or ":" in relative
+            or PurePosixPath(relative).is_absolute()
+            or PureWindowsPath(relative).is_absolute()
+            or ".." in PurePosixPath(relative).parts
+            or not isinstance(expected_digest, str)
+        ):
+            raise RuntimeError("duplicate-profile sensitivity manifest has an unsafe output path")
+        candidate = (directory / Path(*PurePosixPath(relative).parts)).resolve()
+        try:
+            candidate.relative_to(directory)
+        except ValueError as error:
+            raise RuntimeError(
+                f"duplicate-profile sensitivity output escapes its directory: {relative}"
+            ) from error
+        if not candidate.is_file():
+            raise RuntimeError(f"duplicate-profile sensitivity output is missing: {relative}")
+        content = candidate.read_bytes()
+        if _sha256(content) != expected_digest:
+            raise RuntimeError(f"duplicate-profile sensitivity hash mismatch: {relative}")
+        entries[f"{directory_name}/{PurePosixPath(relative).as_posix()}"] = content
+    return entries
+
+
+def _anonymous_exact_calibration_entries(
+    root: Path,
+    anonymous_analysis_manifest: bytes,
+) -> dict[str, bytes]:
+    """Include the exact calibration and rebind its transformed manifest input."""
+
+    directory = Path("results/publication-addenda/v4")
+    analysis_manifest_name = "results/analysis/analysis_manifest.json"
+    addendum_manifest_path = root / directory / "publication_addendum_manifest.json"
+    addendum_csv_path = root / directory / "exact_friedman_permutation.csv"
+    source_analysis_manifest = _read_required(root, analysis_manifest_name)
+    if not addendum_manifest_path.is_file() or not addendum_csv_path.is_file():
+        raise RuntimeError("exact publication calibration outputs are missing")
+
+    manifest = json.loads(addendum_manifest_path.read_text(encoding="utf-8"))
+    if (
+        manifest.get("schema_version") != "publication-addendum-exact-friedman-v1"
+        or manifest.get("status") != "complete"
+        or manifest.get("post_hoc") is not True
+    ):
+        raise RuntimeError("exact publication calibration manifest is not complete and post hoc")
+    input_manifest = manifest.get("input", {}).get("analysis_manifest", {})
+    if (
+        input_manifest.get("path") != analysis_manifest_name
+        or input_manifest.get("sha256") != _sha256(source_analysis_manifest)
+    ):
+        raise RuntimeError("exact calibration does not reference the current source analysis manifest")
+
+    input_cell_means = manifest.get("input", {}).get("cell_means", {})
+    cell_means_path = root / "results/analysis/cell_means.csv"
+    if (
+        input_cell_means.get("path") != "results/analysis/cell_means.csv"
+        or not cell_means_path.is_file()
+        or input_cell_means.get("sha256") != _sha256(cell_means_path.read_bytes())
+    ):
+        raise RuntimeError("exact calibration does not reference the frozen cell means")
+
+    output = manifest.get("outputs", {}).get("exact_friedman_permutation.csv", {})
+    csv_bytes = addendum_csv_path.read_bytes()
+    if (
+        output.get("path") != addendum_csv_path.name
+        or output.get("sha256") != _sha256(csv_bytes)
+    ):
+        raise RuntimeError("exact calibration CSV does not match its manifest hash")
+
+    input_manifest["sha256"] = _sha256(anonymous_analysis_manifest)
+    return {
+        (directory / addendum_csv_path.name).as_posix(): csv_bytes,
+        (directory / addendum_manifest_path.name).as_posix(): _json_bytes(manifest),
+    }
+
+
 def _supplement_entries(
     root: Path,
     anonymous_source: str,
@@ -721,18 +1005,29 @@ def _supplement_entries(
         "LICENSE": _anonymous_license(_read_required(root, "LICENSE")),
         "paper/main.tex": anonymous_source.encode("utf-8"),
         "paper/main.pdf": anonymous_pdf,
+        # pyproject.toml configures pytest's --basetemp inside this directory.
+        "artifacts/test-tmp/.gitkeep": b"",
     }
-    for relative in (*TMLR_SOURCE_FILES, *TMLR_PAPER_SUPPORT_FILES):
+    missing_inventory_files = [
+        relative for relative in PUBLICATION_EVIDENCE_FILES if not (root / relative).is_file()
+    ]
+    if missing_inventory_files:
+        raise RuntimeError(
+            "publication evidence inventory has missing files: "
+            f"{missing_inventory_files}"
+        )
+    for relative in PUBLICATION_EVIDENCE_FILES:
         entries[relative] = _read_required(root, relative)
     _validate_tmlr_styles(entries)
+    _validate_tmlr_fixture_styles(entries)
 
+    # The portable replay validates this locked applicability and scope record.
+    scope_lock_name = "artifacts/runs/scope-lock.json"
+    entries[scope_lock_name] = _read_required(root, scope_lock_name)
+
+    evidence_entries, hash_replacements = _anonymous_environment_and_benchmark_entries(root)
+    entries.update(evidence_entries)
     run_manifest_name = "results/full-run/benchmark_manifest.json"
-    run_manifest_payload = _redact_git_revision_fields(
-        json.loads(_read_required(root, run_manifest_name))
-    )
-    run_manifest_bytes = _json_bytes(run_manifest_payload)
-    entries[run_manifest_name] = run_manifest_bytes
-    hash_replacements = {run_manifest_name: _sha256(run_manifest_bytes)}
 
     for path in sorted((root / "results/full-run").glob("*")):
         relative = path.relative_to(root).as_posix()
@@ -758,6 +1053,7 @@ def _supplement_entries(
     analysis_bytes = _json_bytes(analysis_payload)
     entries[analysis_manifest_name] = analysis_bytes
     hash_replacements[analysis_manifest_name] = _sha256(analysis_bytes)
+    entries.update(_anonymous_exact_calibration_entries(root, analysis_bytes))
 
     gate_e_name = "results/analysis/gate-e-review.json"
     gate_e_payload = _redact_git_revision_fields(json.loads(_read_required(root, gate_e_name)))
@@ -773,17 +1069,9 @@ def _supplement_entries(
     for path in sorted((analysis_dir / "figures").glob("*.png")):
         entries[path.relative_to(root).as_posix()] = path.read_bytes()
 
-    for name, content in entries.items():
-        if name in TMLR_IDENTITY_SCAN_EXEMPT_FILES:
-            continue
-        identity_content = name.encode("utf-8") + b"\n" + content
-        if (
-            EMAIL_PATTERN.search(identity_content)
-            or LOCAL_USER_PATH_PATTERN.search(identity_content)
-            or REVISION_PATTERN.search(identity_content)
-            or any(_contains_identifier(identity_content, term) for term in forbidden_terms)
-        ):
-            raise RuntimeError(f"anonymous TMLR package contains identifying data in {name}")
+    entries.update(_duplicate_profile_sensitivity_entries(root))
+
+    _validate_anonymous_tmlr_identity(entries, forbidden_terms)
     return entries
 
 
@@ -829,6 +1117,7 @@ def _source_release_entries(
         for path in sorted(directory.rglob("*")):
             if path.is_file() and path.name != "gate-g-review.json":
                 entries[path.relative_to(root).as_posix()] = path.read_bytes()
+    entries.update(_duplicate_profile_sensitivity_entries(root))
     entries["paper/main.pdf"] = _read_required(root, "paper/main.pdf")
     entries["results/analysis/gate-f-review.json"] = _json_bytes(
         _gate_f_review_for_source(root, source_commit, source_tree_clean)
@@ -849,8 +1138,9 @@ def build_release_artifacts(
     *,
     allow_dirty: bool = False,
     stage_only: bool = False,
+    anonymous_only: bool = False,
 ) -> dict[str, Any]:
-    """Build both source ZIPs and stage anonymous TeX for a matching PDF build."""
+    """Build release ZIPs, or only the anonymous supplement, and stage its TeX."""
 
     root = root.resolve()
     output_root = output_root.resolve()
@@ -858,7 +1148,7 @@ def build_release_artifacts(
         raise ValueError("artifact output root must remain inside the repository")
     commit, clean, source_files = _source_tree_state(root, allow_dirty)
     paths = artifact_paths(root, commit)
-    if not (root / "paper/main.pdf").is_file():
+    if not anonymous_only and not (root / "paper/main.pdf").is_file():
         raise RuntimeError("compile paper/main.tex before building the V1 source release ZIP")
 
     source_text = _read_required(root, "paper/main.tex").decode("utf-8")
@@ -885,6 +1175,7 @@ def build_release_artifacts(
             "source_tree_clean": clean,
             "anonymous_source": (stage / "paper/main.tex").as_posix(),
             "stage_only": True,
+            "anonymous_only": anonymous_only,
         }
 
     anonymous_pdf = output_root / "submission" / paths["tmlr_anonymous_pdf"].name
@@ -913,23 +1204,24 @@ def build_release_artifacts(
         anonymous=True,
     )
 
-    release_entries = _source_release_entries(root, source_files, commit, clean)
-    release = paths["source_release_zip"]
-    release = output_root / "release" / release.name
-    release_ref = write_package_zip(
-        release,
-        release_entries,
-        source_commit=commit,
-        source_tree_clean=clean,
-        anonymous=False,
-    )
-    return {
+    result = {
         "source_commit": commit,
         "source_tree_clean": clean,
         "anonymous_source": (stage / "paper/main.tex").as_posix(),
-        "source_release_zip": release_ref,
         "tmlr_anonymous_supplement_zip": supplement_ref,
         "tmlr_anonymous_pdf_expected": (
             output_root / "submission" / paths["tmlr_anonymous_pdf"].name
         ).as_posix(),
+        "anonymous_only": anonymous_only,
     }
+    if not anonymous_only:
+        release_entries = _source_release_entries(root, source_files, commit, clean)
+        release = output_root / "release" / paths["source_release_zip"].name
+        result["source_release_zip"] = write_package_zip(
+            release,
+            release_entries,
+            source_commit=commit,
+            source_tree_clean=clean,
+            anonymous=False,
+        )
+    return result

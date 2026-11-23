@@ -1,3 +1,4 @@
+import csv
 from pathlib import Path
 
 import pandas as pd
@@ -9,6 +10,8 @@ from src.v2_registry import (
     validate_registry_file,
     validate_registry_frame,
 )
+
+ROOT = Path(__file__).resolve().parents[1]
 
 
 def _row(dataset_id: str = "fixture", *, feature_type: str = "numeric", ratio: float = 1.5) -> dict[str, str]:
@@ -109,3 +112,41 @@ def test_frozen_v2_registry_meets_score_free_coverage_gate() -> None:
         "moderate_ir_5_to_20": 15,
         "severe_ir_gt_20": 8,
     }
+
+
+def test_current_v2_registry_header_and_column_order() -> None:
+    expected = [
+        "dataset_id",
+        "display_name",
+        "source",
+        "source_id",
+        "source_url",
+        "license_or_terms",
+        "source_version",
+        "raw_sha256",
+        "task_type",
+        "target_column",
+        "n_rows",
+        "n_classes",
+        "class_counts",
+        "ir_majority_minority",
+        "n_min_class",
+        "d_raw",
+        "d_encoded",
+        "feature_type",
+        "has_missing",
+        "has_groups",
+        "has_time_order",
+        "has_duplicates",
+        "leakage_status",
+        "imbalance_band",
+        "eligible",
+        "exclusion_reason",
+        "applicable_conditions",
+        "notes",
+    ]
+    registry = ROOT / "data" / "dataset_registry_v2.csv"
+    with registry.open(encoding="utf-8", newline="") as handle:
+        header = next(csv.reader(handle))
+
+    assert header == expected
